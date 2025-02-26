@@ -67,7 +67,7 @@
         <column xsi:type="varchar" name="policy" nullable="false" length="255" comment="Policy"/>
         <column xsi:type="varchar" name="value_type" nullable="false" length="255" comment="Value Type"/>
         <column xsi:type="varchar" name="value_algorithm" nullable="false" default="" length="50" comment="Value Algorithm"/>
-        <column xsi:type="text" name="value" nullable="false" comment="Value"/>
+        <column xsi:type="varchar" name="value" nullable="false" length="255" comment="Value"/>
         <column xsi:type="varchar" name="store_ids" nullable="false" default="0" length="255" comment="Store IDs"/>
         <column xsi:type="smallint" name="status" nullable="false" default="0" comment="Status"/>
         <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Created At"/>
