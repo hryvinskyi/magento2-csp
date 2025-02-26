@@ -1,4 +1,4 @@
-# Hryvinskyi_Csp Module
+# Advanced Content Security Policy (CSP) module for Magento 2
 
 ## Overview
 
