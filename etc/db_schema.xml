@@ -66,7 +66,7 @@
         <column xsi:type="varchar" name="identifier" nullable="false" length="255" comment="Identifier"/>
         <column xsi:type="varchar" name="policy" nullable="false" length="255" comment="Policy"/>
         <column xsi:type="varchar" name="value_type" nullable="false" length="255" comment="Value Type"/>
-        <column xsi:type="varchar" name="value_algorithm" nullable="true" length="50" comment="Value Algorithm"/>
+        <column xsi:type="varchar" name="value_algorithm" nullable="false" default="" length="50" comment="Value Algorithm"/>
         <column xsi:type="text" name="value" nullable="false" comment="Value"/>
         <column xsi:type="varchar" name="store_ids" nullable="false" default="0" length="255" comment="Store IDs"/>
         <column xsi:type="smallint" name="status" nullable="false" default="0" comment="Status"/>
@@ -75,6 +75,13 @@
 
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="rule_id"/>
+        </constraint>
+
+        <constraint xsi:type="unique" referenceId="HRYVINSKYI_CSP_WHITELIST_POLICY_VALUE_TYPE_VALUE_ALGORITHM_VALUE">
+            <column name="policy"/>
+            <column name="value_type"/>
+            <column name="value_algorithm"/>
+            <column name="value"/>
         </constraint>
 
         <index referenceId="HRYVINSKYI_CSP_WHITELIST_RULE_ID" indexType="btree">

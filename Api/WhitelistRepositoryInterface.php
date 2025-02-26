@@ -55,6 +55,24 @@ interface WhitelistRepositoryInterface
     public function getList(SearchCriteriaInterface $searchCriteria): WhitelistSearchResultsInterface;
 
     /**
+     * Retrieve Whitelist by params.
+     *
+     * @param string $policy
+     * @param string $valueType
+     * @param string $value
+     * @param string $valueAlgorithm
+     *
+     * @return \Hryvinskyi\Csp\Api\Data\WhitelistSearchResultsInterface
+     */
+    public function getWhitelistByParams(
+        string $policy,
+        string $valueType,
+        string $value,
+        string $valueAlgorithm = ''
+    ): WhitelistSearchResultsInterface;
+
+
+    /**
      * Delete Whitelist
      *
      * @param \Hryvinskyi\Csp\Api\Data\WhitelistInterface $whitelist
