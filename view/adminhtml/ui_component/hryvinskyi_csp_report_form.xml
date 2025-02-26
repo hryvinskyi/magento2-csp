@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">hryvinskyi_csp_report_form.report_form_data_source</item>
+            <item name="deps" xsi:type="string">hryvinskyi_csp_report_form.report_form_data_source</item>
+        </item>
+        <item name="label" xsi:type="string" translate="true">General Information</item>
+        <item name="config" xsi:type="array">
+            <item name="dataScope" xsi:type="string">data</item>
+            <item name="namespace" xsi:type="string">hryvinskyi_csp_report_form</item>
+        </item>
+        <item name="template" xsi:type="string">templates/form/collapsible</item>
+        <item name="buttons" xsi:type="array">
+            <item name="back" xsi:type="array">
+                <item name="name" xsi:type="string">back</item>
+                <item name="label" xsi:type="string" translate="true">Back</item>
+                <item name="class" xsi:type="string">back</item>
+                <item name="sort_order" xsi:type="number">50</item>
+                <item name="url" xsi:type="string">*/*/</item>
+            </item>
+        </item>
+    </argument>
+    <dataSource name="report_form_data_source">
+        <argument name="dataProvider" xsi:type="configurableObject">
+            <argument name="class" xsi:type="string">\Hryvinskyi\Csp\Model\Report\DataProvider</argument>
+            <argument name="name" xsi:type="string">report_form_data_source</argument>
+            <argument name="primaryFieldName" xsi:type="string">report_id</argument>
+            <argument name="requestFieldName" xsi:type="string">id</argument>
+        </argument>
+        <argument name="data" xsi:type="array">
+            <item name="js_config" xsi:type="array">
+                <item name="component" xsi:type="string">Magento_Ui/js/form/provider</item>
+            </item>
+        </argument>
+    </dataSource>
+    <fieldset name="general">
+        <settings>
+            <label translate="true">General</label>
+            <collapsible>true</collapsible>
+            <opened>true</opened>
+        </settings>
+
+        <field name="blocked_uri" formElement="input" sortOrder="10">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">report</item>
+                </item>
+            </argument>
+            <settings>
+                <visible>true</visible>
+                <dataType>text</dataType>
+                <label translate="true">Blocked Uri</label>
+                <dataScope>blocked_uri</dataScope>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">false</rule>
+                </validation>
+            </settings>
+        </field>
+
+        <field name="disposition" formElement="input" sortOrder="20">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">report</item>
+                </item>
+            </argument>
+            <settings>
+                <visible>true</visible>
+                <dataType>text</dataType>
+                <label translate="true">Disposition</label>
+                <dataScope>disposition</dataScope>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">false</rule>
+                </validation>
+            </settings>
+        </field>
+
+        <field name="document_uri" formElement="input" sortOrder="30">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">report</item>
+                </item>
+            </argument>
+            <settings>
+                <visible>true</visible>
+                <dataType>text</dataType>
+                <label translate="true">Document Uri</label>
+                <dataScope>document_uri</dataScope>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">false</rule>
+                </validation>
+            </settings>
+        </field>
+
+        <field name="effective_directive" formElement="input" sortOrder="40">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">report</item>
+                </item>
+            </argument>
+            <settings>
+                <visible>true</visible>
+                <dataType>text</dataType>
+                <label translate="true">Effective Directive</label>
+                <dataScope>effective_directive</dataScope>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">false</rule>
+                </validation>
+            </settings>
+        </field>
+
+        <field name="original_policy" formElement="textarea" sortOrder="50">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">report</item>
+                </item>
+            </argument>
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Original Policy</label>
+                <dataScope>original_policy</dataScope>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">false</rule>
+                </validation>
+            </settings>
+        </field>
+
+        <field name="referrer" formElement="input" sortOrder="60">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">report</item>
+                </item>
+            </argument>
+            <settings>
+                <visible>true</visible>
+                <dataType>text</dataType>
+                <label translate="true">Referrer</label>
+                <dataScope>referrer</dataScope>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">false</rule>
+                </validation>
+            </settings>
+        </field>
+
+        <field name="script_sample" formElement="input" sortOrder="70">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">report</item>
+                </item>
+            </argument>
+            <settings>
+                <visible>true</visible>
+                <dataType>text</dataType>
+                <label translate="true">Script Sample</label>
+                <dataScope>script_sample</dataScope>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">false</rule>
+                </validation>
+            </settings>
+        </field>
+
+        <field name="status_code" formElement="input" sortOrder="80">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">report</item>
+                </item>
+            </argument>
+            <settings>
+                <visible>true</visible>
+                <dataType>text</dataType>
+                <label translate="true">Status Code</label>
+                <dataScope>status_code</dataScope>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">false</rule>
+                </validation>
+            </settings>
+        </field>
+
+        <field name="violated_directive" formElement="input" sortOrder="90">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">report</item>
+                </item>
+            </argument>
+            <settings>
+                <visible>true</visible>
+                <dataType>text</dataType>
+                <label translate="true">Violated Directive</label>
+                <dataScope>violated_directive</dataScope>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">false</rule>
+                </validation>
+            </settings>
+        </field>
+
+        <field name="created_at" formElement="input" sortOrder="100">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">report</item>
+                </item>
+            </argument>
+            <settings>
+                <visible>true</visible>
+                <dataType>text</dataType>
+                <label translate="true">Created At</label>
+                <dataScope>created_at</dataScope>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">false</rule>
+                </validation>
+            </settings>
+        </field>
+
+        <field name="updated_at" formElement="input" sortOrder="110">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">report</item>
+                </item>
+            </argument>
+            <settings>
+                <visible>true</visible>
+                <dataType>text</dataType>
+                <label translate="true">Updated At</label>
+                <dataScope>updated_at</dataScope>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">false</rule>
+                </validation>
+            </settings>
+        </field>
+
+        <field name="count" formElement="input" sortOrder="120">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">report</item>
+                </item>
+            </argument>
+            <settings>
+                <visible>true</visible>
+                <dataType>text</dataType>
+                <label translate="true">Count</label>
+                <dataScope>count</dataScope>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">false</rule>
+                </validation>
+            </settings>
+        </field>
+    </fieldset>
+</form>

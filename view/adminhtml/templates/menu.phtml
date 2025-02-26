@@ -1,0 +1,48 @@
+<?php
+/**
+ * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
+ * GitHub: https://github.com/hryvinskyi
+ */
+
+$style = '.page-title-wrapper .page-title {
+    display: none;
+}';
+
+/**
+ * @var \Magento\Framework\View\Helper\SecureHtmlRenderer $secureRenderer
+ * @var \Magento\Backend\Block\Template $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+
+echo $secureRenderer->renderTag('style', [], $style, false);
+?>
+<div class="admin__action-dropdown-wrap mst-core-menu">
+    <button
+        type="button"
+        class="admin__action-dropdown"
+        data-mage-init='{"dropdown":{}}'
+        data-toggle="dropdown"
+        aria-haspopup="true">
+        <i class="fa fa-bars"></i>
+        <span class="admin__action-dropdown-text"><?= __('Content Security Policy'); ?></span>
+    </button>
+
+    <ul class="admin__action-dropdown-menu">
+        <li>
+            <a href="<?= $escaper->escapeUrl($block->getUrl('hryvinskyi_csp/whitelist/index')) ?>">
+                <?php echo $block->escapeHtml('Whitelist') ?>
+            </a>
+        </li>
+        <li>
+            <a href="<?= $escaper->escapeUrl($block->getUrl('hryvinskyi_csp/report/index')) ?>">
+                <?php echo $block->escapeHtml('Violation Report') ?>
+            </a>
+        </li>
+        <li>
+            <a href="<?= $escaper->escapeUrl($block->getUrl('adminhtml/system_config/edit/section/csp')) ?>">
+                <?php echo $block->escapeHtml('Configuration') ?>
+            </a>
+        </li>
+    </ul>
+</div>

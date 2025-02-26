@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
+ * GitHub: https://github.com/hryvinskyi
+ */
+-->
+
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <preference for="Hryvinskyi\Csp\Api\ConfigInterface" type="Hryvinskyi\Csp\Model\Config"/>
+    <preference for="Hryvinskyi\Csp\Api\Data\ReportInterface" type="Hryvinskyi\Csp\Model\Report"/>
+    <preference for="Hryvinskyi\Csp\Api\Data\WhitelistInterface" type="Hryvinskyi\Csp\Model\Whitelist"/>
+    <preference for="Hryvinskyi\Csp\Api\WhitelistRepositoryInterface" type="Hryvinskyi\Csp\Model\WhitelistRepository"/>
+    <preference for="Hryvinskyi\Csp\Api\ReportRepositoryInterface" type="Hryvinskyi\Csp\Model\ReportRepository"/>
+    <preference for="Hryvinskyi\Csp\Api\Data\ReportSearchResultsInterface" type="Hryvinskyi\Csp\Model\ReportSearchResults"/>
+    <preference for="Hryvinskyi\Csp\Api\Data\WhitelistSearchResultsInterface" type="Hryvinskyi\Csp\Model\WhitelistSearchResults"/>
+
+    <preference for="Hryvinskyi\Csp\Api\Whitelist\SearchCriteria\AddActiveFilterInterface" type="Hryvinskyi\Csp\Model\Whitelist\SearchCriteria\AddActiveFilter"/>
+    <preference for="Hryvinskyi\Csp\Api\Whitelist\SearchCriteria\AddStoreFilterInterface" type="Hryvinskyi\Csp\Model\Whitelist\SearchCriteria\AddStoreFilter"/>
+
+    <preference for="Hryvinskyi\Csp\Model\Whitelist\Command\GetAllActiveWhitelistByStoreIdInterface" type="Hryvinskyi\Csp\Model\Whitelist\Command\GetAllActiveWhitelistByStoreId"/>
+    <preference for="Hryvinskyi\Csp\Model\Whitelist\Command\GetListInterface" type="Hryvinskyi\Csp\Model\Whitelist\Command\GetList"/>
+    <preference for="Hryvinskyi\Csp\Model\Report\Command\SaveFromCspReportInterface" type="Hryvinskyi\Csp\Model\Report\Command\SaveFromCspReport"/>
+    <preference for="Hryvinskyi\Csp\Model\Report\Command\CspReportConverterInterface" type="Hryvinskyi\Csp\Model\Report\Command\CspReportConverter"/>
+
+    <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">
+        <arguments>
+            <argument name="collections" xsi:type="array">
+                <item name="hryvinskyi_csp_report_listing_data_source" xsi:type="string">Hryvinskyi\Csp\Model\ResourceModel\Report\Grid\Collection</item>
+                <item name="hryvinskyi_csp_whitelist_listing_data_source" xsi:type="string">Hryvinskyi\Csp\Model\ResourceModel\Whitelist\Grid\Collection</item>
+            </argument>
+        </arguments>
+    </type>
+    <type name="Hryvinskyi\Csp\Model\ResourceModel\Report\Grid\Collection">
+        <arguments>
+            <argument name="mainTable" xsi:type="string">hryvinskyi_csp_violation_report</argument>
+            <argument name="resourceModel" xsi:type="string">Hryvinskyi\Csp\Model\ResourceModel\Report</argument>
+        </arguments>
+    </type>
+    <type name="Hryvinskyi\Csp\Model\ResourceModel\Whitelist\Grid\Collection">
+        <arguments>
+            <argument name="mainTable" xsi:type="string">hryvinskyi_csp_whitelist</argument>
+            <argument name="resourceModel" xsi:type="string">Hryvinskyi\Csp\Model\ResourceModel\Whitelist</argument>
+        </arguments>
+    </type>
+
+
+    <type name="Hryvinskyi\Csp\Model\Config\Source\Algorithm">
+        <arguments>
+            <argument name="algorithms" xsi:type="array">
+                <item name="sha256" xsi:type="string" sortOrder="1" translatable="true">sha256</item>
+                <item name="sha384" xsi:type="string" sortOrder="1" translatable="true">sha384</item>
+                <item name="sha512" xsi:type="string" sortOrder="1" translatable="true">sha512</item>
+            </argument>
+        </arguments>
+    </type>
+    <type name="Hryvinskyi\Csp\Model\Config\Source\Value">
+        <arguments>
+            <argument name="values" xsi:type="array">
+                <item name="host" xsi:type="string" sortOrder="1" translatable="true">host</item>
+                <item name="hash" xsi:type="string" sortOrder="1" translatable="true">hash</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <!-- Caching -->
+    <virtualType name="WhitelistCollectionCacheFetchStrategy" type="Magento\Framework\Data\Collection\Db\FetchStrategy\Cache">
+        <arguments>
+            <argument name="cacheTags" xsi:type="array">
+                <item name="whitelist" xsi:type="string">whitelist_collection</item>
+            </argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="WhitelistCollectionCache" type="Hryvinskyi\Csp\Model\ResourceModel\Whitelist\Collection">
+        <arguments>
+            <argument name="fetchStrategy" xsi:type="object">WhitelistCollectionCacheFetchStrategy</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="WhitelistCollectionCacheFactory" type="Hryvinskyi\Csp\Model\ResourceModel\Whitelist\CollectionFactory">
+        <arguments>
+            <argument name="instanceName" xsi:type="string">WhitelistCollectionCache</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="WhitelistGetListCache" type="Hryvinskyi\Csp\Model\Whitelist\Command\GetList">
+        <arguments>
+            <argument name="collectionFactory" xsi:type="object">WhitelistCollectionCacheFactory</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="WhitelistRepositoryCache" type="Hryvinskyi\Csp\Model\WhitelistRepository">
+        <arguments>
+            <argument name="getList" xsi:type="object">WhitelistGetListCache</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="GetAllActiveWhitelistFromCacheByStoreId" type="Hryvinskyi\Csp\Model\Whitelist\Command\GetAllActiveWhitelistByStoreId">
+        <arguments>
+            <argument name="whitelistRepository" xsi:type="object">WhitelistRepositoryCache</argument>
+        </arguments>
+    </virtualType>
+    <type name="Hryvinskyi\Csp\Model\Collector\WhitelistDbCollector">
+        <arguments>
+            <argument name="getAllActiveWhitelistByStoreId" xsi:type="object">GetAllActiveWhitelistFromCacheByStoreId</argument>
+        </arguments>
+    </type>
+    <!-- // Caching -->
+
+    <virtualType name="Hryvinskyi\Csp\Model\Collector\CspWhitelistXml\Reader" type="Magento\Csp\Model\Collector\CspWhitelistXml\Reader">
+        <arguments>
+            <argument name="converter" xsi:type="object">Hryvinskyi\Csp\Model\Collector\CspWhitelistXml\Converter</argument>
+            <argument name="schemaLocator" xsi:type="object">Magento\Csp\Model\Collector\CspWhitelistXml\SchemaLocator</argument>
+            <argument name="fileResolver" xsi:type="object">Magento\Csp\Model\Collector\CspWhitelistXml\FileResolver</argument>
+            <argument name="fileName" xsi:type="string">csp_whitelist.xml</argument>
+        </arguments>
+    </virtualType>
+    <type name="Magento\Csp\Model\CompositePolicyCollector">
+        <arguments>
+            <argument name="collectors" xsi:type="array">
+                <item name="whitelist_db" xsi:type="object" sortOrder="4">Hryvinskyi\Csp\Model\Collector\WhitelistDbCollector</item>
+                <item name="store_url" xsi:type="object" sortOrder="5">Hryvinskyi\Csp\Model\Collector\StoreUrlCollector</item>
+            </argument>
+        </arguments>
+    </type>
+    <type name="Magento\Framework\App\Response\HttpInterface">
+        <plugin name="fix_send_csp_report" type="Hryvinskyi\Csp\Plugin\Framework\App\Response\HttpInterface\FixSendCspReport"/>
+    </type>
+    <type name="Magento\Framework\App\Config\ScopeConfigInterface">
+        <plugin name="overwrite_csp_config_values" type="Hryvinskyi\Csp\Plugin\Framework\App\Config\ScopeConfigInterface\OverwriteCspConfigValues"/>
+    </type>
+</config>

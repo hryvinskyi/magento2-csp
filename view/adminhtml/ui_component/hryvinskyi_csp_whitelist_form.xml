@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">hryvinskyi_csp_whitelist_form.whitelist_form_data_source</item>
+            <item name="deps" xsi:type="string">hryvinskyi_csp_whitelist_form.whitelist_form_data_source</item>
+        </item>
+        <item name="label" xsi:type="string" translate="true">General Information</item>
+        <item name="config" xsi:type="array">
+            <item name="dataScope" xsi:type="string">data</item>
+            <item name="namespace" xsi:type="string">hryvinskyi_csp_whitelist_form</item>
+        </item>
+        <item name="template" xsi:type="string">templates/form/collapsible</item>
+        <item name="buttons" xsi:type="array">
+            <item name="back" xsi:type="array">
+                <item name="name" xsi:type="string">back</item>
+                <item name="label" xsi:type="string" translate="true">Back</item>
+                <item name="class" xsi:type="string">back</item>
+                <item name="sort_order" xsi:type="number">50</item>
+                <item name="url" xsi:type="string">*/*/</item>
+            </item>
+            <item name="save" xsi:type="array">
+                <item name="name" xsi:type="string">save</item>
+                <item name="label" xsi:type="string" translate="true">Save</item>
+                <item name="class" xsi:type="string">save primary</item>
+                <item name="sort_order" xsi:type="number">100</item>
+                <item name="data_attribute" xsi:type="array">
+                    <item name="mage-init" xsi:type="array">
+                        <item name="button" xsi:type="array">
+                            <item name="event" xsi:type="string">save</item>
+                        </item>
+                    </item>
+                    <item name="form-role" xsi:type="string">save</item>
+                </item>
+            </item>
+            <item name="save_and_continue" xsi:type="array">
+                <item name="name" xsi:type="string">save</item>
+                <item name="label" xsi:type="string" translate="true">Save and Continue Edit</item>
+                <item name="class" xsi:type="string">save</item>
+                <item name="sort_order" xsi:type="number">150</item>
+                <item name="data_attribute" xsi:type="array">
+                    <item name="mage-init" xsi:type="array">
+                        <item name="button" xsi:type="array">
+                            <item name="event" xsi:type="string">saveAndContinueEdit</item>
+                        </item>
+                    </item>
+                </item>
+            </item>
+            <item name="reset" xsi:type="array">
+                <item name="label" xsi:type="string" translate="true">Reset</item>
+                <item name="class" xsi:type="string">reset</item>
+                <item name="on_click" xsi:type="string">location.reload();</item>
+                <item name="sort_order" xsi:type="number">200</item>
+            </item>
+        </item>
+    </argument>
+    <dataSource name="whitelist_form_data_source">
+        <argument name="dataProvider" xsi:type="configurableObject">
+            <argument name="class" xsi:type="string">\Hryvinskyi\Csp\Model\Whitelist\FormDataProvider</argument>
+            <argument name="name" xsi:type="string">whitelist_form_data_source</argument>
+            <argument name="primaryFieldName" xsi:type="string">rule_id</argument>
+            <argument name="requestFieldName" xsi:type="string">id</argument>
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="submit_url" xsi:type="url" path="hryvinskyi_csp/whitelist/save"/>
+                </item>
+            </argument>
+        </argument>
+        <argument name="data" xsi:type="array">
+            <item name="js_config" xsi:type="array">
+                <item name="component" xsi:type="string">Magento_Ui/js/form/provider</item>
+            </item>
+        </argument>
+    </dataSource>
+    <fieldset name="general">
+        <argument name="data" xsi:type="array">
+            <item name="config" xsi:type="array">
+                <item name="label" xsi:type="string">General</item>
+                <item name="collapsible" xsi:type="boolean">true</item>
+                <item name="opened" xsi:type="boolean">true</item>
+                <item name="sortOrder" xsi:type="number">10</item>
+            </item>
+        </argument>
+        <field name="identifier" formElement="input" sortOrder="10">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">whitelist</item>
+                </item>
+            </argument>
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Identifier</label>
+                <dataScope>identifier</dataScope>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                </validation>
+            </settings>
+        </field>
+        <field name="status" formElement="checkbox" sortOrder="20">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">slider</item>
+                    <item name="default" xsi:type="number">0</item>
+                </item>
+            </argument>
+            <settings>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                </validation>
+                <dataType>boolean</dataType>
+                <label translate="true">Status</label>
+            </settings>
+            <formElements>
+                <checkbox>
+                    <settings>
+                        <valueMap>
+                            <map name="false" xsi:type="number">0</map>
+                            <map name="true" xsi:type="number">1</map>
+                        </valueMap>
+                        <prefer>toggle</prefer>
+                    </settings>
+                </checkbox>
+            </formElements>
+        </field>
+        <field name="policy" formElement="select" sortOrder="30">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">whitelist</item>
+                </item>
+            </argument>
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Policy</label>
+                <dataScope>policy</dataScope>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                </validation>
+            </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="Hryvinskyi\Csp\Model\Config\Source\Directive"/>
+                    </settings>
+                </select>
+            </formElements>
+        </field>
+        <field name="value_type" formElement="select" sortOrder="40">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">whitelist</item>
+                </item>
+            </argument>
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Value type</label>
+                <dataScope>value_type</dataScope>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                </validation>
+                <switcherConfig>
+                    <rules>
+                        <rule name="0">
+                            <value>host</value>
+                            <actions>
+                                <action name="0">
+                                    <target>hryvinskyi_csp_whitelist_form.hryvinskyi_csp_whitelist_form.general.value_algorithm</target>
+                                    <callback>hide</callback>
+                                </action>
+                                <action name="1">
+                                    <target>hryvinskyi_csp_whitelist_form.hryvinskyi_csp_whitelist_form.general.value_algorithm</target>
+                                    <callback>setValidation</callback>
+                                    <params>
+                                        <param name="0" xsi:type="string">required-entry</param>
+                                        <param name="1" xsi:type="string">false</param>
+                                    </params>
+                                </action>
+                                <action name="2">
+                                    <target>hryvinskyi_csp_whitelist_form.hryvinskyi_csp_whitelist_form.general.value_algorithm</target>
+                                    <callback>value</callback>
+                                    <params>
+                                        <param name="0" xsi:type="string"></param>
+                                    </params>
+                                </action>
+                            </actions>
+                        </rule>
+                        <rule name="1">
+                            <value>hash</value>
+                            <actions>
+                                <action name="0">
+                                    <target>hryvinskyi_csp_whitelist_form.hryvinskyi_csp_whitelist_form.general.value_algorithm</target>
+                                    <callback>show</callback>
+                                </action>
+                                <action name="1">
+                                    <target>hryvinskyi_csp_whitelist_form.hryvinskyi_csp_whitelist_form.general.value_algorithm</target>
+                                    <callback>setValidation</callback>
+                                    <params>
+                                        <param name="0" xsi:type="string">required-entry</param>
+                                        <param name="1" xsi:type="string">true</param>
+                                    </params>
+                                </action>
+                                <action name="2">
+                                    <target>hryvinskyi_csp_whitelist_form.hryvinskyi_csp_whitelist_form.general.value_algorithm</target>
+                                    <callback>value</callback>
+                                    <params>
+                                        <param name="0" xsi:type="string">sha256</param>
+                                    </params>
+                                </action>
+                            </actions>
+                        </rule>
+                    </rules>
+                    <enabled>true</enabled>
+                </switcherConfig>
+            </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="Hryvinskyi\Csp\Model\Config\Source\Value"/>
+                    </settings>
+                </select>
+            </formElements>
+        </field>
+        <field name="value_algorithm" formElement="select" sortOrder="50">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">whitelist</item>
+                </item>
+            </argument>
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Value Algorithm</label>
+                <dataScope>value_algorithm</dataScope>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">false</rule>
+                </validation>
+            </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="Hryvinskyi\Csp\Model\Config\Source\Algorithm"/>
+                    </settings>
+                </select>
+            </formElements>
+        </field>
+        <field name="value" formElement="textarea" sortOrder="60">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Value</label>
+                <dataScope>value</dataScope>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                </validation>
+            </settings>
+        </field>
+        <field name="store_ids" formElement="multiselect" class="Magento\Store\Ui\Component\Form\Field\StoreView" sortOrder="70">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">whitelist</item>
+                    <item name="default" xsi:type="number">0</item>
+                </item>
+            </argument>
+            <settings>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                </validation>
+                <dataType>int</dataType>
+                <tooltip>
+                    <link>https://docs.magento.com/user-guide/configuration/scope.html</link>
+                    <description>What is this?</description>
+                </tooltip>
+                <label translate="true">Store View</label>
+                <dataScope>store_ids</dataScope>
+            </settings>
+            <formElements>
+                <multiselect>
+                    <settings>
+                        <options class="Magento\Cms\Ui\Component\Listing\Column\Cms\Options"/>
+                    </settings>
+                </multiselect>
+            </formElements>
+        </field>
+    </fieldset>
+</form>

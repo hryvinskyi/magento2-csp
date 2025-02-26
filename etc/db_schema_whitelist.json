@@ -1,0 +1,58 @@
+{
+  "hryvinskyi_csp_report": {
+    "column": {
+      "report_id": true,
+      "blocked_uri": true,
+      "disposition": true,
+      "document_uri": true,
+      "effective_directive": true,
+      "original_policy": true,
+      "referrer": true,
+      "script_sample": true,
+      "status_code": true,
+      "violated_directive": true,
+      "created_at": true,
+      "updated_at": true,
+      "source_file": true,
+      "line_number": true,
+      "count": true
+    },
+    "index": {
+      "HRYVINSKYI_CSP_REPORT_REPORT_ID": true,
+      "HRYVINSKYI_CSP_REPORT_DOCUMENT_URI_BLOCKED_URI_EFFECTIVE_DIRECTIVE": true,
+      "HRYVINSKYI_CSP_REPORT_BLOCKED_URI": true,
+      "HRYVINSKYI_CSP_REPORT_DISPOSITION": true,
+      "HRYVINSKYI_CSP_REPORT_DOCUMENT_URI": true,
+      "HRYVINSKYI_CSP_REPORT_EFFECTIVE_DIRECTIVE": true,
+      "HRYVINSKYI_CSP_REPORT_REFERRER": true,
+      "HRYVINSKYI_CSP_REPORT_FULLTEXT": true
+    },
+    "constraint": {
+      "PRIMARY": true
+    }
+  },
+  "hryvinskyi_csp_whitelist": {
+    "column": {
+      "rule_id": true,
+      "identifier": true,
+      "policy": true,
+      "value_type": true,
+      "value_algorithm": true,
+      "value": true,
+      "store_ids": true,
+      "created_at": true,
+      "updated_at": true,
+      "status": true
+    },
+    "index": {
+      "HRYVINSKYI_CSP_WHITELIST_RULE_ID": true,
+      "HRYVINSKYI_CSP_WHITELIST_IDENTIFIER": true,
+      "HRYVINSKYI_CSP_WHITELIST_VALUE": true,
+      "HRYVINSKYI_CSP_WHITELIST_STORE_IDS": true,
+      "HRYVINSKYI_CSP_WHITELIST_FULLTEXT": true
+    },
+    "constraint": {
+      "PRIMARY": true
+    }
+  }
+}

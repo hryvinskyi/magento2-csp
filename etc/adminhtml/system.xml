@@ -1,0 +1,67 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
+ * GitHub: https://github.com/hryvinskyi
+ */
+-->
+
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <section id="csp">
+            <group id="general" translate="label" type="text" sortOrder="0" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>General</label>
+                <field id="enabled_rules" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="0">
+                    <label>Enable rules management</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>
+                        <![CDATA[CSP whitelist rules are defined in System > Content Security Policy > Whitelist. These rules will be merged with those defined in csp_whitelist.xml files.]]>
+                    </comment>
+                </field>
+                <field id="enabled_reports" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="0" showInStore="0" canRestore="0">
+                    <label>Enable violation reports</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>
+                        <![CDATA[CSP violation reports will be collected in System > Content Security Policy > Violation Reports<br/>You can convert these reports into a whitelist rule.]]>
+                    </comment>
+                </field>
+                <field id="enable_restrict_mode_adminhtml" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="0" showInStore="0" canRestore="0">
+                    <label>Enable restrict mode (adminhtml)</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>
+                        <![CDATA[CSP rules will be enforced and external resources that are not listed in your whitelist will be blocked by your visitors' browser.<br><strong>Please ensure you have allowed reCAPTCHA's script if you have it configured, otherwise you won't be able to log in to your backoffice.</strong>]]>
+                    </comment>
+                </field>
+                <field id="enable_restrict_mode_frontend" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="0">
+                    <label>Enable restrict mode (frontend)</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>
+                        <![CDATA[CSP rules will be enforced and external resources that are not listed in your whitelist will be blocked by your visitors' browser.]]>
+                    </comment>
+                </field>
+                <field id="add_all_storefront_urls" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="0" showInStore="0" canRestore="0">
+                    <label>Add all storefront URLs</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>
+                        <![CDATA[Automatically add all your storefront URLs to the whitelist.]]>
+                    </comment>
+                </field>
+            </group>
+            <group id="mode">
+                <group id="admin">
+                    <field id="report_uri" type="text" showInDefault="0" showInWebsite="0" showInStore="0"/>
+                </group>
+                <group id="storefront">
+                    <field id="report_uri" type="text" showInDefault="0" showInWebsite="0" showInStore="0"/>
+                </group>
+                <group id="admin_sales_order_create_index">
+                    <field id="report_uri" type="text" showInDefault="0" showInWebsite="0" showInStore="0"/>
+                </group>
+                <group id="storefront_checkout_index_index">
+                    <field id="report_uri" type="text" showInDefault="0" showInWebsite="0" showInStore="0"/>
+                </group>
+            </group>
+        </section>
+    </system>
+</config>

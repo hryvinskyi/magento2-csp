@@ -1,0 +1,102 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
+ * GitHub: https://github.com/hryvinskyi
+ */
+-->
+
+<schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
+    <table name="hryvinskyi_csp_violation_report" resource="default" engine="innodb"
+           comment="Violation report records of CSP problems from the frontend">
+        <column xsi:type="int" name="report_id" padding="11" unsigned="true" nullable="false" identity="true" comment="Report ID"/>
+        <column xsi:type="varchar" name="blocked_uri" nullable="false" default="" length="255" comment="Blocked Uri"/>
+        <column xsi:type="varchar" name="disposition" nullable="true" length="255" comment="Disposition"/>
+        <column xsi:type="varchar" name="document_uri" nullable="false" default="" length="255" comment="Document Uri"/>
+        <column xsi:type="varchar" name="effective_directive" nullable="false" default="" length="255" comment="Effective Directive"/>
+        <column xsi:type="text" name="original_policy" nullable="true" comment="Original Policy"/>
+        <column xsi:type="varchar" name="referrer" nullable="true" length="255" comment="Referrer"/>
+        <column xsi:type="varchar" name="script_sample" nullable="true" length="255" comment="Script Sample"/>
+        <column xsi:type="varchar" name="status_code" nullable="true" length="255" comment="Status Code"/>
+        <column xsi:type="varchar" name="violated_directive" nullable="true" length="255" comment="Violated Directive"/>
+        <column xsi:type="varchar" name="source_file" nullable="true" length="255" comment="Source File"/>
+        <column xsi:type="int" name="line_number" nullable="true" padding="11" comment="Line Number"/>
+        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Created At"/>
+        <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP" comment="Updated At"/>
+        <column xsi:type="bigint" name="count" nullable="false" default="1" comment="Number of occurrences"/>
+
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="report_id"/>
+        </constraint>
+
+        <constraint xsi:type="unique" referenceId="HRYVINSKYI_CSP_REPORT_BLOCKED_URI_DOCUMENT_URI_EFFECTIVE_DIRECTIVE">
+            <column name="blocked_uri"/>
+            <column name="document_uri"/>
+            <column name="effective_directive"/>
+        </constraint>
+
+        <index referenceId="HRYVINSKYI_CSP_REPORT_REPORT_ID" indexType="btree">
+            <column name="report_id"/>
+        </index>
+        <index referenceId="HRYVINSKYI_CSP_REPORT_DISPOSITION" indexType="btree">
+            <column name="disposition"/>
+        </index>
+        <index referenceId="HRYVINSKYI_CSP_REPORT_REFERRER" indexType="btree">
+            <column name="referrer"/>
+        </index>
+
+        <index referenceId="HRYVINSKYI_CSP_REPORT_FULLTEXT" indexType="fulltext">
+            <column name="blocked_uri"/>
+            <column name="disposition"/>
+            <column name="document_uri"/>
+            <column name="effective_directive"/>
+            <column name="original_policy"/>
+            <column name="referrer"/>
+            <column name="script_sample"/>
+            <column name="status_code"/>
+            <column name="violated_directive"/>
+            <column name="source_file"/>
+        </index>
+    </table>
+
+    <table name="hryvinskyi_csp_whitelist" resource="default" engine="innodb" comment="Csp Whitelist">
+        <column xsi:type="int" name="rule_id" padding="10" unsigned="true" nullable="false" identity="true" comment="Rule ID"/>
+        <column xsi:type="varchar" name="identifier" nullable="false" length="255" comment="Identifier"/>
+        <column xsi:type="varchar" name="policy" nullable="false" length="255" comment="Policy"/>
+        <column xsi:type="varchar" name="value_type" nullable="false" length="255" comment="Value Type"/>
+        <column xsi:type="varchar" name="value_algorithm" nullable="true" length="50" comment="Value Algorithm"/>
+        <column xsi:type="text" name="value" nullable="false" comment="Value"/>
+        <column xsi:type="varchar" name="store_ids" nullable="false" default="0" length="255" comment="Store IDs"/>
+        <column xsi:type="smallint" name="status" nullable="false" default="0" comment="Status"/>
+        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Created At"/>
+        <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP" comment="Updated At"/>
+
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="rule_id"/>
+        </constraint>
+
+        <index referenceId="HRYVINSKYI_CSP_WHITELIST_RULE_ID" indexType="btree">
+            <column name="rule_id"/>
+        </index>
+        <index referenceId="HRYVINSKYI_CSP_WHITELIST_IDENTIFIER" indexType="btree">
+            <column name="identifier"/>
+        </index>
+        <index referenceId="HRYVINSKYI_CSP_WHITELIST_VALUE" indexType="btree">
+            <column name="value"/>
+        </index>
+        <index referenceId="HRYVINSKYI_CSP_WHITELIST_STORE_IDS" indexType="btree">
+            <column name="store_ids"/>
+        </index>
+
+        <index referenceId="HRYVINSKYI_CSP_WHITELIST_FULLTEXT" indexType="fulltext">
+            <column name="identifier"/>
+            <column name="policy"/>
+            <column name="value_type"/>
+            <column name="value_algorithm"/>
+            <column name="value"/>
+            <column name="store_ids"/>
+        </index>
+    </table>
+</schema>
