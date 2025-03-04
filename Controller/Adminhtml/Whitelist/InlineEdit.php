@@ -13,6 +13,8 @@ use Hryvinskyi\Csp\Api\Data\WhitelistInterface;
 use Hryvinskyi\Csp\Api\WhitelistRepositoryInterface;
 use Magento\Backend\App\Action;
 use Magento\Framework\Api\DataObjectHelper;
+use Magento\Framework\App\Cache\Type\Collection;
+use Magento\PageCache\Model\Cache\Type;
 
 /**
  * @method \Magento\Framework\App\Request\Http getRequest()
