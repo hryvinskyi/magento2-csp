@@ -10,20 +10,18 @@ declare(strict_types=1);
 namespace Hryvinskyi\Csp\Controller\Adminhtml\Report;
 
 use Hryvinskyi\Csp\Api\ReportRepositoryInterface;
-use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
-use Magento\Framework\Controller\ResultFactory;
+use Magento\Framework\Controller\ResultInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
 
 /**
- * @method \Magento\Framework\App\Request\Http getRequest()
- * @method \Magento\Framework\App\Response\Http getResponse()
+ * View controller to show report details
  */
-class View extends Action
+class View extends AbstractReport
 {
     public function __construct(
         Context $context,
-        private readonly ReportRepositoryInterface $entityRepository
+        private readonly ReportRepositoryInterface $reportRepository
     ) {
         parent::__construct($context);
     }
@@ -31,28 +29,21 @@ class View extends Action
     /**
      * @inheritdoc
      */
-    public function execute()
+    public function execute(): ResultInterface
     {
         $id = $this->getRequest()->getParam('id');
 
         if ($id === null) {
-            return $this->resultFactory->create(ResultFactory::TYPE_PAGE);
+            return $this->createPageResult();
         }
 
         try {
-            $this->entityRepository->getById((int)$id);
+            $this->reportRepository->getById((int)$id);
         } catch (NoSuchEntityException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
-
-            return $this->resultRedirectFactory->create()->setPath('*/*/');
+            return $this->createRedirectResult('*/*/');
         }
 
-        $resultPage = $this->resultFactory->create(ResultFactory::TYPE_PAGE);
-        $resultPage->getConfig()->getTitle()->prepend(__("Content Security Policy - Violation Report"));
-        $resultPage->setActiveMenu('Hryvinskyi_Csp::violation_report');
-        $resultPage->addBreadcrumb(__('Violation Report'), __('Violation Report'));
-        $resultPage->addBreadcrumb(__('Content Security Policy'), __('Content Security Policy'));
-
-        return $resultPage;
+        return $this->createPageResult();
     }
 }

@@ -9,32 +9,34 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Controller\Adminhtml\Report;
 
-use Hryvinskyi\Csp\Api\ReportRepositoryInterface;
-use Hryvinskyi\Csp\Api\WhitelistRepositoryInterface;
 use Hryvinskyi\Csp\Model\Report\Command\CspReportConverterInterface;
 use Hryvinskyi\Csp\Model\ResourceModel\Report\CollectionFactory;
-use Magento\Backend\App\Action;
-use Magento\Framework\App\Cache\Type\Collection;
-use Magento\Framework\Controller\ResultFactory;
+use Hryvinskyi\Csp\Model\Cache\CacheCleanerInterface;
+use Hryvinskyi\Csp\Model\Whitelist\MassConvertManagerInterface;
 use Magento\Backend\App\Action\Context;
-use Magento\PageCache\Model\Cache\Type;
+use Magento\Framework\Controller\ResultInterface;
 use Magento\Ui\Component\MassAction\Filter;
 
 /**
- * @method \Magento\Framework\App\Request\Http getRequest()
- * @method \Magento\Framework\App\Response\Http getResponse()
+ * Mass convert controller for converting multiple reports to whitelist
  */
-class MassConvert extends Action
+class MassConvert extends AbstractReport
 {
+    /**
+     * @param Context $context
+     * @param Filter $filter
+     * @param CollectionFactory $collectionFactory
+     * @param CspReportConverterInterface $cspReportConverter
+     * @param CacheCleanerInterface $cacheCleaner
+     * @param MassConvertManagerInterface $massConvertManager
+     */
     public function __construct(
         Context $context,
         private readonly Filter $filter,
-        private readonly CollectionFactory $entityCollectionFactory,
-        private readonly ReportRepositoryInterface $entityRepository,
-        private readonly WhitelistRepositoryInterface $whitelistRepository,
+        private readonly CollectionFactory $collectionFactory,
         private readonly CspReportConverterInterface $cspReportConverter,
-        private readonly Collection $cacheTypeCollection,
-        private readonly Type $cacheType
+        private readonly CacheCleanerInterface $cacheCleaner,
+        private readonly MassConvertManagerInterface $massConvertManager
     ) {
         parent::__construct($context);
     }
@@ -42,39 +44,13 @@ class MassConvert extends Action
     /**
      * @inheritdoc
      */
-    public function execute()
+    public function execute(): ResultInterface
     {
-        $collection = $this->filter->getCollection($this->entityCollectionFactory->create());
+        $collection = $this->filter->getCollection($this->collectionFactory->create());
+        $count = $this->massConvertManager->convertReports($collection, $this->cspReportConverter);
+        $this->cacheCleaner->cleanCaches();
+        $this->messageManager->addSuccessMessage(__('A total of %1 record(s) have been converted.', $count));
 
-        foreach ($collection as $entity) {
-            $newWhitelist = $this->cspReportConverter->convert($entity);
-
-            $whitelist = $this->whitelistRepository->getWhitelistByParams(
-                (string)$newWhitelist->getPolicy(),
-                (string)$newWhitelist->getValueType(),
-                (string)$newWhitelist->getValue(),
-                (string)$newWhitelist->getValueAlgorithm(),
-            );
-
-            if ($whitelist->getTotalCount() > 0) {
-                $this->entityRepository->delete($entity);
-                continue;
-            }
-
-            $this->whitelistRepository->save($newWhitelist);
-            $this->entityRepository->delete($entity);
-        }
-
-        $this->cacheTypeCollection->clean();
-        $this->cacheType->clean();
-
-        $this->messageManager->addSuccessMessage(
-            __('A total of %1 record(s) have been converted.', $collection->count())
-        );
-
-        /** @var \Magento\Backend\Model\View\Result\Redirect $resultRedirect */
-        $resultRedirect = $this->resultFactory->create(ResultFactory::TYPE_REDIRECT);
-
-        return $resultRedirect->setPath('*/*/');
+        return $this->createRedirectResult('*/*/');
     }
 }

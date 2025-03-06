@@ -48,6 +48,25 @@
         </argument>
         <bookmark name="bookmarks"/>
         <columnsControls name="columns_controls"/>
+        <button name="import_button">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="buttonClasses" xsi:type="string">import-button</item>
+                    <item name="component" xsi:type="string">Hryvinskyi_Csp/js/grid/import</item>
+                    <item name="displayArea" xsi:type="string">dataGridActions</item>
+                    <item name="title" xsi:type="string" translate="true">Import</item>
+                    <item name="url" xsi:type="url" path="hryvinskyi_csp/whitelist/import"/>
+                    <item name="visible" xsi:type="boolean">true</item>
+                </item>
+            </argument>
+        </button>
+        <exportButton name="export_button">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="selectProvider" xsi:type="string">hryvinskyi_csp_whitelist_listing.hryvinskyi_csp_whitelist_listing.hryvinskyi_csp_whitelist_columns.ids</item>
+                </item>
+            </argument>
+        </exportButton>
         <filterSearch name="fulltext"/>
         <filters name="listing_filters">
             <argument name="data" xsi:type="array">
@@ -85,9 +104,7 @@
                         <item name="type" xsi:type="string">edit</item>
                         <item name="label" xsi:type="string" translate="true">Edit</item>
                         <item name="callback" xsi:type="array">
-                            <item name="provider" xsi:type="string">
-                                hryvinskyi_csp_whitelist_listing.hryvinskyi_csp_whitelist_listing.hryvinskyi_csp_whitelist_columns_editor
-                            </item>
+                            <item name="provider" xsi:type="string">hryvinskyi_csp_whitelist_listing.hryvinskyi_csp_whitelist_listing.hryvinskyi_csp_whitelist_columns_editor</item>
                             <item name="target" xsi:type="string">editSelected</item>
                         </item>
                     </item>
@@ -100,9 +117,7 @@
         <argument name="data" xsi:type="array">
             <item name="config" xsi:type="array">
                 <item name="editorConfig" xsi:type="array">
-                    <item name="selectProvider" xsi:type="string">
-                        hryvinskyi_csp_whitelist_listing.hryvinskyi_csp_whitelist_listing.hryvinskyi_csp_whitelist_columns.ids
-                    </item>
+                    <item name="selectProvider" xsi:type="string">hryvinskyi_csp_whitelist_listing.hryvinskyi_csp_whitelist_listing.hryvinskyi_csp_whitelist_columns.ids</item>
                     <item name="enabled" xsi:type="boolean">true</item>
                     <item name="indexField" xsi:type="string">rule_id</item>
                     <item name="clientConfig" xsi:type="array">
@@ -148,6 +163,26 @@
                     <editorType>text</editorType>
                 </editor>
                 <label translate="true">Identifier</label>
+            </settings>
+        </column>
+        <column name="status" component="Magento_Ui/js/grid/columns/select">
+            <settings>
+                <options>
+                    <option name="0" xsi:type="array">
+                        <item name="value" xsi:type="number">0</item>
+                        <item name="label" xsi:type="string">Disabled</item>
+                    </option>
+                    <option name="1" xsi:type="array">
+                        <item name="value" xsi:type="number">1</item>
+                        <item name="label" xsi:type="string">Enabled</item>
+                    </option>
+                </options>
+                <filter>select</filter>
+                <editor>
+                    <editorType>select</editorType>
+                </editor>
+                <dataType>select</dataType>
+                <label translate="true">Status</label>
             </settings>
         </column>
         <column name="policy" component="Magento_Ui/js/grid/columns/select">

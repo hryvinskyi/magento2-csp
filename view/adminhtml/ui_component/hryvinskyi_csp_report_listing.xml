@@ -33,6 +33,13 @@
         </argument>
         <bookmark name="bookmarks"/>
         <columnsControls name="columns_controls"/>
+        <exportButton name="export_button">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="selectProvider" xsi:type="string">hryvinskyi_csp_report_listing.hryvinskyi_csp_report_listing.hryvinskyi_csp_report_columns.ids</item>
+                </item>
+            </argument>
+        </exportButton>
         <filterSearch name="fulltext"/>
         <filters name="listing_filters">
             <argument name="data" xsi:type="array">
@@ -124,6 +131,62 @@
             <settings>
                 <filter>text</filter>
                 <label translate="true">Blocked Uri</label>
+            </settings>
+        </column>
+        <column name="disposition">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Disposition</label>
+                <visible>false</visible>
+            </settings>
+        </column>
+        <column name="original_policy">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Original Policy</label>
+                <visible>false</visible>
+            </settings>
+        </column>
+        <column name="referrer">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Referrer</label>
+                <visible>false</visible>
+            </settings>
+        </column>
+        <column name="script_sample">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Script Sample</label>
+                <visible>false</visible>
+            </settings>
+        </column>
+        <column name="status_code">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Status Code</label>
+                <visible>false</visible>
+            </settings>
+        </column>
+        <column name="violated_directive">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Violated Directive</label>
+                <visible>false</visible>
+            </settings>
+        </column>
+        <column name="source_file">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Source File</label>
+                <visible>false</visible>
+            </settings>
+        </column>
+        <column name="line_number">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Line Number</label>
+                <visible>false</visible>
             </settings>
         </column>
         <column name="created_at" class="Magento\Ui\Component\Listing\Columns\Date" component="Magento_Ui/js/grid/columns/date">

@@ -1,0 +1,17 @@
+<!--
+  ~ Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+  ~ Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
+  ~ GitHub: https://github.com/hryvinskyi
+  -->
+
+<div class="admin__action-dropdown-wrap admin__data-grid-action-export admin__data-grid-action-import" >
+    <button class="admin__action-dropdown" type="button" data-bind="{event: {click: showImportForm}, attr: {title: $t('Import')}}">
+        <!-- ko i18n: title --><!-- /ko -->
+    </button>
+</div>
+<style>
+    .admin__data-grid-action-import .admin__action-dropdown {padding: 0.7rem 1.5rem 0.8rem 1.5rem}
+    .admin__data-grid-action-import .admin__action-dropdown:after {display: none;}
+    .admin__data-grid-action-import .admin__action-dropdown:before {content: '\e636'}
+    .import-modal .modal-inner-wrap {max-width: 500px;}
+</style>

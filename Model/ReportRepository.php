@@ -10,6 +10,9 @@ declare(strict_types=1);
 namespace Hryvinskyi\Csp\Model;
 
 use Hryvinskyi\Csp\Model\Report\Command\SaveFromCspReportInterface;
+use Magento\Framework\Api\FilterFactory;
+use Magento\Framework\Api\Search\FilterGroupFactory;
+use Magento\Framework\Api\Search\SearchCriteriaBuilder;
 use Magento\Framework\Api\SearchCriteria\CollectionProcessorInterface;
 use Magento\Framework\Api\SearchCriteriaInterface;
 use Magento\Framework\Exception\LocalizedException;
@@ -32,7 +35,10 @@ class ReportRepository implements ReportRepositoryInterface
         private readonly CollectionFactory $collectionFactory,
         private readonly ReportSearchResultsInterfaceFactory $searchResultFactory,
         private readonly CollectionProcessorInterface $collectionProcessor,
-        private readonly SaveFromCspReportInterface $saveFromCspReport
+        private readonly SaveFromCspReportInterface $saveFromCspReport,
+        private readonly SearchCriteriaBuilder $searchCriteriaBuilder,
+        private readonly FilterGroupFactory $filterGroupFactory,
+        private readonly FilterFactory $filterFactory
     ) {
     }
 
@@ -116,6 +122,46 @@ class ReportRepository implements ReportRepositoryInterface
             $this->resource->delete($report);
         } catch (\Exception $exception) {
             throw new CouldNotDeleteException(__($exception->getMessage()));
+        }
+
+        return true;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function deleteByDomainAndPolicy(string $domain, string $policy): bool
+    {
+        $filterHttpsDomain = $this->filterFactory->create()
+            ->setField(ReportInterface::BLOCKED_URI)
+            ->setConditionType('like')
+            ->setValue('https://' . $domain . '%');
+
+        $filterHttpDomain = $this->filterFactory->create()
+            ->setField(ReportInterface::BLOCKED_URI)
+            ->setConditionType('like')
+            ->setValue('http://' . $domain . '%');
+
+        $filterWssDomain = $this->filterFactory->create()
+            ->setField(ReportInterface::BLOCKED_URI)
+            ->setConditionType('like')
+            ->setValue('wss://' . $domain . '%');
+
+        $filterPolicy = $this->filterFactory->create()
+            ->setField(ReportInterface::EFFECTIVE_DIRECTIVE)
+            ->setConditionType('eq')
+            ->setValue($policy);
+
+        $searchCriteria = $this->searchCriteriaBuilder->create()
+            ->setFilterGroups([
+                $this->filterGroupFactory->create()
+                    ->setFilters([$filterHttpsDomain, $filterHttpDomain, $filterWssDomain]),
+                $this->filterGroupFactory->create()
+                    ->setFilters([$filterPolicy])
+            ]);
+
+        foreach ($this->getList($searchCriteria)->getItems() as $report) {
+            $this->delete($report);
         }
 
         return true;

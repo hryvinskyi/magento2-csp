@@ -10,18 +10,21 @@ declare(strict_types=1);
 namespace Hryvinskyi\Csp\Controller\Adminhtml\Report;
 
 use Hryvinskyi\Csp\Api\ReportRepositoryInterface;
-use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
+use Magento\Framework\Controller\ResultInterface;
 
 /**
- * @method \Magento\Framework\App\Request\Http getRequest()
- * @method \Magento\Framework\App\Response\Http getResponse()
+ * Delete controller for deleting a single report
  */
-class Delete extends Action
+class Delete extends AbstractReport
 {
+    /**
+     * @param Context $context
+     * @param ReportRepositoryInterface $reportRepository
+     */
     public function __construct(
         Context $context,
-        private readonly ReportRepositoryInterface $entityRepository
+        private readonly ReportRepositoryInterface $reportRepository,
     ) {
         parent::__construct($context);
     }
@@ -29,25 +32,23 @@ class Delete extends Action
     /**
      * @inheritdoc
      */
-    public function execute()
+    public function execute(): ResultInterface
     {
-        /** @var \Magento\Backend\Model\View\Result\Redirect $resultRedirect */
-        $resultRedirect = $this->resultRedirectFactory->create();
+        $resultRedirect = $this->createRedirectResult('*/*/');
         $id = $this->getRequest()->getParam('id');
+
         if ($id === null) {
-            $this->messageManager->addErrorMessage(__('We can\'t find an report to delete.'));
-
-            return $resultRedirect->setPath('*/*/');
+            $this->messageManager->addErrorMessage(__('We can\'t find a report to delete.'));
+            return $resultRedirect;
         }
-        try {
-            $this->entityRepository->deleteById($id);
-            $this->messageManager->addSuccessMessage(__('Report has been deleted.'));
 
-            return $resultRedirect->setPath('*/*/');
+        try {
+            $this->reportRepository->deleteById((int)$id);
+            $this->messageManager->addSuccessMessage(__('Report has been deleted.'));
+            return $resultRedirect;
         } catch (\Exception $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
-
-            return $resultRedirect->setPath('*/*/edit', ['id' => $id]);
+            return $this->createRedirectResult('*/*/edit', ['id' => $id]);
         }
     }
 }

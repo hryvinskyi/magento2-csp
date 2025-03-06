@@ -9,24 +9,18 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Controller\Adminhtml\Report;
 
-use Magento\Framework\Controller\ResultFactory;
+use Magento\Framework\Controller\ResultInterface;
 
 /**
- * @method \Magento\Framework\App\Request\Http getRequest()
- * @method \Magento\Framework\App\Response\Http getResponse()
+ * Index controller for listing reports
  */
-class Index extends \Magento\Backend\App\Action
+class Index extends AbstractReport
 {
     /**
      * @inheritdoc
      */
-    public function execute()
+    public function execute(): ResultInterface
     {
-        $resultPage = $this->resultFactory->create(ResultFactory::TYPE_PAGE);
-        $resultPage->getConfig()->getTitle()->prepend(__("Content Security Policy - Violation Report"));
-        $resultPage->setActiveMenu('Hryvinskyi_Csp::violation_report');
-        $resultPage->addBreadcrumb(__('Violation Report'), __('Violation Report'));
-        $resultPage->addBreadcrumb(__('Content Security Policy'), __('Content Security Policy'));
-        return $resultPage;
+        return $this->createPageResult();
     }
 }

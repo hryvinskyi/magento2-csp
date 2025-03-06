@@ -12,24 +12,30 @@ namespace Hryvinskyi\Csp\Controller\Adminhtml\Report;
 use Hryvinskyi\Csp\Api\ReportRepositoryInterface;
 use Hryvinskyi\Csp\Api\WhitelistRepositoryInterface;
 use Hryvinskyi\Csp\Model\Report\Command\CspReportConverterInterface;
-use Magento\Backend\App\Action;
+use Hryvinskyi\Csp\Model\Cache\CacheCleanerInterface;
+use Hryvinskyi\Csp\Model\Whitelist\WhitelistManagerInterface;
 use Magento\Backend\App\Action\Context;
-use Magento\Framework\App\Cache\Type\Collection;
-use Magento\PageCache\Model\Cache\Type;
+use Magento\Framework\Controller\ResultInterface;
 
 /**
- * @method \Magento\Framework\App\Request\Http getRequest()
- * @method \Magento\Framework\App\Response\Http getResponse()
+ * Convert to whitelist controller for converting a report to whitelist
  */
-class ConvertToWhitelist extends Action
+class ConvertToWhitelist extends AbstractReport
 {
+    /**
+     * @param Context $context
+     * @param ReportRepositoryInterface $reportRepository
+     * @param WhitelistRepositoryInterface $whitelistRepository
+     * @param CspReportConverterInterface $cspReportConverter
+     * @param CacheCleanerInterface $cacheCleaner
+     * @param WhitelistManagerInterface $whitelistManager
+     */
     public function __construct(
         Context $context,
-        private readonly ReportRepositoryInterface $entityRepository,
-        private readonly WhitelistRepositoryInterface $whitelistRepository,
+        private readonly ReportRepositoryInterface $reportRepository,
         private readonly CspReportConverterInterface $cspReportConverter,
-        private readonly Collection $cacheTypeCollection,
-        private readonly Type $cacheType
+        private readonly CacheCleanerInterface $cacheCleaner,
+        private readonly WhitelistManagerInterface $whitelistManager
     ) {
         parent::__construct($context);
     }
@@ -37,44 +43,40 @@ class ConvertToWhitelist extends Action
     /**
      * @inheritdoc
      */
-    public function execute()
+    public function execute(): ResultInterface
     {
-        /** @var \Magento\Backend\Model\View\Result\Redirect $resultRedirect */
-        $resultRedirect = $this->resultRedirectFactory->create();
+        $resultRedirect = $this->createRedirectResult('*/*/');
         $id = $this->getRequest()->getParam('id');
-        if ($id === null) {
-            $this->messageManager->addErrorMessage(__('We can\'t find an report to delete.'));
 
-            return $resultRedirect->setPath('*/*/');
+        if ($id === null) {
+            $this->messageManager->addErrorMessage(__('We can\'t find a report to convert.'));
+            return $resultRedirect;
         }
+
         try {
-            $entity = $this->entityRepository->getById((int)$id);
+            $entity = $this->reportRepository->getById((int)$id);
             $newWhitelist = $this->cspReportConverter->convert($entity);
 
-            $whitelist = $this->whitelistRepository->getWhitelistByParams(
-                (string)$newWhitelist->getPolicy(),
-                (string)$newWhitelist->getValueType(),
-                (string)$newWhitelist->getValue(),
-                (string)$newWhitelist->getValueAlgorithm(),
-            );
+            $result = $this->whitelistManager->processNewWhitelist($newWhitelist, $entity);
 
-            if ($whitelist->getTotalCount() > 0) {
+            $this->cacheCleaner->cleanCaches();
+
+            if ($result === WhitelistManagerInterface::RESULT_EXISTS) {
                 $this->messageManager->addSuccessMessage(__('Whitelist already exists.'));
-                $this->entityRepository->delete($entity);
-                $this->cacheTypeCollection->clean();
-                $this->cacheType->clean();
-                return $resultRedirect->setPath('hryvinskyi_csp/whitelist/index');
+                return $this->createRedirectResult('hryvinskyi_csp/whitelist/index');
             }
 
-            $this->whitelistRepository->save($newWhitelist);
-            $this->entityRepository->delete($entity);
-            $this->cacheTypeCollection->clean();
-            $this->cacheType->clean();
-            return $resultRedirect->setPath('hryvinskyi_csp/whitelist/index');
+            if ($result === WhitelistManagerInterface::RESULT_NOT_SAVED) {
+                $this->messageManager->addWarningMessage(__('Whitelist not converted. Already exists.'));
+                return $this->createRedirectResult('hryvinskyi_csp/whitelist/index');
+            }
+
+            $this->messageManager->addSuccessMessage(__('Report has been converted to Whitelist.'));
+            return $this->createRedirectResult('hryvinskyi_csp/whitelist/index');
+
         } catch (\Exception $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
-
-            return $resultRedirect->setPath('*/*/');
+            return $resultRedirect;
         }
     }
 }

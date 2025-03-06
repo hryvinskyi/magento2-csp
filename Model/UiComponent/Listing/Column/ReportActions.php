@@ -65,8 +65,8 @@ class ReportActions extends Column
                     ),
                     'label' => __('Delete'),
                     'confirm' => [
-                        'title' => __('Delete "${ $.$data.report_id } report"'),
-                        'message' => __('Are you sure you wan\'t to delete a "${ $.$data.report_id }" report?')
+                        'title' => __('Delete "%1 report"', $item['report_id']),
+                        'message' => __('Are you sure you wan\'t to delete a "%1" report?', $item['report_id'])
                     ]
                 ]
             ];

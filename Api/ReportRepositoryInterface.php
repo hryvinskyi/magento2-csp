@@ -74,6 +74,17 @@ interface ReportRepositoryInterface
     public function delete(ReportInterface $report): bool;
 
     /**
+     * Delete Report by domain and policy.
+     *
+     * @param string $domain
+     * @param string $policy
+     *
+     * @return bool
+     * @throws \Magento\Framework\Exception\CouldNotDeleteException
+     */
+    public function deleteByDomainAndPolicy(string $domain, string $policy): bool;
+
+    /**
      * Delete Report by ID.
      *
      * @param int $reportId

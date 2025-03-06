@@ -11,22 +11,29 @@ namespace Hryvinskyi\Csp\Controller\Adminhtml\Report;
 
 use Hryvinskyi\Csp\Api\ReportRepositoryInterface;
 use Hryvinskyi\Csp\Model\ResourceModel\Report\CollectionFactory;
-use Magento\Backend\App\Action;
-use Magento\Framework\Controller\ResultFactory;
+use Hryvinskyi\Csp\Model\Report\MassActionInterface;
 use Magento\Backend\App\Action\Context;
+use Magento\Framework\Controller\ResultInterface;
 use Magento\Ui\Component\MassAction\Filter;
 
 /**
- * @method \Magento\Framework\App\Request\Http getRequest()
- * @method \Magento\Framework\App\Response\Http getResponse()
+ * Mass delete controller for deleting multiple reports
  */
-class MassDelete extends Action
+class MassDelete extends AbstractReport
 {
+    /**
+     * @param Context $context
+     * @param Filter $filter
+     * @param CollectionFactory $collectionFactory
+     * @param ReportRepositoryInterface $reportRepository
+     * @param MassActionInterface $massAction
+     */
     public function __construct(
         Context $context,
         private readonly Filter $filter,
-        private readonly CollectionFactory $entityCollectionFactory,
-        private readonly ReportRepositoryInterface $entityRepository
+        private readonly CollectionFactory $collectionFactory,
+        private readonly ReportRepositoryInterface $reportRepository,
+        private readonly MassActionInterface $massAction
     ) {
         parent::__construct($context);
     }
@@ -34,21 +41,13 @@ class MassDelete extends Action
     /**
      * @inheritdoc
      */
-    public function execute()
+    public function execute(): ResultInterface
     {
-        $collection = $this->filter->getCollection($this->entityCollectionFactory->create());
+        $collection = $this->filter->getCollection($this->collectionFactory->create());
+        $count = $this->massAction->deleteItems($collection, $this->reportRepository);
 
-        foreach ($collection as $item) {
-            $this->entityRepository->delete($item);
-        }
+        $this->messageManager->addSuccessMessage(__('A total of %1 record(s) have been deleted.', $count));
 
-        $this->messageManager->addSuccessMessage(
-            __('A total of %1 record(s) have been deleted.', $collection->count())
-        );
-
-        /** @var \Magento\Backend\Model\View\Result\Redirect $resultRedirect */
-        $resultRedirect = $this->resultFactory->create(ResultFactory::TYPE_REDIRECT);
-
-        return $resultRedirect->setPath('*/*/');
+        return $this->createRedirectResult('*/*/');
     }
 }

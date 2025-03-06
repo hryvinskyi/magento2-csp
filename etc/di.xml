@@ -20,10 +20,22 @@
     <preference for="Hryvinskyi\Csp\Api\Whitelist\SearchCriteria\AddActiveFilterInterface" type="Hryvinskyi\Csp\Model\Whitelist\SearchCriteria\AddActiveFilter"/>
     <preference for="Hryvinskyi\Csp\Api\Whitelist\SearchCriteria\AddStoreFilterInterface" type="Hryvinskyi\Csp\Model\Whitelist\SearchCriteria\AddStoreFilter"/>
 
+    <preference for="Hryvinskyi\Csp\Model\Whitelist\WhitelistManagerInterface" type="Hryvinskyi\Csp\Model\Whitelist\WhitelistManager" />
+    <preference for="Hryvinskyi\Csp\Model\Whitelist\MassConvertManagerInterface" type="Hryvinskyi\Csp\Model\Whitelist\MassConvertManager" />
     <preference for="Hryvinskyi\Csp\Model\Whitelist\Command\GetAllActiveWhitelistByStoreIdInterface" type="Hryvinskyi\Csp\Model\Whitelist\Command\GetAllActiveWhitelistByStoreId"/>
     <preference for="Hryvinskyi\Csp\Model\Whitelist\Command\GetListInterface" type="Hryvinskyi\Csp\Model\Whitelist\Command\GetList"/>
+
+    <preference for="Hryvinskyi\Csp\Model\Report\MassActionInterface" type="Hryvinskyi\Csp\Model\Report\MassAction" />
+    <preference for="Hryvinskyi\Csp\Model\Cache\CacheCleanerInterface" type="Hryvinskyi\Csp\Model\Cache\CacheCleaner" />
     <preference for="Hryvinskyi\Csp\Model\Report\Command\SaveFromCspReportInterface" type="Hryvinskyi\Csp\Model\Report\Command\SaveFromCspReport"/>
     <preference for="Hryvinskyi\Csp\Model\Report\Command\CspReportConverterInterface" type="Hryvinskyi\Csp\Model\Report\Command\CspReportConverter"/>
+
+    <type name="Hryvinskyi\Csp\Controller\Adminhtml\Report\Import">
+        <arguments>
+            <argument name="filesystem" xsi:type="object">Magento\Framework\Filesystem</argument>
+            <argument name="csvProcessor" xsi:type="object">Magento\Framework\File\Csv</argument>
+        </arguments>
+    </type>
 
     <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">
         <arguments>

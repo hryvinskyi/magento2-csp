@@ -1,11 +1,12 @@
 {
   "name": "hryvinskyi/magento2-csp",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "N/A",
   "type": "magento2-module",
   "require": {
     "magento/framework": "*",
-    "magento/module-csp": "*"
+    "magento/module-csp": "*",
+    "ext-simplexml": "*"
   },
   "authors": [
     {
