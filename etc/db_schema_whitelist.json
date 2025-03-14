@@ -15,7 +15,8 @@
       "updated_at": true,
       "source_file": true,
       "line_number": true,
-      "count": true
+      "count": true,
+      "status": true
     },
     "index": {
       "HRYVINSKYI_CSP_REPORT_REPORT_ID": true,

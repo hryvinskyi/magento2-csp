@@ -86,6 +86,28 @@
                     </item>
                 </argument>
             </action>
+            <action name="deny">
+                <argument name="data" xsi:type="array">
+                    <item name="config" xsi:type="array">
+                        <item name="type" xsi:type="string">deny</item>
+                        <item name="label" xsi:type="string" translate="true">Change Status to Deny</item>
+                        <item name="url" xsi:type="url" path="hryvinskyi_csp/report/massChangeStatus">
+                            <param name="status">1</param>
+                        </item>
+                    </item>
+                </argument>
+            </action>
+            <action name="skip">
+                <argument name="data" xsi:type="array">
+                    <item name="config" xsi:type="array">
+                        <item name="type" xsi:type="string">skip</item>
+                        <item name="label" xsi:type="string" translate="true">Change Status to Skip</item>
+                        <item name="url" xsi:type="url" path="hryvinskyi_csp/report/massChangeStatus">
+                            <param name="status">2</param>
+                        </item>
+                    </item>
+                </argument>
+            </action>
         </massaction>
         <paging name="listing_paging"/>
     </listingToolbar>
@@ -131,6 +153,16 @@
             <settings>
                 <filter>text</filter>
                 <label translate="true">Blocked Uri</label>
+            </settings>
+        </column>
+        <column name="status" class="Hryvinskyi\Csp\Model\UiComponent\Listing\Column\ReportStatus">
+            <settings>
+                <filter>select</filter>
+                <dataType>select</dataType>
+                <label translate="true">Status</label>
+                <options class="Hryvinskyi\Csp\Model\Config\Source\Status"/>
+                <bodyTmpl>ui/grid/cells/html</bodyTmpl>
+                <visible>true</visible>
             </settings>
         </column>
         <column name="disposition">

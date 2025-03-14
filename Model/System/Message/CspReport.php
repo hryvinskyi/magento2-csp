@@ -40,6 +40,8 @@ class CspReport implements MessageInterface
             ->setCurrentPage(1)
             ->setPageSize(1);
 
+        $searchCriteria->addFilter('status', 0);
+
         return (bool)$this->reportRepository->getList($searchCriteria->create())->getTotalCount();
     }
 

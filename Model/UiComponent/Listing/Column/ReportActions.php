@@ -11,6 +11,7 @@ use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Element\UiComponent\ContextInterface;
 use Magento\Framework\View\Element\UiComponentFactory;
 use Magento\Ui\Component\Listing\Columns\Column;
+use Hryvinskyi\Csp\Model\Config\Source\Status;
 
 class ReportActions extends Column
 {
@@ -18,6 +19,7 @@ class ReportActions extends Column
         ContextInterface $context,
         UiComponentFactory $uiComponentFactory,
         private readonly UrlInterface $urlBuilder,
+        private readonly Status $statusOptions,
         array $components = [],
         array $data = []
     ) {
@@ -37,31 +39,26 @@ class ReportActions extends Column
             if (!isset($item['report_id'])) {
                 continue;
             }
-            $item[$this->getData('name')] = [
+
+            $actions = [
                 'view' => [
                     'href' => $this->urlBuilder->getUrl(
                         'hryvinskyi_csp/report/view',
-                        [
-                            'id' => $item['report_id']
-                        ]
+                        ['id' => $item['report_id']]
                     ),
                     'label' => __('View')
                 ],
                 'convert' => [
                     'href' => $this->urlBuilder->getUrl(
                         'hryvinskyi_csp/report/convertToWhitelist',
-                        [
-                            'id' => $item['report_id']
-                        ]
+                        ['id' => $item['report_id']]
                     ),
                     'label' => __('Convert to Whitelist')
                 ],
                 'delete' => [
                     'href' => $this->urlBuilder->getUrl(
                         'hryvinskyi_csp/report/delete',
-                        [
-                            'id' => $item['report_id']
-                        ]
+                        ['id' => $item['report_id']]
                     ),
                     'label' => __('Delete'),
                     'confirm' => [
@@ -70,6 +67,31 @@ class ReportActions extends Column
                     ]
                 ]
             ];
+
+            // Add status change actions
+            $statuses = $this->statusOptions->toOptionArray();
+            $currentStatus = $item['status'] ?? '';
+
+            foreach ($statuses as $statusOption) {
+                $statusCode = $statusOption['value'];
+                // Skip current status
+                if ($statusCode == $currentStatus || $statusCode == \Hryvinskyi\Csp\Api\Data\Status::PENDING->value) {
+                    continue;
+                }
+
+                $actions['change_status_' . $statusCode] = [
+                    'href' => $this->urlBuilder->getUrl(
+                        'hryvinskyi_csp/report/changeStatus',
+                        [
+                            'id' => $item['report_id'],
+                            'status' => $statusCode
+                        ]
+                    ),
+                    'label' => __('Mark as %1', $statusOption['label'])
+                ];
+            }
+
+            $item[$this->getData('name')] = $actions;
         }
 
         return $dataSource;

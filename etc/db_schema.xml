@@ -26,6 +26,7 @@
         <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Created At"/>
         <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP" comment="Updated At"/>
         <column xsi:type="bigint" name="count" nullable="false" default="1" comment="Number of occurrences"/>
+        <column xsi:type="smallint" name="status" nullable="false" default="0" comment="Status"/>
 
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="report_id"/>
