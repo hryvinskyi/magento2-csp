@@ -63,7 +63,7 @@ class InlineEdit extends Action
                 $this->cacheType->clean();
             } catch (\Magento\Framework\Exception\LocalizedException $e) {
                 $messages[] = sprintf('[%s]: %s', $itemId, $e->getMessage());
-            } catch (\Exception $e) {
+            } catch (\Exception) {
                 $messages[] = sprintf('[%s]: %s', $itemId, __('Something went wrong while saving the entity.'));
                 $error = true;
             }

@@ -42,7 +42,7 @@ class WhitelistManager implements WhitelistManagerInterface
 
         try {
             $this->whitelistRepository->save($whitelist);
-        } catch (CouldNotSaveException $e) {
+        } catch (CouldNotSaveException) {
             // Find and delete all reports with the same domain and policy
             $this->reportRepository->deleteByDomainAndPolicy($whitelist->getValue(), $report->getEffectiveDirective());
             $this->reportRepository->deleteByDomainAndPolicy($whitelist->getValue(), $whitelist->getPolicy());

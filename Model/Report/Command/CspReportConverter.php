@@ -71,7 +71,7 @@ class CspReportConverter implements CspReportConverterInterface
             return [self::SPECIAL_URI_MAPPINGS[$blockedUri], 'host'];
         }
 
-        if (filter_var($blockedUri, FILTER_VALIDATE_URL) || strpos($blockedUri, '.') !== false) {
+        if (filter_var($blockedUri, FILTER_VALIDATE_URL) || str_contains($blockedUri, '.')) {
             return [parse_url($blockedUri, PHP_URL_HOST), 'host'];
         }
 

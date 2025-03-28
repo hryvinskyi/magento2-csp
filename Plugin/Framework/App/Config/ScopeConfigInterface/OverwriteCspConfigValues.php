@@ -37,7 +37,7 @@ class OverwriteCspConfigValues
 
     private function handleReportUriConfig(mixed $value, mixed $path): mixed
     {
-        if (!str_starts_with($path, 'csp/') || !str_ends_with($path, '/report_uri')) {
+        if (!str_starts_with((string) $path, 'csp/') || !str_ends_with((string) $path, '/report_uri')) {
             return $value;
         }
 

@@ -47,7 +47,7 @@ class MassConvertManager implements MassConvertManagerInterface
 
             try {
                 $this->whitelistRepository->save($newWhitelist);
-            } catch (CouldNotSaveException $e) {
+            } catch (CouldNotSaveException) {
                 // The whitelist could not be saved
             }
 

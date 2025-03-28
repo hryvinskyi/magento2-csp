@@ -17,6 +17,8 @@ use Magento\Framework\UrlInterface;
 
 class StoreUrlCollector implements PolicyCollectorInterface
 {
+    private array $storeUrls;
+
     public function __construct(
         private readonly ScopeResolverInterface $scopeResolver,
         private readonly ConfigInterface $config,
@@ -134,7 +136,7 @@ class StoreUrlCollector implements PolicyCollectorInterface
     {
         $domains = [];
         foreach ($urls as $url) {
-            if (preg_match('#//([^/]*)/#', $url, $matches)) {
+            if (preg_match('#//([^/]*)/#', (string) $url, $matches)) {
                 $domains[] = $matches[1];
             }
         }

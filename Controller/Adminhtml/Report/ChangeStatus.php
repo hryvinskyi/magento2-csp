@@ -45,7 +45,7 @@ class ChangeStatus extends AbstractReport
             $report->setStatus((int)$status);
             $this->reportRepository->save($report);
             $this->messageManager->addSuccessMessage(__('Report status has been updated.'));
-        } catch (NoSuchEntityException $e) {
+        } catch (NoSuchEntityException) {
             $this->messageManager->addErrorMessage(__('Report with ID %1 does not exist.', $reportId));
         } catch (\Exception $e) {
             $this->messageManager->addErrorMessage(__('Could not change status: %1', $e->getMessage()));
