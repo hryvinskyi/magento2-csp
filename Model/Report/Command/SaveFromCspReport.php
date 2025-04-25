@@ -58,17 +58,17 @@ class SaveFromCspReport implements SaveFromCspReportInterface
         $connection->query(
             $query,
             [
-                $dataToInsert['blocked_uri'],
-                $dataToInsert['disposition'],
-                $dataToInsert['document_uri'],
-                $dataToInsert['effective_directive'],
-                $dataToInsert['original_policy'],
-                $dataToInsert['referrer'],
-                $dataToInsert['script_sample'],
+                $dataToInsert['blocked_uri'] ?? '',
+                $dataToInsert['disposition'] ?? null,
+                $dataToInsert['document_uri'] ?? '',
+                $dataToInsert['effective_directive'] ?? '',
+                $dataToInsert['original_policy'] ?? null,
+                $dataToInsert['referrer'] ?? null,
+                $dataToInsert['script_sample'] ?? null,
                 $dataToInsert['status_code'],
                 $dataToInsert['violated_directive'],
-                $dataToInsert['source_file'],
-                $dataToInsert['line_number'],
+                $dataToInsert['source_file'] ?? '',
+                $dataToInsert['line_number'] ?? 0,
             ]
         );
     }

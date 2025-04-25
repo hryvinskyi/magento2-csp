@@ -12,6 +12,7 @@
     <module name="Hryvinskyi_Csp" setup_version="1.0.0">
         <sequence>
             <module name="Magento_Csp"/>
+            <module name="Hryvinskyi_Logger"/>
         </sequence>
     </module>
 </config>

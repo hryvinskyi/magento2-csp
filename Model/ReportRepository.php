@@ -64,7 +64,8 @@ class ReportRepository implements ReportRepositoryInterface
         try {
             $this->saveFromCspReport->execute($json);
             return true;
-        } catch (LocalizedException) {
+        } catch (LocalizedException $e) {
+            dd($e);
             return false;
         }
     }

@@ -49,4 +49,18 @@ interface ConfigInterface
      * @return bool
      */
     public function isAddAllStorefrontUrls(): bool;
+
+    /**
+     * Is header splitting enabled
+     *
+     * @return bool
+     */
+    public function isHeaderSplittingEnabled(): bool;
+
+    /**
+     * Get max header size for splitting
+     *
+     * @return int
+     */
+    public function getMaxHeaderSize(): int;
 }

@@ -14,6 +14,9 @@
     <preference for="Hryvinskyi\Csp\Api\Data\WhitelistInterface" type="Hryvinskyi\Csp\Model\Whitelist"/>
     <preference for="Hryvinskyi\Csp\Api\WhitelistRepositoryInterface" type="Hryvinskyi\Csp\Model\WhitelistRepository"/>
     <preference for="Hryvinskyi\Csp\Api\ReportRepositoryInterface" type="Hryvinskyi\Csp\Model\ReportRepository"/>
+    <preference for="Hryvinskyi\Csp\Api\CspHeaderProcessorInterface" type="Hryvinskyi\Csp\Model\HeaderSplitter\LaminasCspHeaderProcessor"/>
+    <preference for="Hryvinskyi\Csp\Api\CspHeaderSplitterInterface" type="Hryvinskyi\Csp\Model\HeaderSplitter\LaminasCspHeaderSplitter"/>
+    <preference for="Hryvinskyi\Csp\Api\LaminasPluginRegistrarInterface" type="Hryvinskyi\Csp\Model\HeaderSplitter\LaminasPluginRegistrar"/>
     <preference for="Hryvinskyi\Csp\Api\Data\ReportSearchResultsInterface" type="Hryvinskyi\Csp\Model\ReportSearchResults"/>
     <preference for="Hryvinskyi\Csp\Api\Data\WhitelistSearchResultsInterface" type="Hryvinskyi\Csp\Model\WhitelistSearchResults"/>
 
@@ -30,7 +33,7 @@
     <preference for="Hryvinskyi\Csp\Model\Report\Command\SaveFromCspReportInterface" type="Hryvinskyi\Csp\Model\Report\Command\SaveFromCspReport"/>
     <preference for="Hryvinskyi\Csp\Model\Report\Command\CspReportConverterInterface" type="Hryvinskyi\Csp\Model\Report\Command\CspReportConverter"/>
 
-    <type name="Hryvinskyi\Csp\Controller\Adminhtml\Report\Import">
+    <type name="Hryvinskyi\Csp\Controller\Adminhtml\Whitelist\Import">
         <arguments>
             <argument name="filesystem" xsi:type="object">Magento\Framework\Filesystem</argument>
             <argument name="csvProcessor" xsi:type="object">Magento\Framework\File\Csv</argument>
@@ -138,5 +141,63 @@
     </type>
     <type name="Magento\Framework\App\Config\ScopeConfigInterface">
         <plugin name="overwrite_csp_config_values" type="Hryvinskyi\Csp\Plugin\Framework\App\Config\ScopeConfigInterface\OverwriteCspConfigValues"/>
+    </type>
+    <type name="Magento\Csp\Api\CspRendererInterface">
+        <plugin name="csp_header_splitter"
+                type="Hryvinskyi\Csp\Plugin\Csp\Api\CspRendererInterface\HeaderSplitter"/>
+    </type>
+
+    <!-- Debugger for CSP Module -->
+    <virtualType name="Hryvinskyi\Csp\Model\Handler" type="Hryvinskyi\Logger\Model\Handler">
+        <arguments>
+            <argument name="config" xsi:type="object">Hryvinskyi\Csp\Model\Config</argument>
+            <argument name="fileName" xsi:type="string">/var/log/hryvinskyi/csp.log</argument>
+        </arguments>
+    </virtualType>
+
+    <virtualType name="Hryvinskyi\Csp\Model\Logger" type="Hryvinskyi\Logger\Model\Logger">
+        <arguments>
+            <argument name="name" xsi:type="string">HryvinskyiCsp</argument>
+            <argument name="handlers" xsi:type="array">
+                <item name="error" xsi:type="object">Hryvinskyi\Csp\Model\Handler</item>
+            </argument>
+        </arguments>
+    </virtualType>
+
+    <!-- Inject logger to classes -->
+    <type name="Hryvinskyi\Csp\Controller\Router">
+        <arguments>
+            <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Hryvinskyi\Csp\Controller\Index\Index">
+        <arguments>
+            <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Hryvinskyi\Csp\Model\HeaderSplitter\DefaultHeaderSplitter">
+        <arguments>
+            <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Hryvinskyi\Csp\Model\HeaderSplitter\LaminasPluginRegistrar">
+        <arguments>
+            <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Hryvinskyi\Csp\Model\HeaderSplitter\LaminasCspHeaderSplitter">
+        <arguments>
+            <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Hryvinskyi\Csp\Model\HeaderSplitter\LaminasCspHeaderProcessor">
+        <arguments>
+            <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Hryvinskyi\Csp\Plugin\Csp\Api\CspRendererInterface\HeaderSplitter">
+        <arguments>
+            <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
+        </arguments>
     </type>
 </config>

@@ -34,6 +34,9 @@ class CspReportConverter implements CspReportConverterInterface
     ) {
     }
 
+    /**
+     * @inheritDoc
+     */
     public function convert(ReportInterface $cspReport): WhitelistInterface
     {
         $whitelist = $this->whitelistFactory->create();
@@ -55,7 +58,7 @@ class CspReportConverter implements CspReportConverterInterface
 
     private function generateIdentifier(ReportInterface $cspReport): string
     {
-        return $cspReport->getBlockedUri() === 'inline'
+        return $cspReport->getBlockedUri() === 'inline' || $cspReport->getBlockedUri() === 'unsafe-inline'
             ? sprintf('%s:%s', $cspReport->getSourceFile(), $cspReport->getLineNumber() ?? 'unknown')
             : $cspReport->getBlockedUri();
     }
@@ -84,7 +87,7 @@ class CspReportConverter implements CspReportConverterInterface
     {
         if (!in_array($policy, FetchPolicy::POLICIES, true)) {
             throw new LocalizedException(
-                __('Cannot convert CSP report: unsupported policy detected.')
+                __('Cannot convert CSP report: unsupported policy detected (%1).', $policy)
             );
         }
     }

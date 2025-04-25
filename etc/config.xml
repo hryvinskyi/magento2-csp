@@ -11,12 +11,18 @@
         xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
     <default>
         <csp>
+            <general>
+                <enabled_rules>1</enabled_rules>
+                <enabled_reports>1</enabled_reports>
+                <enable_header_splitting>1</enable_header_splitting>
+                <max_header_size>4096</max_header_size>
+            </general>
             <mode>
                 <storefront>
-                    <report_uri>http://csp-reporting-service.com/my-project/endpoint</report_uri>
+                    <report_uri>https://dk-beautycos.hryvinskyi.com/csp_report_watch</report_uri>
                 </storefront>
                 <admin>
-                    <report_uri>http://csp-reporting-service.com/my-project/endpoint</report_uri>
+                    <report_uri>https://dk-beautycos.hryvinskyi.com/csp_report_watch;</report_uri>
                 </admin>
             </mode>
             <policies>

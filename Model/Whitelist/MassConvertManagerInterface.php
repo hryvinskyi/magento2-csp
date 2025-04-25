@@ -20,10 +20,10 @@ interface MassConvertManagerInterface
      *
      * @param Collection $collection
      * @param CspReportConverterInterface $cspReportConverter
-     * @return int Number of converted reports
+     * @return array{count: int, messages: string}  Number of converted reports
      */
     public function convertReports(
         Collection $collection,
         CspReportConverterInterface $cspReportConverter,
-    ): int;
+    ): array;
 }

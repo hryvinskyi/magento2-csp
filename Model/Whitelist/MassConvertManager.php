@@ -14,6 +14,7 @@ use Hryvinskyi\Csp\Api\WhitelistRepositoryInterface;
 use Hryvinskyi\Csp\Model\Report\Command\CspReportConverterInterface;
 use Magento\Framework\Data\Collection;
 use Magento\Framework\Exception\CouldNotSaveException;
+use Magento\Framework\Exception\LocalizedException;
 
 class MassConvertManager implements MassConvertManagerInterface
 {
@@ -26,12 +27,19 @@ class MassConvertManager implements MassConvertManagerInterface
     /**
      * @inheritDoc
      */
-    public function convertReports(Collection $collection, CspReportConverterInterface $cspReportConverter): int
+    public function convertReports(Collection $collection, CspReportConverterInterface $cspReportConverter): array
     {
         $count = $collection->count();
+        $errorMessages = [];
 
         foreach ($collection as $entity) {
-            $newWhitelist = $cspReportConverter->convert($entity);
+            try {
+                $newWhitelist = $cspReportConverter->convert($entity);
+            } catch (LocalizedException $e) {
+                $errorMessages[] = $e->getMessage();
+                $count--;
+                continue;
+            }
 
             $whitelist = $this->whitelistRepository->getWhitelistByParams(
                 (string)$newWhitelist->getPolicy(),
@@ -42,13 +50,14 @@ class MassConvertManager implements MassConvertManagerInterface
 
             if ($whitelist->getTotalCount() > 0) {
                 $this->reportRepository->delete($entity);
+                $count--;
                 continue;
             }
 
             try {
                 $this->whitelistRepository->save($newWhitelist);
-            } catch (CouldNotSaveException) {
-                // The whitelist could not be saved
+            } catch (CouldNotSaveException $e) {
+                $errorMessages[] = $e->getMessage();
             }
 
             $this->reportRepository->deleteByDomainAndPolicy(
@@ -58,6 +67,9 @@ class MassConvertManager implements MassConvertManagerInterface
             $this->reportRepository->deleteByDomainAndPolicy($newWhitelist->getValue(), $newWhitelist->getPolicy());
         }
 
-        return $count;
+        return [
+            'count' => $count,
+            'messages' => implode(', ', $errorMessages),
+        ];
     }
 }

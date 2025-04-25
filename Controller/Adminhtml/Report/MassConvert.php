@@ -47,10 +47,18 @@ class MassConvert extends AbstractReport
     public function execute(): ResultInterface
     {
         $collection = $this->filter->getCollection($this->collectionFactory->create());
-        $count = $this->massConvertManager->convertReports($collection, $this->cspReportConverter);
-        $this->cacheCleaner->cleanCaches();
-        $this->messageManager->addSuccessMessage(__('A total of %1 record(s) have been converted.', $count));
+        ['count' => $count, 'messages' => $messages] = $this->massConvertManager->convertReports($collection, $this->cspReportConverter);
+        if (!empty($messages)) {
+            $this->messageManager->addErrorMessage($messages);
+        }
 
+        if ($count > 0) {
+            $this->messageManager->addSuccessMessage(__('A total of %1 record(s) have been converted.', $count));
+        } else {
+            $this->messageManager->addErrorMessage(__('No records have been converted.'));
+        }
+
+        $this->cacheCleaner->cleanCaches();
         return $this->createRedirectResult('*/*/');
     }
 }

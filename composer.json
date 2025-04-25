@@ -1,12 +1,13 @@
 {
   "name": "hryvinskyi/magento2-csp",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "N/A",
   "type": "magento2-module",
   "require": {
     "php": ">=8.1 <8.5",
     "magento/framework": "*",
     "magento/module-csp": "*",
+    "hryvinskyi/magento2-logger": "*",
     "ext-simplexml": "*"
   },
   "authors": [

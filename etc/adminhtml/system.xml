@@ -47,6 +47,29 @@
                         <![CDATA[Automatically add all your storefront URLs to the whitelist.]]>
                     </comment>
                 </field>
+                <field id="enable_header_splitting" translate="label comment" type="select" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="0">
+                    <label>Enable CSP header splitting</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>
+                        <![CDATA[Enable splitting of CSP headers if they exceed the maximum header size.]]>
+                    </comment>
+                </field>
+                <field id="max_header_size" translate="label comment" type="text" sortOrder="21" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="0">
+                    <label>Max CSP header size (bytes)</label>
+                    <validate>validate-number validate-greater-than-zero</validate>
+                    <comment>
+                        <![CDATA[Maximum allowed size for a single CSP header. Default is 4096 bytes. <br>
+                        if you enabled header splitting, derictive <b>default-src</b> will be skipped.
+                        because it is not supported by the CSP splitting.]]>
+                    </comment>
+                </field>
+                <field id="debug_mode_enabled" translate="label comment" type="select" sortOrder="9999" showInDefault="1" showInWebsite="0" showInStore="0" canRestore="0">
+                    <label>Enable debug mode</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>
+                        <![CDATA[Enable debug mode for CSP.]]>
+                    </comment>
+                </field>
             </group>
             <group id="mode">
                 <group id="admin">

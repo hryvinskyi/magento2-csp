@@ -11,6 +11,7 @@ namespace Hryvinskyi\Csp\Model\Report\Command;
 
 use Hryvinskyi\Csp\Api\Data\ReportInterface;
 use Hryvinskyi\Csp\Api\Data\WhitelistInterface;
+use Magento\Framework\Exception\LocalizedException;
 
 interface CspReportConverterInterface
 {
@@ -19,6 +20,7 @@ interface CspReportConverterInterface
      *
      * @param ReportInterface $cspReport
      * @return WhitelistInterface
+     * @throws LocalizedException
      */
     public function convert(ReportInterface $cspReport): WhitelistInterface;
 }

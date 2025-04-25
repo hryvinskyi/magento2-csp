@@ -143,7 +143,11 @@ class WhitelistRepository implements WhitelistRepositoryInterface
                     $this->filterFactory->create()
                         ->setField('value_algorithm')
                         ->setValue($valueAlgorithm)
-                        ->setConditionType('null')
+                        ->setConditionType('null'),
+                    $this->filterFactory->create()
+                        ->setField('value_algorithm')
+                        ->setValue($valueAlgorithm)
+                        ->setConditionType('eq')
                 ]
             );
         }
