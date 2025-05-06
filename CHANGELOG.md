@@ -1,7 +1,15 @@
 # Changelog
 
 All notable changes to the Hryvinskyi_Csp module will be documented in this file.
-## [1.0.9] - 2025-01-15
+## [1.0.9.1] - 2025-05-06
+### Added
+- Introduced `EXCLUDE_SCRIPT_TYPES` configuration for excluding specific script types from hash generation
+
+### Fixed
+- Corrected the logic for retrieving website ID from store ID
+
+
+## [1.0.9] - 2025-05-06
 ### Added
 - Enhanced script hash validation with visual indicators in admin grid. Hash validation indicators (valid, invalid, not verified, not applicable)
 - New command-line tool `hryvinskyi:csp:generate-script-hashes` to scan CMS entities for inline scripts
