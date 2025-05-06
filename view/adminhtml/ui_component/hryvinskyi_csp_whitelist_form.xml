@@ -182,6 +182,25 @@
                                         <param name="0" xsi:type="string"></param>
                                     </params>
                                 </action>
+                                <action name="3">
+                                    <target>hryvinskyi_csp_whitelist_form.hryvinskyi_csp_whitelist_form.general.script_content</target>
+                                    <callback>hide</callback>
+                                </action>
+                                <action name="4">
+                                    <target>hryvinskyi_csp_whitelist_form.hryvinskyi_csp_whitelist_form.general.script_content</target>
+                                    <callback>setValidation</callback>
+                                    <params>
+                                        <param name="0" xsi:type="string">required-entry</param>
+                                        <param name="1" xsi:type="string">false</param>
+                                    </params>
+                                </action>
+                                <action name="5">
+                                    <target>hryvinskyi_csp_whitelist_form.hryvinskyi_csp_whitelist_form.general.script_content</target>
+                                    <callback>value</callback>
+                                    <params>
+                                        <param name="0" xsi:type="string"></param>
+                                    </params>
+                                </action>
                             </actions>
                         </rule>
                         <rule name="1">
@@ -204,6 +223,18 @@
                                     <callback>value</callback>
                                     <params>
                                         <param name="0" xsi:type="string">sha256</param>
+                                    </params>
+                                </action>
+                                <action name="3">
+                                    <target>hryvinskyi_csp_whitelist_form.hryvinskyi_csp_whitelist_form.general.script_content</target>
+                                    <callback>show</callback>
+                                </action>
+                                <action name="4">
+                                    <target>hryvinskyi_csp_whitelist_form.hryvinskyi_csp_whitelist_form.general.script_content</target>
+                                    <callback>setValidation</callback>
+                                    <params>
+                                        <param name="0" xsi:type="string">required-entry</param>
+                                        <param name="1" xsi:type="string">true</param>
                                     </params>
                                 </action>
                             </actions>
@@ -278,6 +309,16 @@
                     </settings>
                 </multiselect>
             </formElements>
+        </field>
+        <field name="script_content" formElement="textarea" sortOrder="80">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Script Content</label>
+                <dataScope>script_content</dataScope>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                </validation>
+            </settings>
         </field>
     </fieldset>
 </form>

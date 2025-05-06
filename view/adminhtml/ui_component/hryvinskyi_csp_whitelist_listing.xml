@@ -243,6 +243,7 @@
                 <filter>dateRange</filter>
                 <dataType>date</dataType>
                 <label translate="true">Created</label>
+                <visible>false</visible>
             </settings>
         </column>
         <column name="updated_at" class="Magento\Ui\Component\Listing\Columns\Date" component="Magento_Ui/js/grid/columns/date">
@@ -250,6 +251,15 @@
                 <filter>dateRange</filter>
                 <dataType>date</dataType>
                 <label translate="true">Modified</label>
+                <visible>false</visible>
+            </settings>
+        </column>
+        <column name="hash_validation" class="Hryvinskyi\Csp\Model\UiComponent\Listing\Column\HashValidation">
+            <settings>
+                <label translate="true">Hash Valid</label>
+                <bodyTmpl>ui/grid/cells/html</bodyTmpl>
+                <sortable>false</sortable>
+                <filter>false</filter>
             </settings>
         </column>
         <actionsColumn name="actions" class="\Hryvinskyi\Csp\Model\UiComponent\Listing\Column\WhitelistActions">

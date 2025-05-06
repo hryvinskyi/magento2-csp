@@ -15,6 +15,8 @@ This module allows administrators to manage CSP whitelists from the Magento admi
  7. **Flexible Configuration**: The module provides various configuration options to enable or disable specific CSP features.
  8. **Admin Panel Integration**: The module integrates with the Magento admin panel, providing a user-friendly interface for managing CSP settings.
  9. **Import/Export**: Support for importing and exporting whitelist rules.
+10. **Automatic Script Hash Generation**: Command-line tool to scan CMS pages/blocks and configs for inline scripts and generate CSP hashes
+11. **Visual Hash Validation**: See at a glance if your script hashes are valid
 
 ## Requirements
 
@@ -67,6 +69,24 @@ The module adds a new menu item in the admin panel:
     - **Value**: The actual value to whitelist 
     - **Store Views**: Select applicable store views 
     - **Status**: Enable or disable the rule
+
+### Generating Script Hashes
+
+To make inline scripts work with CSP, you must generate cryptographic SHA hashes and add them to your whitelist. 
+The module provides a console tool that lets you review each script and approve the addition of its hash to your CSP configuration.
+Use the built-in CLI tool:
+
+```bash
+bin/magento hryvinskyi:csp:generate-script-hashes --type=page --type=block --store=1
+```
+
+Options:
+ - `--type`: Specify which entity types to scan (page, block, config)
+ - `--store`: Specify store ID (default is all stores)
+
+### Screenshots
+![console-screenshot-1.jpg](docs/images/console-screenshot-1.jpg)
+![final_summary.jpg](docs/images/final_summary.jpg)
 
 ### Configuration
 Navigate to **System** > **Content Security Policy** > **Configuration** or **Stores** > **Configuration** > **Security** > **Content Security Policy** to access module settings.

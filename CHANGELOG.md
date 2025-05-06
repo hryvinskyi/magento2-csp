@@ -1,6 +1,16 @@
 # Changelog
 
 All notable changes to the Hryvinskyi_Csp module will be documented in this file.
+## [1.0.9] - 2025-01-15
+### Added
+- Enhanced script hash validation with visual indicators in admin grid. Hash validation indicators (valid, invalid, not verified, not applicable)
+- New command-line tool `hryvinskyi:csp:generate-script-hashes` to scan CMS entities for inline scripts
+- Support for storing script content alongside hash values for validation
+- Automatic hash generation for inline scripts using SHA-256
+- Hash validation indicators in the admin UI (valid, invalid, not verified, not applicable)
+
+### Fixed
+- Resolved issue with CSP merging
 
 ## [1.0.8]
 ### Added

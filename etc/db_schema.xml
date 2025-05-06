@@ -73,6 +73,7 @@
         <column xsi:type="smallint" name="status" nullable="false" default="0" comment="Status"/>
         <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Created At"/>
         <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP" comment="Updated At"/>
+        <column xsi:type="text" name="script_content" nullable="true" comment="Script Content"/>
 
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="rule_id"/>
@@ -105,6 +106,7 @@
             <column name="value_algorithm"/>
             <column name="value"/>
             <column name="store_ids"/>
+            <column name="script_content"/>
         </index>
     </table>
 </schema>

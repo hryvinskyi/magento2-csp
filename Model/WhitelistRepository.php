@@ -128,14 +128,6 @@ class WhitelistRepository implements WhitelistRepositoryInterface
         );
 
         $filterGroupValueAlgorithm = $this->filterGroupFactory->create();
-        $filterGroupValueAlgorithm->setFilters(
-            [
-                $this->filterFactory->create()
-                    ->setField('value_algorithm')
-                    ->setValue($valueAlgorithm)
-                    ->setConditionType('eq')
-            ]
-        );
 
         if ($valueAlgorithm === '') {
             $filterGroupValueAlgorithm->setFilters(
@@ -144,6 +136,15 @@ class WhitelistRepository implements WhitelistRepositoryInterface
                         ->setField('value_algorithm')
                         ->setValue($valueAlgorithm)
                         ->setConditionType('null'),
+                    $this->filterFactory->create()
+                        ->setField('value_algorithm')
+                        ->setValue($valueAlgorithm)
+                        ->setConditionType('eq')
+                ]
+            );
+        } else {
+            $filterGroupValueAlgorithm->setFilters(
+                [
                     $this->filterFactory->create()
                         ->setField('value_algorithm')
                         ->setValue($valueAlgorithm)

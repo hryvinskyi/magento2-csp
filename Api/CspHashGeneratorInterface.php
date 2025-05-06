@@ -5,16 +5,18 @@
  * GitHub: https://github.com/hryvinskyi
  */
 
+
 declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Api;
 
-use Magento\Framework\Api\SearchCriteriaInterface;
-
-interface SearchCriteriaFilterInterface
+interface CspHashGeneratorInterface
 {
     /**
-     * @param SearchCriteriaInterface $searchCriteria
+     * Generate sha256 hash for the given script
+     *
+     * @param string $script
+     * @return string
      */
-    public function execute(SearchCriteriaInterface $searchCriteria): void;
+    public function execute(string $script): string;
 }

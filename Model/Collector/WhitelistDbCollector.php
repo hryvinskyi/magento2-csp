@@ -12,6 +12,7 @@ namespace Hryvinskyi\Csp\Model\Collector;
 use Hryvinskyi\Csp\Api\ConfigInterface;
 use Hryvinskyi\Csp\Model\Whitelist\Command\GetAllActiveWhitelistByStoreIdInterface;
 use Magento\Csp\Api\PolicyCollectorInterface;
+use Magento\Csp\Model\Collector\MergerInterface;
 use Magento\Csp\Model\Policy\FetchPolicy;
 use Magento\Framework\App\State;
 use Magento\Framework\Exception\LocalizedException;
@@ -26,7 +27,8 @@ class WhitelistDbCollector implements PolicyCollectorInterface
         private readonly ConfigInterface $config,
         private readonly State $appState,
         private readonly StoreManagerInterface $storeManager,
-        private readonly GetAllActiveWhitelistByStoreIdInterface $getAllActiveWhitelistByStoreId
+        private readonly GetAllActiveWhitelistByStoreIdInterface $getAllActiveWhitelistByStoreId,
+        private readonly MergerInterface $merger
     ) {
     }
 
@@ -40,19 +42,27 @@ class WhitelistDbCollector implements PolicyCollectorInterface
         }
 
         foreach ($this->getRules() as $policyId => $valuesByType) {
-            $defaultPolicies[] = new FetchPolicy(
+            $policy = new FetchPolicy(
                 $policyId,
                 false,
                 $valuesByType['host'] ?? [],
                 [],
                 false,
-                $policyId === 'script-src' ? true : false,
+                false,
                 false,
                 [],
                 $valuesByType['hash'] ?? [],
-                false,
-                false
             );
+
+            if (array_key_exists($policyId, $defaultPolicies)) {
+                if ($this->merger->canMerge($defaultPolicies[$policyId], $policy)) {
+                    $defaultPolicies[$policyId] = $this->merger->merge($defaultPolicies[$policyId], $policy);
+                } else {
+                    throw new \RuntimeException('Cannot merge a policy of ' . get_class($policy));
+                }
+            } else {
+                $defaultPolicies[$policyId] = $policy;
+            }
         }
 
         return $defaultPolicies;

@@ -43,7 +43,8 @@
       "store_ids": true,
       "created_at": true,
       "updated_at": true,
-      "status": true
+      "status": true,
+      "script_content": true
     },
     "index": {
       "HRYVINSKYI_CSP_WHITELIST_RULE_ID": true,

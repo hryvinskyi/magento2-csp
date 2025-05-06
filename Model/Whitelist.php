@@ -224,4 +224,23 @@ class Whitelist extends AbstractModel implements WhitelistInterface
 
         return $this;
     }
+
+    /**
+     * @inheritDoc
+     */
+    public function getScriptContent(): ?string
+    {
+        return $this->_getData(self::SCRIPT_CONTENT) === null ? null :
+            (string)$this->_getData(self::SCRIPT_CONTENT);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function setScriptContent(string $content): WhitelistInterface
+    {
+        $this->setData(self::SCRIPT_CONTENT, $content);
+
+        return $this;
+    }
 }

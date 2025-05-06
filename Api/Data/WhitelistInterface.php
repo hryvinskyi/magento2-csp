@@ -24,6 +24,7 @@ interface WhitelistInterface
     public const CREATED_AT = 'created_at';
     public const UPDATED_AT = 'updated_at';
     public const STATUS = 'status';
+    public const SCRIPT_CONTENT = 'script_content';
     /**#@-*/
 
 
@@ -186,4 +187,20 @@ interface WhitelistInterface
      * @return $this
      */
     public function setStatus(int $status): WhitelistInterface;
+
+    /**
+     * Get Script Content value
+     *
+     * @return string|null
+     */
+    public function getScriptContent(): ?string;
+
+    /**
+     * Set Script Content value
+     *
+     * @param string $content
+     *
+     * @return $this
+     */
+    public function setScriptContent(string $content): WhitelistInterface;
 }
