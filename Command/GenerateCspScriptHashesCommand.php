@@ -36,7 +36,13 @@ class GenerateCspScriptHashesCommand extends Command
     private const SCRIPT_PATTERN = '/<script[^>]*>(.*?)<\/script>/is';
     private const EXCLUDE_SCRIPT_TYPES = [
         'application/ld+json',
-        'application/json'
+        'application/json',
+        'text/template',
+        'text/ng-template',
+        'text/x-tmpl',
+        'text/x-custom-template',
+        'text/x-magento-init',
+        'text/x-magento-template',
     ];
     private const POLICY_TYPE = 'script-src';
     private const HASH_ALGORITHM = 'sha256';
@@ -438,7 +444,7 @@ class GenerateCspScriptHashesCommand extends Command
     private function processConfigData(InputInterface $input, OutputInterface $output, int $storeId): array
     {
         $this->displaySectionHeader($output, 'CORE CONFIG DATA');
-        $websiteId = $this->storeManager->getWebsite($storeId)->getId();
+        $websiteId = $this->storeManager->getStore($storeId)->getWebsiteId();
 
         $connection = $this->resourceConnection->getConnection();
         $configTable = $this->resourceConnection->getTableName('core_config_data');
