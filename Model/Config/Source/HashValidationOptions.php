@@ -12,10 +12,10 @@ use Magento\Framework\Data\OptionSourceInterface;
 
 class HashValidationOptions implements OptionSourceInterface
 {
-    public const VALID = 'valid';
-    public const INVALID = 'invalid';
-    public const NOT_VERIFIED = 'not_verified';
-    public const NOT_APPLICABLE = 'n_a';
+    public const NOT_APPLICABLE = 0;
+    public const NOT_VERIFIED = 1;
+    public const VALID = 2;
+    public const INVALID = 3;
 
     /**
      * @inheritDoc

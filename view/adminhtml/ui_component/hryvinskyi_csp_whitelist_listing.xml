@@ -256,10 +256,12 @@
         </column>
         <column name="hash_validation" class="Hryvinskyi\Csp\Model\UiComponent\Listing\Column\HashValidation">
             <settings>
+                <options class="Hryvinskyi\Csp\Model\Config\Source\HashValidationOptions"/>
                 <label translate="true">Hash Valid</label>
+                <dataType>select</dataType>
                 <bodyTmpl>ui/grid/cells/html</bodyTmpl>
-                <sortable>false</sortable>
-                <filter>false</filter>
+                <sortable>true</sortable>
+                <filter>select</filter>
             </settings>
         </column>
         <actionsColumn name="actions" class="\Hryvinskyi\Csp\Model\UiComponent\Listing\Column\WhitelistActions">

@@ -1,13 +1,16 @@
 # Changelog
 
 All notable changes to the Hryvinskyi_Csp module will be documented in this file.
+## [1.0.10] - 2025-05-07
+### Added
+- Added possibility to filter whitelist by hash validation status
+
 ## [1.0.9.1] - 2025-05-06
 ### Added
 - Introduced `EXCLUDE_SCRIPT_TYPES` configuration for excluding specific script types from hash generation
 
 ### Fixed
 - Corrected the logic for retrieving website ID from store ID
-
 
 ## [1.0.9] - 2025-05-06
 ### Added
