@@ -37,7 +37,7 @@ class SaveFromCspReport implements SaveFromCspReportInterface
 
         $cspReport = $data['csp-report'];
 
-        if (!isset($cspReport['status-code']) || $cspReport['status-code'] != 200) {
+        if (!isset($cspReport['status-code'])) {
             throw new LocalizedException(__('Invalid CSP report status code'));
         }
 
