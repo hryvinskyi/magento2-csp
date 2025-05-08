@@ -12,7 +12,7 @@
     <type name="Magento\Framework\App\RouterList">
         <arguments>
             <argument name="routerList" xsi:type="array">
-                <item name="robots" xsi:type="array">
+                <item name="hryvinskyi_csp_whitelist_watcher" xsi:type="array">
                     <item name="class" xsi:type="string">Hryvinskyi\Csp\Controller\Router</item>
                     <item name="disable" xsi:type="boolean">false</item>
                     <item name="sortOrder" xsi:type="string">11</item>
