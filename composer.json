@@ -1,6 +1,6 @@
 {
   "name": "hryvinskyi/magento2-csp",
-  "version": "1.0.10",
+  "version": "1.0.10.1",
   "description": "N/A",
   "type": "magento2-module",
   "require": {
