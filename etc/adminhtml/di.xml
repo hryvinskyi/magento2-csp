@@ -16,4 +16,9 @@
             </argument>
         </arguments>
     </type>
+    <type name="Hryvinskyi\Csp\Controller\Adminhtml\Report\Index">
+        <arguments>
+            <argument name="session" xsi:type="object">Magento\Backend\Model\Session\Proxy</argument>
+        </arguments>
+    </type>
 </config>

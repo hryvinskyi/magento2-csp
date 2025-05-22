@@ -56,6 +56,28 @@ class CspReportConverter implements CspReportConverterInterface
             ->setStatus(1);
     }
 
+    /**
+     * @inheritDoc
+     */
+    public function convertFromArray(array $cspReport): WhitelistInterface
+    {
+        $whitelist = $this->whitelistFactory->create();
+        $blockedUri = $cspReport['blocked-uri'] ?? '';
+        $identifier = $this->generateIdentifierFromArray($cspReport);
+        $policy = $this->normalizePolicy($cspReport['effective-directive'] ?? '');
+        [$value, $valueType] = $this->determineValueAndType($blockedUri);
+
+        $this->validatePolicy($policy);
+
+        return $whitelist
+            ->setIdentifier(md5($identifier))
+            ->setPolicy($policy)
+            ->setValueType($valueType)
+            ->setValue($value)
+            ->setStoreIds('0')
+            ->setStatus(1);
+    }
+
     private function generateIdentifier(ReportInterface $cspReport): string
     {
         return $cspReport->getBlockedUri() === 'inline' || $cspReport->getBlockedUri() === 'unsafe-inline'
@@ -63,7 +85,14 @@ class CspReportConverter implements CspReportConverterInterface
             : $cspReport->getBlockedUri();
     }
 
-    private function normalizePolicy(string $policy): string
+    private function generateIdentifierFromArray(array $cspReport): string
+    {
+        return $cspReport['blocked-uri'] === 'inline' || $cspReport['blocked-uri'] === 'unsafe-inline'
+            ? sprintf('%s:%s', $cspReport['source-file'] ?? '', $cspReport['line-number'] ?? 'unknown')
+            : $cspReport['blocked-uri'];
+    }
+
+    public function normalizePolicy(string $policy): string
     {
         return self::POLICY_MAPPING[$policy] ?? $policy;
     }

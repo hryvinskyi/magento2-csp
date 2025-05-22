@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Model\Whitelist;
 
+use Hryvinskyi\Csp\Api\ReportGroupRepositoryInterface;
 use Hryvinskyi\Csp\Api\ReportRepositoryInterface;
 use Hryvinskyi\Csp\Api\WhitelistRepositoryInterface;
 use Hryvinskyi\Csp\Model\Report\Command\CspReportConverterInterface;
@@ -20,6 +21,7 @@ class MassConvertManager implements MassConvertManagerInterface
 {
     public function __construct(
         private readonly ReportRepositoryInterface $reportRepository,
+        private readonly ReportGroupRepositoryInterface $reportGroupRepository,
         private readonly WhitelistRepositoryInterface $whitelistRepository
     ) {
     }
@@ -64,7 +66,19 @@ class MassConvertManager implements MassConvertManagerInterface
                 $newWhitelist->getValue(),
                 $entity->getEffectiveDirective()
             );
-            $this->reportRepository->deleteByDomainAndPolicy($newWhitelist->getValue(), $newWhitelist->getPolicy());
+            $this->reportRepository->deleteByDomainAndPolicy(
+                $newWhitelist->getValue(),
+                $newWhitelist->getPolicy()
+            );
+
+            $this->reportGroupRepository->deleteByValueAndPolicy(
+                $newWhitelist->getValue(),
+                $entity->getEffectiveDirective()
+            );
+            $this->reportGroupRepository->deleteByValueAndPolicy(
+                $newWhitelist->getValue(),
+                $newWhitelist->getPolicy()
+            );
         }
 
         return [

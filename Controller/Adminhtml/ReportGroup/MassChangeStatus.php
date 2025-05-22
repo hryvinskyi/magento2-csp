@@ -1,16 +1,16 @@
 <?php
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
- * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
- * GitHub: https://github.com/hryvinskyi
+ * Copyright (c) 2025. MageCloud.  All rights reserved.
+ * @author: Volodymyr Hryvinskyi <mailto:volodymyr@hryvinskyi.com>
  */
 
 declare(strict_types=1);
 
-namespace Hryvinskyi\Csp\Controller\Adminhtml\Report;
+namespace Hryvinskyi\Csp\Controller\Adminhtml\ReportGroup;
 
-use Hryvinskyi\Csp\Api\ReportRepositoryInterface;
-use Hryvinskyi\Csp\Model\ResourceModel\Report\CollectionFactory;
+use Hryvinskyi\Csp\Api\ReportGroupRepositoryInterface;
+use Hryvinskyi\Csp\Controller\Adminhtml\Report\AbstractReport;
+use Hryvinskyi\Csp\Model\ResourceModel\ReportGroup\CollectionFactory;
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\Controller\ResultInterface;
 use Magento\Framework\Exception\LocalizedException;
@@ -18,17 +18,11 @@ use Magento\Ui\Component\MassAction\Filter;
 
 class MassChangeStatus extends AbstractReport
 {
-    /**
-     * @param Context $context
-     * @param Filter $filter
-     * @param CollectionFactory $collectionFactory
-     * @param ReportRepositoryInterface $reportRepository
-     */
     public function __construct(
         Context $context,
         private readonly Filter $filter,
         private readonly CollectionFactory $collectionFactory,
-        private readonly ReportRepositoryInterface $reportRepository
+        private readonly ReportGroupRepositoryInterface $reportGroupRepository
     ) {
         parent::__construct($context);
     }
@@ -49,9 +43,9 @@ class MassChangeStatus extends AbstractReport
             $collection = $this->filter->getCollection($this->collectionFactory->create());
             $count = 0;
 
-            foreach ($collection->getItems() as $report) {
-                $report->setStatus((int)$status);
-                $this->reportRepository->save($report);
+            foreach ($collection->getItems() as $reportGroup) {
+                $reportGroup->setStatus((int)$status);
+                $this->reportGroupRepository->save($reportGroup);
                 $count++;
             }
 

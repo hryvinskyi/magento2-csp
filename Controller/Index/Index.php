@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Controller\Index;
 
+use Hryvinskyi\Csp\Api\ReportGroupRepositoryInterface;
 use Hryvinskyi\Csp\Api\ReportRepositoryInterface;
 use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\App\CsrfAwareActionInterface;
@@ -24,6 +25,7 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
     public function __construct(
         private readonly RequestInterface $request,
         private readonly ReportRepositoryInterface $reportRepository,
+        private readonly ReportGroupRepositoryInterface $reportGroupRepository,
         private readonly LoggerInterface $logger
     ) {
     }
@@ -32,7 +34,11 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
     {
         $json = $this->request->getContent();
         try {
-            $this->reportRepository->saveFromCspReport($json);
+            $group = $this->reportGroupRepository->saveFromCspReport($json);
+            if ($group->getGroupId() === null) {
+                exit;
+            }
+            $this->reportRepository->saveFromCspReport($group->getGroupId(), $json);
         } catch (\Throwable $e) {
             $this->logger->error($e->getMessage());
         }

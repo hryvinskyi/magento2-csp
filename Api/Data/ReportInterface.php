@@ -11,13 +11,6 @@ namespace Hryvinskyi\Csp\Api\Data;
 
 interface ReportInterface
 {
-    /**
-     * Status codes for report
-     */
-    public const STATUS_CODE_PENDING = 0;
-    public const STATUS_CODE_DENIED = 1;
-    public const STATUS_CODE_SKIP = 2;
-
     /**#@+
      * Constants for keys of data array.
      */
@@ -36,7 +29,6 @@ interface ReportInterface
     public const SOURCE_FILE = 'source_file';
     public const LINE_NUMBER = 'line_number';
     public const COUNT = 'count';
-    public const STATUS = 'status';
     /**#@-*/
 
 
@@ -279,20 +271,4 @@ interface ReportInterface
      * @return $this
      */
     public function setCount(int $count): ReportInterface;
-
-    /**
-     * Get status value
-     *
-     * @return int|null
-     */
-    public function getStatus(): ?int;
-
-    /**
-     * Set status value
-     *
-     * @param int $status
-     *
-     * @return $this
-     */
-    public function setStatus(int $status): ReportInterface;
 }

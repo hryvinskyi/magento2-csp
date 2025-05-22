@@ -319,23 +319,4 @@ class Report extends AbstractModel implements ReportInterface
 
         return $this;
     }
-
-    /**
-     * @inheritdoc
-     */
-    public function getStatus(): ?int
-    {
-        return $this->_getData(self::STATUS) === null ? null :
-            (int)$this->_getData(self::STATUS);
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public function setStatus(int $status): ReportInterface
-    {
-        $this->setData(self::STATUS, $status);
-
-        return $this;
-    }
 }

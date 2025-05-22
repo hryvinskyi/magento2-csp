@@ -532,7 +532,8 @@ class GenerateCspScriptHashesCommand extends Command
     private function getFilteredContent(string $content, OutputInterface $output, string $type, $filter): string
     {
         try {
-            $filteredContent = $filter->filter($content);
+//            $filteredContent = $filter->filter($content);
+            $filteredContent = $content;
 
             if (!str_contains($filteredContent, 'Error filtering template:')) {
                 return $filteredContent;

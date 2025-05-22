@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
- * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
- * GitHub: https://github.com/hryvinskyi
+ * Copyright (c) 2025. MageCloud.  All rights reserved.
+ * @author: Volodymyr Hryvinskyi <mailto:volodymyr@hryvinskyi.com>
  */
 -->
 
@@ -17,7 +16,7 @@
             <block name="hryvinskyi.menu" template="Hryvinskyi_Csp::menu.phtml" />
         </referenceBlock>
         <referenceContainer name="content">
-            <uiComponent name="hryvinskyi_csp_whitelist_form"/>
+            <uiComponent name="hryvinskyi_csp_reportgroup_listing"/>
         </referenceContainer>
     </body>
 </page>

@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright (c) 2025. MageCloud.  All rights reserved.
+ * @author: Volodymyr Hryvinskyi <mailto:volodymyr@hryvinskyi.com>
+ */
+-->
+
+<listing xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">hryvinskyi_csp_reportgroup_listing.hryvinskyi_csp_reportgroup_listing_data_source</item>
+            <item name="deps" xsi:type="string">hryvinskyi_csp_reportgroup_listing.hryvinskyi_csp_reportgroup_listing_data_source</item>
+        </item>
+        <item name="spinner" xsi:type="string">hryvinskyi_csp_reportgroup_columns</item>
+    </argument>
+    <dataSource name="hryvinskyi_csp_reportgroup_listing_data_source">
+        <argument name="dataProvider" xsi:type="configurableObject">
+            <argument name="class" xsi:type="string">Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider</argument>
+            <argument name="name" xsi:type="string">hryvinskyi_csp_reportgroup_listing_data_source</argument>
+            <argument name="primaryFieldName" xsi:type="string">group_id</argument>
+            <argument name="requestFieldName" xsi:type="string">id</argument>
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="component" xsi:type="string">Magento_Ui/js/grid/provider</item>
+                    <item name="update_url" xsi:type="url" path="mui/index/render"/>
+                    <item name="storageConfig" xsi:type="array">
+                        <item name="indexField" xsi:type="string">group_id</item>
+                    </item>
+                </item>
+            </argument>
+        </argument>
+    </dataSource>
+    <listingToolbar name="listing_top">
+        <argument name="data" xsi:type="array">
+            <item name="config" xsi:type="array">
+                <item name="sticky" xsi:type="boolean">true</item>
+            </item>
+        </argument>
+        <bookmark name="bookmarks"/>
+        <columnsControls name="columns_controls"/>
+        <exportButton name="export_button">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="selectProvider" xsi:type="string">hryvinskyi_csp_reportgroup_listing.hryvinskyi_csp_reportgroup_listing.hryvinskyi_csp_reportgroup_columns.ids</item>
+                </item>
+            </argument>
+        </exportButton>
+        <filterSearch name="fulltext"/>
+        <filters name="listing_filters">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="templates" xsi:type="array">
+                        <item name="filters" xsi:type="array">
+                            <item name="select" xsi:type="array">
+                                <item name="component" xsi:type="string">Magento_Ui/js/form/element/ui-select</item>
+                                <item name="template" xsi:type="string">ui/grid/filters/elements/ui-select</item>
+                            </item>
+                        </item>
+                    </item>
+                </item>
+            </argument>
+        </filters>
+        <massaction name="listing_massaction">
+            <action name="delete">
+                <argument name="data" xsi:type="array">
+                    <item name="config" xsi:type="array">
+                        <item name="type" xsi:type="string">delete</item>
+                        <item name="label" xsi:type="string" translate="true">Delete</item>
+                        <item name="url" xsi:type="url" path="hryvinskyi_csp/reportGroup/massDelete"/>
+                        <item name="confirm" xsi:type="array">
+                            <item name="title" xsi:type="string" translate="true">Delete items</item>
+                            <item name="message" xsi:type="string" translate="true">Are you sure you wan't to delete selected items?</item>
+                        </item>
+                    </item>
+                </argument>
+            </action>
+            <action name="deny">
+                <argument name="data" xsi:type="array">
+                    <item name="config" xsi:type="array">
+                        <item name="type" xsi:type="string">deny</item>
+                        <item name="label" xsi:type="string" translate="true">Change Status to Deny</item>
+                        <item name="url" xsi:type="url" path="hryvinskyi_csp/reportGroup/massChangeStatus">
+                            <param name="status">1</param>
+                        </item>
+                    </item>
+                </argument>
+            </action>
+            <action name="skip">
+                <argument name="data" xsi:type="array">
+                    <item name="config" xsi:type="array">
+                        <item name="type" xsi:type="string">skip</item>
+                        <item name="label" xsi:type="string" translate="true">Change Status to Skip</item>
+                        <item name="url" xsi:type="url" path="hryvinskyi_csp/reportGroup/massChangeStatus">
+                            <param name="status">2</param>
+                        </item>
+                    </item>
+                </argument>
+            </action>
+        </massaction>
+        <paging name="listing_paging"/>
+    </listingToolbar>
+    <columns name="hryvinskyi_csp_reportgroup_columns">
+        <argument name="data" xsi:type="array">
+            <item name="config" xsi:type="array">
+                <item name="editorConfig" xsi:type="array">
+                    <item name="selectProvider" xsi:type="string">hryvinskyi_csp_reportgroup_listing.hryvinskyi_csp_reportgroup_listing.hryvinskyi_csp_reportgroup_columns.ids</item>
+                    <item name="enabled" xsi:type="boolean">true</item>
+                    <item name="indexField" xsi:type="string">group_id</item>
+                    <item name="clientConfig" xsi:type="array">
+                        <item name="saveUrl" xsi:type="url" path="hryvinskyi_csp/reportGroup/inlineEdit"/>
+                        <item name="validateBeforeSave" xsi:type="boolean">false</item>
+                    </item>
+                </item>
+                <item name="childDefaults" xsi:type="array">
+                    <item name="fieldAction" xsi:type="array">
+                        <item name="provider" xsi:type="string">hryvinskyi_csp_reportgroup_listing.hryvinskyi_csp_reportgroup_listing.hryvinskyi_csp_reportgroup_columns_editor</item>
+                        <item name="target" xsi:type="string">startEdit</item>
+                        <item name="params" xsi:type="array">
+                            <item name="0" xsi:type="string">${ $.$data.rowIndex }</item>
+                            <item name="1" xsi:type="boolean">true</item>
+                        </item>
+                    </item>
+                </item>
+            </item>
+        </argument>
+        <selectionsColumn name="ids">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="indexField" xsi:type="string">group_id</item>
+                </item>
+            </argument>
+        </selectionsColumn>
+        <column name="group_id">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="filter" xsi:type="string">text</item>
+                    <item name="label" xsi:type="string" translate="true">Group Id</item>
+                    <item name="editor" xsi:type="array">
+                        <item name="editorType" xsi:type="string">text</item>
+                        <item name="validation" xsi:type="array">
+                            <item name="required-entry" xsi:type="boolean">true</item>
+                        </item>
+                    </item>
+                </item>
+            </argument>
+        </column>
+        <column name="policy" component="Magento_Ui/js/grid/columns/select">
+            <settings>
+                <options class="Hryvinskyi\Csp\Model\Config\Source\Directive"/>
+                <filter>select</filter>
+                <editor>
+                    <editorType>select</editorType>
+                </editor>
+                <dataType>select</dataType>
+                <label translate="true">Policy</label>
+            </settings>
+        </column>
+        <column name="value">
+            <settings>
+                <filter>text</filter>
+                <editor>
+                    <validation>
+                        <rule name="required-entry" xsi:type="boolean">true</rule>
+                    </validation>
+                    <editorType>text</editorType>
+                </editor>
+                <label translate="true">Value</label>
+            </settings>
+        </column>
+        <column name="store_id" class="Magento\Store\Ui\Component\Listing\Column\Store">
+            <settings>
+                <label translate="true">Store View</label>
+                <bodyTmpl>ui/grid/cells/html</bodyTmpl>
+                <sortable>false</sortable>
+            </settings>
+        </column>
+        <column name="status" class="Hryvinskyi\Csp\Model\UiComponent\Listing\Column\ReportStatus">
+            <settings>
+                <filter>select</filter>
+                <dataType>select</dataType>
+                <label translate="true">Status</label>
+                <options class="Hryvinskyi\Csp\Model\Config\Source\Status"/>
+                <bodyTmpl>ui/grid/cells/html</bodyTmpl>
+                <visible>true</visible>
+            </settings>
+        </column>
+        <column name="count">
+            <settings>
+                <filter>range</filter>
+                <label translate="true">Count</label>
+            </settings>
+        </column>
+        <actionsColumn name="actions" class="\Hryvinskyi\Csp\Model\UiComponent\Listing\Column\ReportGroupActions">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="indexField" xsi:type="string">group_id</item>
+                </item>
+            </argument>
+        </actionsColumn>
+    </columns>
+</listing>

@@ -21,7 +21,7 @@ class SaveFromCspReport implements SaveFromCspReportInterface
     /**
      * @inheritDoc
      */
-    public function execute(string $jsonData): void
+    public function execute(int $groupId, string $jsonData): void
     {
         // Parse JSON data
         $data = json_decode($jsonData, true, 512, JSON_THROW_ON_ERROR);
@@ -51,8 +51,8 @@ class SaveFromCspReport implements SaveFromCspReportInterface
         $connection = $this->resource->getConnection();
         $tableName = $this->resource->getMainTable();
 
-        $query = "INSERT INTO $tableName (blocked_uri, disposition, document_uri, effective_directive, original_policy, referrer, script_sample, status_code, violated_directive, source_file, line_number, count)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+        $query = "INSERT INTO $tableName (blocked_uri, disposition, document_uri, effective_directive, original_policy, referrer, script_sample, status_code, violated_directive, source_file, line_number, count, group_id)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
           ON DUPLICATE KEY UPDATE count = count + 1";
 
         $connection->query(
@@ -69,6 +69,7 @@ class SaveFromCspReport implements SaveFromCspReportInterface
                 $dataToInsert['violated_directive'],
                 $dataToInsert['source_file'] ?? '',
                 $dataToInsert['line_number'] ?? 0,
+                $groupId,
             ]
         );
     }

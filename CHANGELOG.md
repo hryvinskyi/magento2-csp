@@ -1,6 +1,11 @@
 # Changelog
 
 All notable changes to the Hryvinskyi_Csp module will be documented in this file.
+
+## [1.1.0-alpha] - 2025-05-23
+### Added
+- Added grouping functionality for CSP reports in the admin panel
+
 ## [1.0.10] - 2025-05-07
 ### Added
 - Added possibility to filter whitelist by hash validation status

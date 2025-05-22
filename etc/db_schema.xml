@@ -9,9 +9,42 @@
 
 <schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
+    <table name="hryvinskyi_csp_violation_report_group" resource="default" engine="innodb" comment="Violation report group records of CSP problems from the frontend">
+        <column xsi:type="int" name="group_id" padding="11" unsigned="true" nullable="false" identity="true" comment="Group ID"/>
+        <column xsi:type="varchar" name="policy" nullable="false" length="255" comment="Policy"/>
+        <column xsi:type="varchar" name="value" nullable="false" length="255" comment="Value"/>
+        <column xsi:type="smallint" name="store_id" unsigned="true" nullable="false" identity="false"
+                comment="Store ID"/>
+        <column xsi:type="smallint" name="status" nullable="false" default="0" comment="Status"/>
+        <column xsi:type="bigint" name="count" nullable="false" default="1" comment="Number of occurrences"/>
+
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="group_id"/>
+        </constraint>
+
+        <constraint xsi:type="unique" referenceId="HRYVINSKYI_CSP_GROUP_POLICY_VALUE_STORE_ID">
+            <column name="policy"/>
+            <column name="value"/>
+            <column name="store_id"/>
+        </constraint>
+
+        <index referenceId="HRYVINSKYI_CSP_REPORT_FULLTEXT" indexType="fulltext">
+            <column name="policy"/>
+            <column name="value"/>
+        </index>
+
+        <index referenceId="HRYVINSKYI_CSP_GROUP_GROUP_ID" indexType="btree">
+            <column name="group_id"/>
+        </index>
+        <constraint xsi:type="foreign" referenceId="FK_HRYVINSKYI_CSP_REPORT_GROUP_STORE_ID"
+                    table="hryvinskyi_csp_violation_report_group"
+                    column="store_id" referenceTable="store" referenceColumn="store_id" onDelete="CASCADE"/>
+    </table>
+    
     <table name="hryvinskyi_csp_violation_report" resource="default" engine="innodb"
            comment="Violation report records of CSP problems from the frontend">
         <column xsi:type="int" name="report_id" padding="11" unsigned="true" nullable="false" identity="true" comment="Report ID"/>
+        <column xsi:type="int" name="group_id" padding="11" unsigned="true" nullable="false" identity="false" comment="Group ID"/>
         <column xsi:type="varchar" name="blocked_uri" nullable="false" default="" length="255" comment="Blocked Uri"/>
         <column xsi:type="varchar" name="disposition" nullable="true" length="255" comment="Disposition"/>
         <column xsi:type="varchar" name="document_uri" nullable="false" default="" length="255" comment="Document Uri"/>
@@ -26,7 +59,6 @@
         <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Created At"/>
         <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP" comment="Updated At"/>
         <column xsi:type="bigint" name="count" nullable="false" default="1" comment="Number of occurrences"/>
-        <column xsi:type="smallint" name="status" nullable="false" default="0" comment="Status"/>
 
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="report_id"/>
@@ -60,6 +92,10 @@
             <column name="violated_directive"/>
             <column name="source_file"/>
         </index>
+
+        <constraint xsi:type="foreign" referenceId="FK_HRYVINSKYI_CSP_REPORT_GROUP_ID" table="hryvinskyi_csp_violation_report"
+                    column="group_id" referenceTable="hryvinskyi_csp_violation_report_group"
+                    referenceColumn="group_id" onDelete="CASCADE"/>
     </table>
 
     <table name="hryvinskyi_csp_whitelist" resource="default" engine="innodb" comment="Csp Whitelist">

@@ -6,32 +6,35 @@
  * GitHub: https://github.com/hryvinskyi
  */
 -->
-
-<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
     <preference for="Hryvinskyi\Csp\Api\ConfigInterface" type="Hryvinskyi\Csp\Model\Config"/>
     <preference for="Hryvinskyi\Csp\Api\Data\ReportInterface" type="Hryvinskyi\Csp\Model\Report"/>
+    <preference for="Hryvinskyi\Csp\Api\Data\ReportGroupInterface" type="Hryvinskyi\Csp\Model\ReportGroup"/>
     <preference for="Hryvinskyi\Csp\Api\Data\WhitelistInterface" type="Hryvinskyi\Csp\Model\Whitelist"/>
     <preference for="Hryvinskyi\Csp\Api\WhitelistRepositoryInterface" type="Hryvinskyi\Csp\Model\WhitelistRepository"/>
     <preference for="Hryvinskyi\Csp\Api\ReportRepositoryInterface" type="Hryvinskyi\Csp\Model\ReportRepository"/>
+    <preference for="Hryvinskyi\Csp\Api\ReportGroupRepositoryInterface" type="Hryvinskyi\Csp\Model\ReportGroupRepository"/>
     <preference for="Hryvinskyi\Csp\Api\CspHeaderProcessorInterface" type="Hryvinskyi\Csp\Model\HeaderSplitter\LaminasCspHeaderProcessor"/>
     <preference for="Hryvinskyi\Csp\Api\CspHeaderSplitterInterface" type="Hryvinskyi\Csp\Model\HeaderSplitter\LaminasCspHeaderSplitter"/>
     <preference for="Hryvinskyi\Csp\Api\LaminasPluginRegistrarInterface" type="Hryvinskyi\Csp\Model\HeaderSplitter\LaminasPluginRegistrar"/>
     <preference for="Hryvinskyi\Csp\Api\Data\ReportSearchResultsInterface" type="Hryvinskyi\Csp\Model\ReportSearchResults"/>
+    <preference for="Hryvinskyi\Csp\Api\Data\ReportGroupSearchResultsInterface" type="Hryvinskyi\Csp\Model\ReportGroupSearchResults"/>
     <preference for="Hryvinskyi\Csp\Api\Data\WhitelistSearchResultsInterface" type="Hryvinskyi\Csp\Model\WhitelistSearchResults"/>
 
     <preference for="Hryvinskyi\Csp\Api\Whitelist\SearchCriteria\AddActiveFilterInterface" type="Hryvinskyi\Csp\Model\Whitelist\SearchCriteria\AddActiveFilter"/>
     <preference for="Hryvinskyi\Csp\Api\Whitelist\SearchCriteria\AddStoreFilterInterface" type="Hryvinskyi\Csp\Model\Whitelist\SearchCriteria\AddStoreFilter"/>
 
-    <preference for="Hryvinskyi\Csp\Model\Whitelist\WhitelistManagerInterface" type="Hryvinskyi\Csp\Model\Whitelist\WhitelistManager" />
-    <preference for="Hryvinskyi\Csp\Model\Whitelist\MassConvertManagerInterface" type="Hryvinskyi\Csp\Model\Whitelist\MassConvertManager" />
+    <preference for="Hryvinskyi\Csp\Model\Whitelist\WhitelistManagerInterface" type="Hryvinskyi\Csp\Model\Whitelist\WhitelistManager"/>
+    <preference for="Hryvinskyi\Csp\Model\Whitelist\MassConvertManagerInterface" type="Hryvinskyi\Csp\Model\Whitelist\MassConvertManager"/>
     <preference for="Hryvinskyi\Csp\Model\Whitelist\Command\GetAllActiveWhitelistByStoreIdInterface" type="Hryvinskyi\Csp\Model\Whitelist\Command\GetAllActiveWhitelistByStoreId"/>
     <preference for="Hryvinskyi\Csp\Model\Whitelist\Command\GetListInterface" type="Hryvinskyi\Csp\Model\Whitelist\Command\GetList"/>
 
-    <preference for="Hryvinskyi\Csp\Model\Report\MassActionInterface" type="Hryvinskyi\Csp\Model\Report\MassAction" />
-    <preference for="Hryvinskyi\Csp\Model\Cache\CacheCleanerInterface" type="Hryvinskyi\Csp\Model\Cache\CacheCleaner" />
+    <preference for="Hryvinskyi\Csp\Model\Report\MassActionInterface" type="Hryvinskyi\Csp\Model\Report\MassAction"/>
+    <preference for="Hryvinskyi\Csp\Model\Cache\CacheCleanerInterface" type="Hryvinskyi\Csp\Model\Cache\CacheCleaner"/>
     <preference for="Hryvinskyi\Csp\Model\Report\Command\SaveFromCspReportInterface" type="Hryvinskyi\Csp\Model\Report\Command\SaveFromCspReport"/>
     <preference for="Hryvinskyi\Csp\Model\Report\Command\CspReportConverterInterface" type="Hryvinskyi\Csp\Model\Report\Command\CspReportConverter"/>
+
+    <preference for="Hryvinskyi\Csp\Model\ReportGroup\Command\SaveFromCspReportInterface" type="Hryvinskyi\Csp\Model\ReportGroup\Command\SaveFromCspReport"/>
 
     <preference for="Hryvinskyi\Csp\Api\CspHashGeneratorInterface" type="Hryvinskyi\Csp\Model\CspHashGenerator"/>
 
@@ -47,6 +50,7 @@
             <argument name="collections" xsi:type="array">
                 <item name="hryvinskyi_csp_report_listing_data_source" xsi:type="string">Hryvinskyi\Csp\Model\ResourceModel\Report\Grid\Collection</item>
                 <item name="hryvinskyi_csp_whitelist_listing_data_source" xsi:type="string">Hryvinskyi\Csp\Model\ResourceModel\Whitelist\Grid\Collection</item>
+                <item name="hryvinskyi_csp_reportgroup_listing_data_source" xsi:type="string">Hryvinskyi\Csp\Model\ResourceModel\ReportGroup\Grid\Collection</item>
             </argument>
         </arguments>
     </type>
@@ -54,6 +58,12 @@
         <arguments>
             <argument name="mainTable" xsi:type="string">hryvinskyi_csp_violation_report</argument>
             <argument name="resourceModel" xsi:type="string">Hryvinskyi\Csp\Model\ResourceModel\Report</argument>
+        </arguments>
+    </type>
+    <type name="Hryvinskyi\Csp\Model\ResourceModel\ReportGroup\Grid\Collection">
+        <arguments>
+            <argument name="mainTable" xsi:type="string">hryvinskyi_csp_violation_report_group</argument>
+            <argument name="resourceModel" xsi:type="string">Hryvinskyi\Csp\Model\ResourceModel\ReportGroup</argument>
         </arguments>
     </type>
     <type name="Hryvinskyi\Csp\Model\ResourceModel\Whitelist\Grid\Collection">
@@ -145,16 +155,14 @@
         <plugin name="overwrite_csp_config_values" type="Hryvinskyi\Csp\Plugin\Framework\App\Config\ScopeConfigInterface\OverwriteCspConfigValues"/>
     </type>
     <type name="Magento\Csp\Api\CspRendererInterface">
-        <plugin name="csp_header_splitter"
-                type="Hryvinskyi\Csp\Plugin\Csp\Api\CspRendererInterface\HeaderSplitter"/>
+        <plugin name="csp_header_splitter" type="Hryvinskyi\Csp\Plugin\Csp\Api\CspRendererInterface\HeaderSplitter"/>
     </type>
 
     <!-- Command Line -->
     <type name="Magento\Framework\Console\CommandList">
         <arguments>
             <argument name="commands" xsi:type="array">
-                <item name="hryvinskyi_csp_generate_script_hashes"
-                      xsi:type="object">Hryvinskyi\Csp\Command\GenerateCspScriptHashesCommand\Proxy</item>
+                <item name="hryvinskyi_csp_generate_script_hashes" xsi:type="object">Hryvinskyi\Csp\Command\GenerateCspScriptHashesCommand\Proxy</item>
             </argument>
         </arguments>
     </type>

@@ -17,7 +17,7 @@
              action="hryvinskyi_csp/whitelist/index"/>
         <add id="Hryvinskyi_Csp::violation_report" title="Violation Report" module="Hryvinskyi_Csp"
              sortOrder="20" resource="Hryvinskyi_Csp::csp" parent="Hryvinskyi_Csp::csp"
-             action="hryvinskyi_csp/report/index"/>
+             action="hryvinskyi_csp/reportgroup/index"/>
         <add id="Hryvinskyi_Csp::config" title="Configuration" translate="title" module="Hryvinskyi_Csp"
              sortOrder="30" resource="Hryvinskyi_Csp::csp" parent="Hryvinskyi_Csp::csp"
              action="adminhtml/system_config/edit/section/csp"/>

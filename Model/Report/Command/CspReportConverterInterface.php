@@ -23,4 +23,21 @@ interface CspReportConverterInterface
      * @throws LocalizedException
      */
     public function convert(ReportInterface $cspReport): WhitelistInterface;
+
+    /**
+     * Convert CSP report from array to whitelist
+     *
+     * @param array $cspReport
+     * @return WhitelistInterface
+     * @throws LocalizedException
+     */
+    public function convertFromArray(array $cspReport): WhitelistInterface;
+
+    /**
+     * Normalize the policy name
+     *
+     * @param string $policy
+     * @return string
+     */
+    public function normalizePolicy(string $policy): string;
 }

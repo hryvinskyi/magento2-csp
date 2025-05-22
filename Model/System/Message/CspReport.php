@@ -9,7 +9,7 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Model\System\Message;
 
-use Hryvinskyi\Csp\Api\ReportRepositoryInterface;
+use Hryvinskyi\Csp\Api\ReportGroupRepositoryInterface;
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Framework\Notification\MessageInterface;
 use Magento\Framework\UrlInterface;
@@ -17,7 +17,7 @@ use Magento\Framework\UrlInterface;
 class CspReport implements MessageInterface
 {
     public function __construct(
-        private readonly ReportRepositoryInterface $reportRepository,
+        private readonly ReportGroupRepositoryInterface $reportRepository,
         private readonly SearchCriteriaBuilder $searchCriteriaBuilder,
         private readonly UrlInterface $urlBuilder
     ) {
@@ -86,7 +86,7 @@ class CspReport implements MessageInterface
     <p class="csp-notice__title">Content Security Policy Alert</p>
     <p class="csp-notice__text">Review CSP Reports to update your Content Security Policy settings. Action is required for proper site functionality in Magento 2.4.</p>
 </a>';
-        $url = $this->urlBuilder->getUrl('hryvinskyi_csp/report/index');
+        $url = $this->urlBuilder->getUrl('hryvinskyi_csp/reportgroup/index');
         return __($text, $url)->render();
     }
 

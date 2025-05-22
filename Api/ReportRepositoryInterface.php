@@ -28,11 +28,13 @@ interface ReportRepositoryInterface
     /**
      * Save from CSP Report
      *
+     * @param int $groupId
      * @param string $json
+     * @return bool
      *
      * @throws \Magento\Framework\Exception\CouldNotSaveException
      */
-    public function saveFromCspReport(string $json): bool;
+    public function saveFromCspReport(int $groupId, string $json): bool;
 
     /**
      * Get Report by id.

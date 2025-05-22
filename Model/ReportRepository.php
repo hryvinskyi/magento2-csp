@@ -59,13 +59,12 @@ class ReportRepository implements ReportRepositoryInterface
     /**
      * @inheritDoc
      */
-    public function saveFromCspReport(string $json): bool
+    public function saveFromCspReport(int $groupId, string $json): bool
     {
         try {
-            $this->saveFromCspReport->execute($json);
+            $this->saveFromCspReport->execute($groupId, $json);
             return true;
         } catch (LocalizedException $e) {
-            dd($e);
             return false;
         }
     }

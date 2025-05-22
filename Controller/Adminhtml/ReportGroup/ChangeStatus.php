@@ -1,28 +1,24 @@
 <?php
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
- * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
- * GitHub: https://github.com/hryvinskyi
+ * Copyright (c) 2025. MageCloud.  All rights reserved.
+ * @author: Volodymyr Hryvinskyi <mailto:volodymyr@hryvinskyi.com>
  */
 
 declare(strict_types=1);
 
-namespace Hryvinskyi\Csp\Controller\Adminhtml\Report;
+namespace Hryvinskyi\Csp\Controller\Adminhtml\ReportGroup;
 
-use Hryvinskyi\Csp\Api\ReportRepositoryInterface;
+use Hryvinskyi\Csp\Api\ReportGroupRepositoryInterface;
+use Hryvinskyi\Csp\Controller\Adminhtml\Report\AbstractReport;
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\Controller\ResultInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
 
 class ChangeStatus extends AbstractReport
 {
-    /**
-     * @param Context $context
-     * @param ReportRepositoryInterface $reportRepository
-     */
     public function __construct(
         Context $context,
-        private readonly ReportRepositoryInterface $reportRepository
+        private readonly ReportGroupRepositoryInterface $reportGroupRepository,
     ) {
         parent::__construct($context);
     }
@@ -32,21 +28,21 @@ class ChangeStatus extends AbstractReport
      */
     public function execute(): ResultInterface
     {
-        $reportId = (int)$this->getRequest()->getParam('id');
+        $reportGroupId = (int)$this->getRequest()->getParam('id');
         $status = $this->getRequest()->getParam('status');
 
-        if (!$reportId || !$status) {
+        if (!$reportGroupId || !$status) {
             $this->messageManager->addErrorMessage(__('Missing required parameters'));
             return $this->createRedirectResult('*/*/');
         }
 
         try {
-            $report = $this->reportRepository->getById($reportId);
-            $report->setStatus((int)$status);
-            $this->reportRepository->save($report);
-            $this->messageManager->addSuccessMessage(__('Report status has been updated.'));
+            $reportGroup = $this->reportGroupRepository->getById($reportGroupId);
+            $reportGroup->setStatus((int)$status);
+            $this->reportGroupRepository->save($reportGroup);
+            $this->messageManager->addSuccessMessage(__('Report Group status has been updated.'));
         } catch (NoSuchEntityException) {
-            $this->messageManager->addErrorMessage(__('Report with ID %1 does not exist.', $reportId));
+            $this->messageManager->addErrorMessage(__('Report Group with ID %1 does not exist.', $reportGroupId));
         } catch (\Exception $e) {
             $this->messageManager->addErrorMessage(__('Could not change status: %1', $e->getMessage()));
         }
