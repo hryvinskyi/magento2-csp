@@ -38,6 +38,11 @@
 
     <preference for="Hryvinskyi\Csp\Api\CspHashGeneratorInterface" type="Hryvinskyi\Csp\Model\CspHashGenerator"/>
 
+    <!-- Cache-aware CSP System -->
+    <preference for="Hryvinskyi\Csp\Api\Cache\CspPolicyCacheStrategyInterface" type="Hryvinskyi\Csp\Model\Cache\CspPolicyCacheStrategy"/>
+    <preference for="Hryvinskyi\Csp\Api\Serializer\CspPolicySerializerInterface" type="Hryvinskyi\Csp\Model\Serializer\CspPolicySerializer"/>
+    <preference for="Hryvinskyi\Csp\Api\CachedCspManagerInterface" type="Hryvinskyi\Csp\Model\CachedCspManager"/>
+
     <type name="Hryvinskyi\Csp\Controller\Adminhtml\Whitelist\Import">
         <arguments>
             <argument name="filesystem" xsi:type="object">Magento\Framework\Filesystem</argument>
@@ -155,6 +160,7 @@
         <plugin name="overwrite_csp_config_values" type="Hryvinskyi\Csp\Plugin\Framework\App\Config\ScopeConfigInterface\OverwriteCspConfigValues"/>
     </type>
     <type name="Magento\Csp\Api\CspRendererInterface">
+        <plugin name="csp_cached_policy_loader" type="Hryvinskyi\Csp\Plugin\Csp\Api\CspRendererInterface\CachedPolicyLoader"/>
         <plugin name="csp_header_splitter" type="Hryvinskyi\Csp\Plugin\Csp\Api\CspRendererInterface\HeaderSplitter"/>
     </type>
 
@@ -163,6 +169,7 @@
         <arguments>
             <argument name="commands" xsi:type="array">
                 <item name="hryvinskyi_csp_generate_script_hashes" xsi:type="object">Hryvinskyi\Csp\Command\GenerateCspScriptHashesCommand\Proxy</item>
+                <item name="hryvinskyi_csp_flush_cache" xsi:type="object">Hryvinskyi\Csp\Command\FlushCspCacheCommand\Proxy</item>
             </argument>
         </arguments>
     </type>
@@ -217,7 +224,36 @@
     </type>
     <type name="Hryvinskyi\Csp\Plugin\Csp\Api\CspRendererInterface\HeaderSplitter">
         <arguments>
+            <argument name="cspHeaderProcessor" xsi:type="object">Hryvinskyi\Csp\Api\CspHeaderProcessorInterface</argument>
+        </arguments>
+    </type>
+    <type name="Hryvinskyi\Csp\Plugin\Csp\Api\CspRendererInterface\CachedPolicyLoader">
+        <arguments>
+            <argument name="cachedCspManager" xsi:type="object">Hryvinskyi\Csp\Api\CachedCspManagerInterface</argument>
             <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Hryvinskyi\Csp\Model\Serializer\CspPolicySerializer">
+        <arguments>
+            <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
+        </arguments>
+    </type>
+
+    <!-- CSP Policy Cache Strategy Configuration -->
+    <type name="Hryvinskyi\Csp\Model\Cache\CspPolicyCacheStrategy">
+        <arguments>
+            <argument name="cache" xsi:type="object">Hryvinskyi\Csp\Model\Cache\Type\CspPolicies</argument>
+            <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
+            <argument name="enabled" xsi:type="boolean">true</argument>
+            <argument name="cacheLifetime" xsi:type="number">31536000</argument> <!-- 365 days -->
+        </arguments>
+    </type>
+
+    <!-- Cached CSP Manager Configuration -->
+    <type name="Hryvinskyi\Csp\Model\CachedCspManager">
+        <arguments>
+            <argument name="cacheStrategy" xsi:type="object">Hryvinskyi\Csp\Api\Cache\CspPolicyCacheStrategyInterface</argument>
+            <argument name="dynamicCollector" xsi:type="object">Magento\Csp\Model\Collector\DynamicCollector</argument>
         </arguments>
     </type>
 </config>

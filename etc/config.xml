@@ -14,7 +14,7 @@
             <general>
                 <enabled_rules>1</enabled_rules>
                 <enabled_reports>1</enabled_reports>
-                <enable_header_splitting>1</enable_header_splitting>
+                <enable_header_splitting>0</enable_header_splitting>
                 <max_header_size>4096</max_header_size>
             </general>
             <mode>

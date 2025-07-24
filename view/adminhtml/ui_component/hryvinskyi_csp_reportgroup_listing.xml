@@ -76,6 +76,19 @@
                     </item>
                 </argument>
             </action>
+            <action name="convert">
+                <argument name="data" xsi:type="array">
+                    <item name="config" xsi:type="array">
+                        <item name="type" xsi:type="string">convert</item>
+                        <item name="label" xsi:type="string" translate="true">Convert</item>
+                        <item name="url" xsi:type="url" path="hryvinskyi_csp/reportGroup/massConvert"/>
+                        <item name="confirm" xsi:type="array">
+                            <item name="title" xsi:type="string" translate="true">Convert items</item>
+                            <item name="message" xsi:type="string" translate="true">Are you sure you wan't to convert selected items?</item>
+                        </item>
+                    </item>
+                </argument>
+            </action>
             <action name="deny">
                 <argument name="data" xsi:type="array">
                     <item name="config" xsi:type="array">

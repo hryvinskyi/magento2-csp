@@ -10,13 +10,17 @@ This module allows administrators to manage CSP whitelists from the Magento admi
  2. **Store-Specific Configuration**: Module provides store view specific CSP configuration.
  3. **Violation Reports**: The module collects and displays CSP violation reports, helping administrators identify and address security issues.
  4. **One-Click Conversion**: Possibility to convert violation reports to whitelist rule with one click.
- 5. **Automatic URL Collection**: Automatically collects and adds all storefront URLs to the CSP whitelist.
- 6. **CSP Header Splitting**: Automatically splits large CSP headers into multiple smaller ones to prevent issues with header size limits.
- 7. **Flexible Configuration**: The module provides various configuration options to enable or disable specific CSP features.
- 8. **Admin Panel Integration**: The module integrates with the Magento admin panel, providing a user-friendly interface for managing CSP settings.
- 9. **Import/Export**: Support for importing and exporting whitelist rules.
-10. **Automatic Script Hash Generation**: Command-line tool to scan CMS pages/blocks and configs for inline scripts and generate CSP hashes
-11. **Visual Hash Validation**: See at a glance if your script hashes are valid
+ 5. **Mass Convert Reports**: Bulk conversion of multiple CSP report groups to whitelist entries with automatic cleanup.
+ 6. **Automatic URL Collection**: Automatically collects and adds all storefront URLs to the CSP whitelist.
+ 7. **CSP Header Splitting**: Automatically splits large CSP headers into multiple smaller ones to prevent issues with header size limits.
+ 8. **Flexible Configuration**: The module provides various configuration options to enable or disable specific CSP features.
+ 9. **Admin Panel Integration**: The module integrates with the Magento admin panel, providing a user-friendly interface for managing CSP settings.
+10. **Import/Export**: Support for importing and exporting whitelist rules.
+11. **Automatic Script Hash Generation**: Command-line tool to scan CMS pages/blocks and configs for inline scripts and generate CSP hashes
+12. **Visual Hash Validation**: See at a glance if your script hashes are valid
+13. **Template Nonce Provider**: ViewModel class for easy CSP nonce generation in templates
+14. **Enhanced Caching**: Improved CSP policy caching with better serialization and cache management
+15. **Report Grouping**: Organized CSP violation reports into logical groups for better management
 
 ## Requirements
 
@@ -70,6 +74,36 @@ The module adds a new menu item in the admin panel:
     - **Store Views**: Select applicable store views 
     - **Status**: Enable or disable the rule
 
+### Using CSP Nonces in Templates
+
+The module provides a CspNonceProvider ViewModel for easy nonce generation in templates:
+
+```xml
+<!-- In your layout XML -->
+<block name="your.block" template="Your_Module::template.phtml">
+    <arguments>
+        <argument name="cspNonceProviderViewModel" xsi:type="object">Hryvinskyi\Csp\ViewModel\CspNonceProvider</argument>
+    </arguments>
+</block>
+```
+
+In your template (template.phtml)
+
+```php
+<?php
+
+$cspNonceProviderViewModel = $block->getData('cspNonceProviderViewModel')
+
+$nonce = '';
+if ($cspNonceProviderViewModel) {
+    $nonce = $cspNonceProviderViewModel->getNonce();
+}
+?>
+
+<script<?= $nonce !== '' ? ' nonce="' . $nonce .'"' : '' ?>>
+    // Your inline script here
+</script>
+```
 ### Generating Script Hashes
 
 To make inline scripts work with CSP, you must generate cryptographic SHA hashes and add them to your whitelist. 

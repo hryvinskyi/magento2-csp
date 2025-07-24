@@ -577,44 +577,64 @@ class GenerateCspScriptHashesCommand extends Command
             return $stats;
         }
 
+        $output->writeln("<fg=blue>├─</> <info>Found " . count($matches) . " script tags total</info>");
+        
         $scriptIndex = 0;
+        $skippedIndex = 0;
+        $totalIndex = 0;
 
         foreach ($matches as $match) {
+            $totalIndex++;
             $fullTag = $match[0];
             $scriptContent = $match[1];
 
-            // Skip empty scripts, excluded types, or external scripts
+            $output->writeln("<fg=blue>├─</> <fg=yellow>--- Examining Script Tag #$totalIndex ---</fg=yellow>");
+            $output->writeln("<fg=blue>├─</> <comment>Content length: " . strlen($scriptContent) . " characters</comment>");
+            
+            // Check if we should skip this script
             if ($this->shouldSkipScript($fullTag, $scriptContent)) {
-                $output->writeln("<fg=blue>├─</> <comment> Skipping script</comment>");
+                $skippedIndex++;
+                $skipReason = $this->getSkipReason($fullTag, $scriptContent);
+                $output->writeln("<fg=blue>├─</> <comment>Skipping script #$skippedIndex: $skipReason</comment>");
                 continue;
             }
 
             $scriptIndex++;
             $stats['found']++;
 
-            $output->writeln("<fg=blue>├─</>  <fg=cyan> Script #$scriptIndex found...</fg=cyan>");
+            $output->writeln("");
+            $output->writeln("<fg=blue>├─</> <fg=cyan>═══ Processing Script #$scriptIndex ═══</fg=cyan>");
 
             $hash = $this->cspHashGenerator->execute($scriptContent);
             $this->displayScriptInfo($scriptContent, $hash, $output);
 
             // Check if script already exists in whitelist
             if ($this->handleExistingWhitelist($hash, $storeId, $output)) {
-                $output->writeln("<fg=blue>├─</> <comment> Script already exists in whitelist</comment>");
+                $output->writeln("<fg=blue>├─</> <comment>Script already exists in whitelist</comment>");
                 continue;
             }
 
             // Ask for confirmation to add new script
             $question = new ConfirmationQuestion(
-                '<fg=blue>├─</> <question> Add this script to CSP whitelist? (y/n) </question>',
+                '<fg=blue>├─</> <question>Add this script to CSP whitelist? (y/n) </question>',
                 false
             );
             if ($helper->ask($input, $output, $question)) {
                 $this->addToWhitelist($scriptContent, $hash, $storeId, $output);
                 $stats['added']++;
+                $output->writeln("<fg=blue>├─</> <info>Script #$scriptIndex added to whitelist</info>");
             } else {
-                $output->writeln('<fg=blue>├─</> <comment> Script skipped by user.</comment>');
+                $output->writeln("<fg=blue>├─</> <comment>Script #$scriptIndex skipped by user</comment>");
             }
         }
+
+        $totalProcessed = $scriptIndex + $skippedIndex;
+        $output->writeln("");
+        $output->writeln("<fg=blue>├─</> <info>Script processing summary:</info>");
+        $output->writeln("<fg=blue>├─</> <info>  - Total scripts found: $totalProcessed</info>");
+        $output->writeln("<fg=blue>├─</> <info>  - Inline scripts processed: $scriptIndex</info>");
+        $output->writeln("<fg=blue>├─</> <info>  - Scripts skipped: $skippedIndex</info>");
+        $output->writeln("<fg=blue>├─</> <info>  - Scripts added to whitelist: {$stats['added']}</info>");
 
         return $stats;
     }
@@ -633,8 +653,8 @@ class GenerateCspScriptHashesCommand extends Command
             return true;
         }
 
-        // Skip external scripts
-        if (stripos($fullTag, 'src=') !== false) {
+        // Skip external scripts - check for src attribute in opening script tag only
+        if ($this->hasSourceAttribute($fullTag)) {
             return true;
         }
 
@@ -646,6 +666,53 @@ class GenerateCspScriptHashesCommand extends Command
         }
 
         return false;
+    }
+
+    /**
+     * Get reason why script should be skipped
+     *
+     * @param string $fullTag
+     * @param string $scriptContent
+     * @return string
+     */
+    private function getSkipReason(string $fullTag, string $scriptContent): string
+    {
+        // Check empty scripts
+        if (trim($scriptContent) === '') {
+            return 'Empty script content';
+        }
+
+        // Check external scripts
+        if ($this->hasSourceAttribute($fullTag)) {
+            // Extract src attribute for better reporting
+            if (preg_match('/<script[^>]+src=["\']([^"\']+)["\'][^>]*>/i', $fullTag, $matches)) {
+                return 'External script (src=' . $matches[1] . ')';
+            }
+            return 'External script (has src attribute)';
+        }
+
+        // Check excluded script types
+        foreach (self::EXCLUDE_SCRIPT_TYPES as $excludeType) {
+            if (stripos($fullTag, 'type="' . $excludeType . '"') !== false) {
+                return 'Excluded script type (' . $excludeType . ')';
+            }
+        }
+
+        return 'Unknown reason';
+    }
+
+    /**
+     * Check if script tag has a src attribute (external script)
+     * Only checks the opening script tag, not content inside
+     *
+     * @param string $fullTag
+     * @return bool
+     */
+    private function hasSourceAttribute(string $fullTag): bool
+    {
+        // Use regex to check for src attribute in the opening script tag only
+        // This pattern matches <script...src=...> but not src= inside the script content
+        return (bool) preg_match('/<script[^>]+src\s*=/i', $fullTag);
     }
 
     /**

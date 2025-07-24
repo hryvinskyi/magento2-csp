@@ -2,6 +2,17 @@
 
 All notable changes to the Hryvinskyi_Csp module will be documented in this file.
 
+## [1.1.2] - 2025-07-24
+### Added
+- Added `CspNonceProvider` ViewModel class for easy nonce generation in templates
+- Added `CspHashGenerator` ViewModel class for generating script hashes and then adding them to the whitelist
+- Added `DynamicCspProvider` class for dynamic adding CSP
+- Added mass convert functionality for CSP report groups in the admin panel
+- Enhanced report group listing UI component with mass convert action button
+- Improved cached CSP manager with better policy serialization and caching strategies
+- Enhanced CSP hash generator with improved script scanning capabilities
+- Extended command-line tools with better error handling and progress reporting
+
 ## [1.1.0-alpha] - 2025-05-23
 ### Added
 - Added grouping functionality for CSP reports in the admin panel
