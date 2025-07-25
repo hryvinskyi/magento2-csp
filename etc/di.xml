@@ -43,6 +43,12 @@
     <preference for="Hryvinskyi\Csp\Api\Serializer\CspPolicySerializerInterface" type="Hryvinskyi\Csp\Model\Serializer\CspPolicySerializer"/>
     <preference for="Hryvinskyi\Csp\Api\CachedCspManagerInterface" type="Hryvinskyi\Csp\Model\CachedCspManager"/>
 
+    <!-- Block-level CSP Cache System -->
+    <preference for="Hryvinskyi\Csp\Api\Block\BlockCacheDetectorInterface" type="Hryvinskyi\Csp\Model\Block\BlockCacheDetector"/>
+    <preference for="Hryvinskyi\Csp\Api\Block\CspPolicyTrackerInterface" type="Hryvinskyi\Csp\Model\Block\CspPolicyTracker"/>
+    <preference for="Hryvinskyi\Csp\Api\Cache\BlockCspPolicyCacheInterface" type="Hryvinskyi\Csp\Model\Cache\BlockCspPolicyCache"/>
+    <preference for="Hryvinskyi\Csp\Api\Block\BlockCspPolicyHandlerInterface" type="Hryvinskyi\Csp\Model\Block\BlockCspPolicyHandler"/>
+
     <type name="Hryvinskyi\Csp\Controller\Adminhtml\Whitelist\Import">
         <arguments>
             <argument name="filesystem" xsi:type="object">Magento\Framework\Filesystem</argument>

@@ -2,6 +2,21 @@
 
 All notable changes to the Hryvinskyi_Csp module will be documented in this file.
 
+## [1.1.3] - 2025-07-25
+### Added
+- Added block-level CSP policy caching system for restoring adding dynamic csp from cached blocks 
+- Introduced `BlockCacheDetectorInterface` and `BlockCacheDetector` for detecting cacheable blocks
+- Added `BlockCspPolicyHandlerInterface` and `BlockCspPolicyHandler` for managing CSP policies during block rendering
+- Implemented `CspPolicyTrackerInterface` and `CspPolicyTracker` for tracking CSP policy changes during block lifecycle
+- Created `BlockCspPolicyCacheInterface` and `BlockCspPolicyCache` for caching block-specific CSP policies
+- Added `BlockHtmlBeforeObserver` and `BlockHtmlAfterObserver` to handle CSP policies during block rendering events
+- Enhanced dependency injection configuration with block-level CSP cache system preferences
+
+### Technical Details
+- Block CSP policies are now tracked and cached individually to optimize performance and restoring adding dynamic CSP from cached blocks
+- Observers integrate with Magento's block rendering lifecycle (`core_block_abstract_to_html_before` and `core_block_abstract_to_html_after` events)
+- New caching layer reduces redundant CSP policy calculations for frequently rendered blocks
+
 ## [1.1.2] - 2025-07-24
 ### Added
 - Added `CspNonceProvider` ViewModel class for easy nonce generation in templates
