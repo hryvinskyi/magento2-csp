@@ -2,6 +2,17 @@
 
 All notable changes to the Hryvinskyi_Csp module will be documented in this file.
 
+## [1.1.4] - 2025-09-18
+### Fixed
+Reduced column lengths in hryvinskyi_csp_whitelist table to resolve
+  MariaDB 3072-byte key limit error:
+  - policy: 255→50 characters
+  - value_type: 255→50 characters
+  - value_algorithm: 50 characters (unchanged)
+  - value: 255 characters (unchanged)
+
+  Total unique constraint key size: (50+50+50+255)×4 = 1420 bytes
+
 ## [1.1.3] - 2025-07-25
 ### Added
 - Added block-level CSP policy caching system for restoring adding dynamic csp from cached blocks 
