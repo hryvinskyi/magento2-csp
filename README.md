@@ -1,5 +1,9 @@
 # Advanced Content Security Policy (CSP) module for Magento 2
 
+[![Latest Stable Version](https://poser.pugx.org/hryvinskyi/magento2-csp/v/stable)](https://packagist.org/packages/hryvinskyi/magento2-csp)
+[![Total Downloads](https://poser.pugx.org/hryvinskyi/magento2-csp/downloads)](https://packagist.org/packages/hryvinskyi/magento2-csp)
+[![License](https://poser.pugx.org/hryvinskyi/magento2-csp/license)](https://packagist.org/packages/hryvinskyi/magento2-csp)
+
 ## Overview
 
 The `Hryvinskyi_Csp` module is a Magento 2 extension that provides additional Content Security Policy (CSP) configurations.
