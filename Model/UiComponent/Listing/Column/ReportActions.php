@@ -68,29 +68,6 @@ class ReportActions extends Column
                 ]
             ];
 
-            // Add status change actions
-            $statuses = $this->statusOptions->toOptionArray();
-            $currentStatus = $item['status'] ?? '';
-
-            foreach ($statuses as $statusOption) {
-                $statusCode = $statusOption['value'];
-                // Skip current status
-                if ($statusCode == $currentStatus || $statusCode == \Hryvinskyi\Csp\Api\Data\Status::PENDING->value) {
-                    continue;
-                }
-
-                $actions['change_status_' . $statusCode] = [
-                    'href' => $this->urlBuilder->getUrl(
-                        'hryvinskyi_csp/report/changeStatus',
-                        [
-                            'id' => $item['report_id'],
-                            'status' => $statusCode
-                        ]
-                    ),
-                    'label' => __('Mark as %1', $statusOption['label'])
-                ];
-            }
-
             $item[$this->getData('name')] = $actions;
         }
 

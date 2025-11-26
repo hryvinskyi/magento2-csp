@@ -41,7 +41,7 @@ class Delete extends Action
             return $resultRedirect->setPath('*/*/');
         }
         try {
-            $this->entityRepository->deleteById($id);
+            $this->entityRepository->deleteById((int)$id);
             $this->messageManager->addSuccessMessage(__('Entity has been deleted.'));
 
             return $resultRedirect->setPath('*/*/');
