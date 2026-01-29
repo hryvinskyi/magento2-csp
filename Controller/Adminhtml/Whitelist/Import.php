@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace Hryvinskyi\Csp\Controller\Adminhtml\Whitelist;
 
 use Hryvinskyi\Csp\Api\WhitelistRepositoryInterface;
+use Hryvinskyi\Csp\Model\ResourceModel\Whitelist as WhitelistResource;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\Filesystem\DirectoryList;
@@ -27,7 +28,8 @@ class Import extends Action
         private readonly Filesystem $filesystem,
         private readonly Csv $csvProcessor,
         private readonly WhitelistInterfaceFactory $whitelistInterfaceFactory,
-        private readonly WhitelistRepositoryInterface $whitelistRepository
+        private readonly WhitelistRepositoryInterface $whitelistRepository,
+        private readonly WhitelistResource $whitelistResource
     ) {
         parent::__construct($context);
     }
@@ -162,22 +164,77 @@ class Import extends Action
                 $data[$key] = $data[$value];
             }
         }
+
+        // Normalize value_algorithm to empty string if null/empty
+        if (empty($data['value_algorithm'])) {
+            $data['value_algorithm'] = '';
+        }
+
         $whitelist->setData($data);
 
         $items = $this->whitelistRepository->getWhitelistByParams(
-            $whitelist->getPolicy(),
-            $whitelist->getValueType(),
-            $whitelist->getValue(),
-            $whitelist->getValueAlgorithm()
+            $whitelist->getPolicy() ?? '',
+            $whitelist->getValueType() ?? '',
+            $whitelist->getValue() ?? '',
+            $whitelist->getValueAlgorithm() ?? ''
         );
 
         if ($items->getTotalCount() > 0) {
             foreach ($items->getItems() as $item) {
+                $ruleId = $item->getData('rule_id');
                 $item->setData($whitelist->getData());
+                $item->setData('rule_id', $ruleId);
                 $this->whitelistRepository->save($item);
             }
         } else {
-            $this->whitelistRepository->save($whitelist);
+            try {
+                $this->whitelistRepository->save($whitelist);
+            } catch (\Magento\Framework\Exception\CouldNotSaveException $e) {
+                // Handle unique constraint violation by finding and updating existing record
+                if (strpos($e->getMessage(), 'Integrity constraint violation') !== false
+                    || strpos($e->getMessage(), 'Duplicate entry') !== false
+                    || strpos($e->getMessage(), 'SQLSTATE[23000]') !== false) {
+                    $this->updateExistingRecord($whitelist);
+                } else {
+                    throw $e;
+                }
+            }
+        }
+    }
+
+    /**
+     * Find and update existing record by unique key fields
+     *
+     * @param \Hryvinskyi\Csp\Api\Data\WhitelistInterface $whitelist
+     * @return void
+     * @throws \Exception
+     */
+    private function updateExistingRecord(\Hryvinskyi\Csp\Api\Data\WhitelistInterface $whitelist): void
+    {
+        $connection = $this->whitelistResource->getConnection();
+        $tableName = $this->whitelistResource->getMainTable();
+
+        // Build WHERE clause for unique constraint fields
+        $select = $connection->select()
+            ->from($tableName, ['rule_id'])
+            ->where('policy = ?', $whitelist->getPolicy())
+            ->where('value_type = ?', $whitelist->getValueType())
+            ->where('value = ?', $whitelist->getValue());
+
+        $valueAlgorithm = $whitelist->getValueAlgorithm();
+        if (empty($valueAlgorithm)) {
+            $select->where('(value_algorithm IS NULL OR value_algorithm = ?)', '');
+        } else {
+            $select->where('value_algorithm = ?', $valueAlgorithm);
+        }
+
+        $ruleId = $connection->fetchOne($select);
+
+        if ($ruleId) {
+            $existingItem = $this->whitelistRepository->getById((int)$ruleId);
+            $existingItem->setData($whitelist->getData());
+            $existingItem->setData('rule_id', $ruleId);
+            $this->whitelistRepository->save($existingItem);
         }
     }
 

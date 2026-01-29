@@ -2,6 +2,17 @@
 
 All notable changes to the Hryvinskyi_Csp module will be documented in this file.
 
+## [1.1.7] - 2026-01-29
+### Fixed
+- Fixed TypeError in Import controller: `getValueAlgorithm()` could return null but `getWhitelistByParams()` expected string
+- Fixed unique constraint violation during CSV/XML import by preserving `rule_id` when updating existing records
+- Added fallback mechanism for constraint violations with direct database lookup to find and update existing records
+- Normalized `value_algorithm` to empty string when null/empty to ensure consistent duplicate detection
+
+### Improved
+- Enhanced import modal with detailed CSV headers documentation table showing field names, types, and available values
+- Added `WhitelistResource` dependency injection for proper database access
+
 ## [1.1.4] - 2025-09-18
 ### Fixed
 Reduced column lengths in hryvinskyi_csp_whitelist table to resolve
