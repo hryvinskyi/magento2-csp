@@ -52,8 +52,13 @@ class ConvertToWhitelist extends AbstractReport
                 ->addFilter('group_id', $id)
                 ->create();
             $reports = $this->reportRepository->getList($searchCriteria)->getItems();
-            $entity = current($reports);
 
+            if (empty($reports)) {
+                $this->messageManager->addErrorMessage(__('No reports found for this group.'));
+                return $resultRedirect;
+            }
+
+            $entity = current($reports);
             $newWhitelist = $this->cspReportConverter->convert($entity);
 
             $result = $this->whitelistManager->processNewWhitelist($newWhitelist, $entity);
@@ -61,12 +66,19 @@ class ConvertToWhitelist extends AbstractReport
             $this->cacheCleaner->cleanCaches();
 
             if ($result === WhitelistManagerInterface::RESULT_EXISTS) {
-                $this->messageManager->addSuccessMessage(__('Whitelist already exists.'));
+                $this->messageManager->addSuccessMessage(__('Whitelist already exists. Report removed.'));
+                return $this->createRedirectResult('*/*/');
+            }
+
+            if ($result === WhitelistManagerInterface::RESULT_REDUNDANT) {
+                $this->messageManager->addSuccessMessage(
+                    __('Entry is covered by an existing wildcard. Report removed.')
+                );
                 return $this->createRedirectResult('*/*/');
             }
 
             if ($result === WhitelistManagerInterface::RESULT_NOT_SAVED) {
-                $this->messageManager->addWarningMessage(__('Whitelist not converted. Already exists.'));
+                $this->messageManager->addWarningMessage(__('Whitelist not converted due to save error.'));
                 return $this->createRedirectResult('*/*/');
             }
 
