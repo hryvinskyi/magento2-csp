@@ -17,14 +17,18 @@ This module allows administrators to manage CSP whitelists from the Magento admi
  5. **Mass Convert Reports**: Bulk conversion of multiple CSP report groups to whitelist entries with automatic cleanup.
  6. **Automatic URL Collection**: Automatically collects and adds all storefront URLs to the CSP whitelist.
  7. **CSP Header Splitting**: Automatically splits large CSP headers into multiple smaller ones to prevent issues with header size limits.
- 8. **Flexible Configuration**: The module provides various configuration options to enable or disable specific CSP features.
- 9. **Admin Panel Integration**: The module integrates with the Magento admin panel, providing a user-friendly interface for managing CSP settings.
-10. **Import/Export**: Support for importing and exporting whitelist rules.
-11. **Automatic Script Hash Generation**: Command-line tool to scan CMS pages/blocks and configs for inline scripts and generate CSP hashes
-12. **Visual Hash Validation**: See at a glance if your script hashes are valid
-13. **Template Nonce Provider**: ViewModel class for easy CSP nonce generation in templates
-14. **Enhanced Caching**: Improved CSP policy caching with better serialization and cache management
-15. **Report Grouping**: Organized CSP violation reports into logical groups for better management
+ 8. **CSP Value Optimization**: Removes duplicate entries and redundant wildcard-covered values from CSP headers to reduce header size.
+ 9. **Flexible Configuration**: The module provides various configuration options to enable or disable specific CSP features.
+10. **Admin Panel Integration**: The module integrates with the Magento admin panel, providing a user-friendly interface for managing CSP settings.
+11. **Import/Export**: Support for importing and exporting whitelist rules.
+12. **Automatic Script Hash Generation**: Command-line tool to scan CMS pages/blocks and configs for inline scripts and generate CSP hashes
+13. **Visual Hash Validation**: See at a glance if your script hashes are valid
+14. **Template Nonce Provider**: ViewModel class for easy CSP nonce generation in templates
+15. **Enhanced Caching**: Improved CSP policy caching with better serialization and cache management
+16. **Report Grouping**: Organized CSP violation reports into logical groups for better management
+17. **Redundancy Detection**: Visual indicators showing duplicate and redundant whitelist entries
+18. **Advanced Grid Filtering**: Filter whitelist entries by hash validation status and redundancy status
+19. **Advanced Grid Sorting**: Sort whitelist entries by computed columns (hash validation, redundancy)
 
 ## Requirements
 
@@ -143,6 +147,64 @@ To configure header splitting:
     - **Max CSP header size (bytes)**: Specify the maximum size for a single header before splitting occurs (default: 4096 bytes)
 
 When enabled, the module will monitor CSP header sizes and automatically split them if they exceed the configured maximum size.
+
+### CSP Value Optimization
+
+Over time, CSP headers can accumulate duplicate entries and redundant values that are already covered by wildcard patterns. This increases header size unnecessarily.
+
+The module includes CSP value optimization that can:
+- **Remove exact duplicates**: Eliminates entries like `data:` appearing multiple times in the same directive
+- **Remove wildcard-covered entries**: Removes specific domains when a wildcard already covers them (e.g., removes `www.example.com` when `*.example.com` exists)
+- **Detect redundant wildcards**: Removes wildcards covered by broader wildcards (e.g., `*.sub.example.com` when `*.example.com` exists)
+- **Warn about unrestricted wildcards**: Logs a warning when `*` is used, which makes all other entries redundant
+
+To configure value optimization:
+
+1. Go to **Stores** > **Configuration** > **Security** > **Content Security Policy**
+2. In the **General** section, you'll find:
+    - **Enable CSP value optimization**: Toggle to enable/disable duplicate removal
+    - **Enable redundant wildcard removal**: Toggle to enable/disable wildcard coverage analysis (requires optimization to be enabled)
+
+**Example optimization:**
+
+Before:
+```
+script-src 'self' data: *.example.com www.example.com api.example.com data: 'unsafe-inline'
+```
+
+After (with both options enabled):
+```
+script-src 'self' 'unsafe-inline' data: *.example.com
+```
+
+The optimization removes:
+- Duplicate `data:` entry
+- `www.example.com` and `api.example.com` (covered by `*.example.com`)
+
+When debug mode is enabled, the module logs details about removed entries and bytes saved.
+
+### Redundancy Detection
+
+The whitelist grid includes visual indicators to help identify duplicate and redundant entries:
+
+**Status Indicators:**
+- **Unique** (green): The entry is unique within its policy directive
+- **Duplicate** (yellow): An exact duplicate of another entry exists
+- **Redundant** (orange): The entry is covered by a wildcard pattern (e.g., `www.example.com` when `*.example.com` exists)
+- **N/A** (gray): Not applicable for non-host value types (hash, nonce, keyword)
+
+**Filtering and Sorting:**
+
+Both the **Hash Validation** and **Redundancy Status** columns support:
+- **Filtering**: Use the dropdown filter to show only entries with a specific status
+- **Sorting**: Click the column header to sort entries by their status
+
+This helps you quickly identify and clean up redundant whitelist entries to keep your CSP configuration optimized.
+
+**Example Use Cases:**
+1. Filter by "Duplicate" to find and remove duplicate entries
+2. Filter by "Redundant" to find entries that can be safely removed because they're covered by wildcards
+3. Sort by "Hash Validation" to group invalid hashes together for review
 
 ## Support
 If you encounter any issues or have questions, please contact the author or open an issue on GitHub.

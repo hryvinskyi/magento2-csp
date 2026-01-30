@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -63,4 +63,18 @@ interface ConfigInterface
      * @return int
      */
     public function getMaxHeaderSize(): int;
+
+    /**
+     * Check if CSP value optimization (deduplication) is enabled
+     *
+     * @return bool
+     */
+    public function isValueOptimizationEnabled(): bool;
+
+    /**
+     * Check if redundant wildcard removal is enabled
+     *
+     * @return bool
+     */
+    public function isRedundantWildcardRemovalEnabled(): bool;
 }

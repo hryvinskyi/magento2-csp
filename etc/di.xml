@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -16,6 +16,7 @@
     <preference for="Hryvinskyi\Csp\Api\ReportGroupRepositoryInterface" type="Hryvinskyi\Csp\Model\ReportGroupRepository"/>
     <preference for="Hryvinskyi\Csp\Api\CspHeaderProcessorInterface" type="Hryvinskyi\Csp\Model\HeaderSplitter\LaminasCspHeaderProcessor"/>
     <preference for="Hryvinskyi\Csp\Api\CspHeaderSplitterInterface" type="Hryvinskyi\Csp\Model\HeaderSplitter\LaminasCspHeaderSplitter"/>
+    <preference for="Hryvinskyi\Csp\Api\CspValueOptimizerInterface" type="Hryvinskyi\Csp\Model\HeaderSplitter\CspValueOptimizer"/>
     <preference for="Hryvinskyi\Csp\Api\LaminasPluginRegistrarInterface" type="Hryvinskyi\Csp\Model\HeaderSplitter\LaminasPluginRegistrar"/>
     <preference for="Hryvinskyi\Csp\Api\Data\ReportSearchResultsInterface" type="Hryvinskyi\Csp\Model\ReportSearchResults"/>
     <preference for="Hryvinskyi\Csp\Api\Data\ReportGroupSearchResultsInterface" type="Hryvinskyi\Csp\Model\ReportGroupSearchResults"/>
@@ -37,6 +38,9 @@
     <preference for="Hryvinskyi\Csp\Model\ReportGroup\Command\SaveFromCspReportInterface" type="Hryvinskyi\Csp\Model\ReportGroup\Command\SaveFromCspReport"/>
 
     <preference for="Hryvinskyi\Csp\Api\CspHashGeneratorInterface" type="Hryvinskyi\Csp\Model\CspHashGenerator"/>
+    <preference for="Hryvinskyi\Csp\Api\RedundancyCalculatorInterface" type="Hryvinskyi\Csp\Model\Whitelist\RedundancyCalculator"/>
+    <preference for="Hryvinskyi\Csp\Api\HashValidationCalculatorInterface" type="Hryvinskyi\Csp\Model\Whitelist\HashValidationCalculator"/>
+    <preference for="Hryvinskyi\Csp\Api\DomainMatcherInterface" type="Hryvinskyi\Csp\Model\DomainMatcher"/>
 
     <!-- Cache-aware CSP System -->
     <preference for="Hryvinskyi\Csp\Api\Cache\CspPolicyCacheStrategyInterface" type="Hryvinskyi\Csp\Model\Cache\CspPolicyCacheStrategy"/>
@@ -226,6 +230,20 @@
     <type name="Hryvinskyi\Csp\Model\HeaderSplitter\LaminasCspHeaderProcessor">
         <arguments>
             <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
+            <argument name="valueOptimizer" xsi:type="object">Hryvinskyi\Csp\Api\CspValueOptimizerInterface</argument>
+        </arguments>
+    </type>
+    <type name="Hryvinskyi\Csp\Model\HeaderSplitter\DefaultCspHeaderProcessor">
+        <arguments>
+            <argument name="valueOptimizer" xsi:type="object">Hryvinskyi\Csp\Api\CspValueOptimizerInterface</argument>
+            <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Hryvinskyi\Csp\Model\HeaderSplitter\CspValueOptimizer">
+        <arguments>
+            <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
+            <argument name="config" xsi:type="object">Hryvinskyi\Csp\Api\ConfigInterface</argument>
+            <argument name="domainMatcher" xsi:type="object">Hryvinskyi\Csp\Api\DomainMatcherInterface</argument>
         </arguments>
     </type>
     <type name="Hryvinskyi\Csp\Plugin\Csp\Api\CspRendererInterface\HeaderSplitter">

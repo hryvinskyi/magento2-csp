@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!--
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -62,6 +62,23 @@
                         if you enabled header splitting, derictive <b>default-src</b> will be skipped.
                         because it is not supported by the CSP splitting.]]>
                     </comment>
+                </field>
+                <field id="enable_value_optimization" translate="label comment" type="select" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="0">
+                    <label>Enable CSP value optimization</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>
+                        <![CDATA[Remove duplicate values from CSP directives (e.g., duplicate 'data:' entries).]]>
+                    </comment>
+                </field>
+                <field id="enable_redundant_wildcard_removal" translate="label comment" type="select" sortOrder="31" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="0">
+                    <label>Enable redundant wildcard removal</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>
+                        <![CDATA[Remove entries that are already covered by wildcards (e.g., remove 'www.example.com' when '*.example.com' exists).]]>
+                    </comment>
+                    <depends>
+                        <field id="enable_value_optimization">1</field>
+                    </depends>
                 </field>
                 <field id="debug_mode_enabled" translate="label comment" type="select" sortOrder="9999" showInDefault="1" showInWebsite="0" showInStore="0" canRestore="0">
                     <label>Enable debug mode</label>

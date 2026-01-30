@@ -1,6 +1,42 @@
 # Changelog
 
 All notable changes to the Hryvinskyi_Csp module will be documented in this file.
+## [1.2.0] - 2026-01-30
+### Added
+- Added CSP value optimization feature to remove duplicate and redundant entries from CSP headers
+- New `CspValueOptimizerInterface` and `CspValueOptimizer` for processing CSP header values
+- Configuration option to enable/disable CSP value optimization (removes exact duplicates like `data:` appearing twice)
+- Configuration option to enable/disable redundant wildcard removal (removes entries covered by wildcards, e.g., `www.example.com` when `*.example.com` exists)
+- Automatic detection and warning for unrestricted `*` wildcards in CSP directives
+- Logging of optimization results showing bytes saved
+- **Redundancy Status Indicator**: New column in whitelist grid showing whether entries are unique, duplicate, or redundant
+- **Hash Validation Filtering**: Filter whitelist entries by hash validation status (Valid, Invalid, Not Verified, N/A)
+- **Redundancy Status Filtering**: Filter whitelist entries by redundancy status (Unique, Duplicate, Redundant, N/A)
+- **Computed Column Sorting**: Sort whitelist grid by Hash Validation and Redundancy Status columns
+- New `DomainMatcherInterface` and `DomainMatcher` service for shared domain matching logic
+- New `RedundancyCalculatorInterface` and `RedundancyCalculator` for computing entry redundancy
+- New `HashValidationCalculatorInterface` and `HashValidationCalculator` for computing hash validation status
+- Custom `ListingDataProvider` with PHP-based filtering and sorting for computed columns
+- Comprehensive unit tests for all new services
+
+### Improved
+- Enhanced `LaminasCspHeaderProcessor` with integrated value optimization before header splitting
+- Enhanced `DefaultCspHeaderProcessor` with integrated value optimization support
+- CSP headers are now sorted consistently: keywords first, then wildcards, then domains alphabetically
+- Refactored `CspValueOptimizer` to use shared `DomainMatcher` service (DRY principle)
+- Grid columns now support both filtering and sorting for computed values
+
+### Technical Details
+- New admin configuration fields in **Stores > Configuration > Security > Content Security Policy > General**:
+  - **Enable CSP value optimization**: Removes duplicate values from CSP directives
+  - **Enable redundant wildcard removal**: Removes entries already covered by wildcards (depends on optimization being enabled)
+- Optimization runs automatically when enabled, before header splitting (if enabled)
+- Debug logging available when debug mode is enabled to track removed redundant entries
+- Redundancy detection compares host-type entries within the same policy directive:
+  - **Unique**: No other entry with the same value exists
+  - **Duplicate**: Exact duplicate of another entry
+  - **Redundant**: Covered by a wildcard pattern (e.g., `www.example.com` when `*.example.com` exists)
+  - **N/A**: Non-host value types (hash, nonce, keyword)
 
 ## [1.1.7] - 2026-01-29
 ### Fixed

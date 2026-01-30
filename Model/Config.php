@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -24,6 +24,8 @@ class Config implements ConfigInterface, DebugConfigInterface
     public const XML_PATH_CSP_HEADER_SPLITTING_ENABLED = 'csp/general/enable_header_splitting';
     public const XML_PATH_CSP_MAX_HEADER_SIZE = 'csp/general/max_header_size';
     public const XML_PATH_CSP_DEBUG_MODE_ENABLED = 'csp/general/debug_mode_enabled';
+    public const XML_PATH_CSP_VALUE_OPTIMIZATION_ENABLED = 'csp/general/enable_value_optimization';
+    public const XML_PATH_CSP_REDUNDANT_WILDCARD_REMOVAL_ENABLED = 'csp/general/enable_redundant_wildcard_removal';
 
 
     public function __construct(private readonly ScopeConfigInterface $scopeConfig)
@@ -108,6 +110,22 @@ class Config implements ConfigInterface, DebugConfigInterface
     public function isDebug(): bool
     {
         return $this->scopeConfig->isSetFlag(self::XML_PATH_CSP_DEBUG_MODE_ENABLED);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function isValueOptimizationEnabled(): bool
+    {
+        return $this->scopeConfig->isSetFlag(self::XML_PATH_CSP_VALUE_OPTIMIZATION_ENABLED);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function isRedundantWildcardRemovalEnabled(): bool
+    {
+        return $this->scopeConfig->isSetFlag(self::XML_PATH_CSP_REDUNDANT_WILDCARD_REMOVAL_ENABLED);
     }
 }
 

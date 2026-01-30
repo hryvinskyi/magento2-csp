@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -262,6 +262,16 @@
                 <bodyTmpl>ui/grid/cells/html</bodyTmpl>
                 <sortable>true</sortable>
                 <filter>select</filter>
+            </settings>
+        </column>
+        <column name="redundancy_status" class="Hryvinskyi\Csp\Model\UiComponent\Listing\Column\RedundancyStatus">
+            <settings>
+                <options class="Hryvinskyi\Csp\Model\Config\Source\RedundancyStatusOptions"/>
+                <label translate="true">Redundancy</label>
+                <dataType>select</dataType>
+                <bodyTmpl>ui/grid/cells/html</bodyTmpl>
+                <filter>select</filter>
+                <sortable>true</sortable>
             </settings>
         </column>
         <actionsColumn name="actions" class="\Hryvinskyi\Csp\Model\UiComponent\Listing\Column\WhitelistActions">

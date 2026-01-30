@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!--
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -16,6 +16,8 @@
                 <enabled_reports>1</enabled_reports>
                 <enable_header_splitting>0</enable_header_splitting>
                 <max_header_size>4096</max_header_size>
+                <enable_value_optimization>0</enable_value_optimization>
+                <enable_redundant_wildcard_removal>0</enable_redundant_wildcard_removal>
             </general>
             <policies>
                 <storefront>
