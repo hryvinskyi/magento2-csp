@@ -31,6 +31,7 @@
     <preference for="Hryvinskyi\Csp\Model\Whitelist\Command\GetListInterface" type="Hryvinskyi\Csp\Model\Whitelist\Command\GetList"/>
 
     <preference for="Hryvinskyi\Csp\Model\Report\MassActionInterface" type="Hryvinskyi\Csp\Model\Report\MassAction"/>
+    <preference for="Hryvinskyi\Csp\Model\ReportGroup\MassActionInterface" type="Hryvinskyi\Csp\Model\ReportGroup\MassAction"/>
     <preference for="Hryvinskyi\Csp\Model\Cache\CacheCleanerInterface" type="Hryvinskyi\Csp\Model\Cache\CacheCleaner"/>
     <preference for="Hryvinskyi\Csp\Model\Report\Command\SaveFromCspReportInterface" type="Hryvinskyi\Csp\Model\Report\Command\SaveFromCspReport"/>
     <preference for="Hryvinskyi\Csp\Model\Report\Command\CspReportConverterInterface" type="Hryvinskyi\Csp\Model\Report\Command\CspReportConverter"/>
@@ -41,6 +42,9 @@
     <preference for="Hryvinskyi\Csp\Api\RedundancyCalculatorInterface" type="Hryvinskyi\Csp\Model\Whitelist\RedundancyCalculator"/>
     <preference for="Hryvinskyi\Csp\Api\HashValidationCalculatorInterface" type="Hryvinskyi\Csp\Model\Whitelist\HashValidationCalculator"/>
     <preference for="Hryvinskyi\Csp\Api\DomainMatcherInterface" type="Hryvinskyi\Csp\Model\DomainMatcher"/>
+    <preference for="Hryvinskyi\Csp\Api\PolicyCollectionMergerInterface" type="Hryvinskyi\Csp\Model\PolicyCollectionMerger"/>
+    <preference for="Hryvinskyi\Csp\Api\BlockedUriValueExtractorInterface" type="Hryvinskyi\Csp\Model\BlockedUriValueExtractor"/>
+    <preference for="Hryvinskyi\Csp\Api\CspReportParserInterface" type="Hryvinskyi\Csp\Model\CspReportParser"/>
 
     <!-- Cache-aware CSP System -->
     <preference for="Hryvinskyi\Csp\Api\Cache\CspPolicyCacheStrategyInterface" type="Hryvinskyi\Csp\Model\Cache\CspPolicyCacheStrategy"/>
@@ -244,6 +248,11 @@
             <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
             <argument name="config" xsi:type="object">Hryvinskyi\Csp\Api\ConfigInterface</argument>
             <argument name="domainMatcher" xsi:type="object">Hryvinskyi\Csp\Api\DomainMatcherInterface</argument>
+        </arguments>
+    </type>
+    <type name="Hryvinskyi\Csp\Model\Whitelist\WhitelistManager">
+        <arguments>
+            <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
         </arguments>
     </type>
     <type name="Hryvinskyi\Csp\Plugin\Csp\Api\CspRendererInterface\HeaderSplitter">

@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -9,13 +9,16 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Model\Report\Command;
 
-use Hryvinskyi\Csp\Api\Data\ReportInterface;
+use Hryvinskyi\Csp\Api\CspReportParserInterface;
 use Hryvinskyi\Csp\Model\ResourceModel\Report as ReportResource;
 use Magento\Framework\Exception\LocalizedException;
 
 class SaveFromCspReport implements SaveFromCspReportInterface
 {
-    public function __construct(private readonly ReportResource $resource) {
+    public function __construct(
+        private readonly ReportResource $resource,
+        private readonly CspReportParserInterface $cspReportParser
+    ) {
     }
 
     /**
@@ -23,31 +26,24 @@ class SaveFromCspReport implements SaveFromCspReportInterface
      */
     public function execute(int $groupId, string $jsonData): void
     {
-        // Parse JSON data
-        $data = json_decode($jsonData, true, 512, JSON_THROW_ON_ERROR);
+        $cspReport = $this->cspReportParser->parseNormalized($jsonData);
 
-        if ($data === null) {
-            throw new LocalizedException(__('Invalid JSON data'));
-        }
-
-        // Check for 'csp-report' key
-        if (!isset($data['csp-report']) || !is_array($data['csp-report'])) {
-            throw new LocalizedException(__('Invalid CSP report data'));
-        }
-
-        $cspReport = $data['csp-report'];
-
-        if (!isset($cspReport['status-code'])) {
+        if (!isset($cspReport['status_code'])) {
             throw new LocalizedException(__('Invalid CSP report status code'));
         }
 
-        // Normalize keys from hyphenated to underscore (e.g., 'document-uri' -> 'document_uri')
-        $dataToInsert = [];
-        foreach ($cspReport as $key => $value) {
-            $dataToInsert[str_replace('-', '_', $key)] = $value;
-        }
+        $this->insertReport($cspReport, $groupId);
+    }
 
-        // Build and execute the INSERT ... ON DUPLICATE KEY UPDATE query
+    /**
+     * Insert or update report in the database.
+     *
+     * @param array $cspReport
+     * @param int $groupId
+     * @return void
+     */
+    private function insertReport(array $cspReport, int $groupId): void
+    {
         $connection = $this->resource->getConnection();
         $tableName = $this->resource->getMainTable();
 
@@ -58,17 +54,17 @@ class SaveFromCspReport implements SaveFromCspReportInterface
         $connection->query(
             $query,
             [
-                $dataToInsert['blocked_uri'] ?? '',
-                $dataToInsert['disposition'] ?? null,
-                $dataToInsert['document_uri'] ?? '',
-                $dataToInsert['effective_directive'] ?? '',
-                $dataToInsert['original_policy'] ?? null,
-                $dataToInsert['referrer'] ?? null,
-                $dataToInsert['script_sample'] ?? null,
-                $dataToInsert['status_code'],
-                $dataToInsert['violated_directive'],
-                $dataToInsert['source_file'] ?? '',
-                $dataToInsert['line_number'] ?? 0,
+                $cspReport['blocked_uri'] ?? '',
+                $cspReport['disposition'] ?? null,
+                $cspReport['document_uri'] ?? '',
+                $cspReport['effective_directive'] ?? '',
+                $cspReport['original_policy'] ?? null,
+                $cspReport['referrer'] ?? null,
+                $cspReport['script_sample'] ?? null,
+                $cspReport['status_code'],
+                $cspReport['violated_directive'] ?? '',
+                $cspReport['source_file'] ?? '',
+                $cspReport['line_number'] ?? 0,
                 $groupId,
             ]
         );

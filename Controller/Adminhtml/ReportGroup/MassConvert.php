@@ -67,6 +67,7 @@ class MassConvert extends AbstractReportGroup implements HttpPostActionInterface
         $groupIds = $collection->getColumnValues('group_id');
         $convertedCount = 0;
         $existingCount = 0;
+        $redundantCount = 0;
         $errorCount = 0;
 
         if (empty($groupIds)) {
@@ -93,14 +94,17 @@ class MassConvert extends AbstractReportGroup implements HttpPostActionInterface
                 $newWhitelist = $this->cspReportConverter->convert($report);
                 $result = $this->whitelistManager->processNewWhitelist($newWhitelist, $report);
 
-                if ($result === WhitelistManagerInterface::RESULT_EXISTS ||
-                    $result === WhitelistManagerInterface::RESULT_NOT_SAVED) {
+                if ($result === WhitelistManagerInterface::RESULT_EXISTS) {
                     $existingCount++;
-                    // Delete group and reports when whitelist entry already exists
+                    $this->deleteReportsAndGroup($groupId);
+                } elseif ($result === WhitelistManagerInterface::RESULT_REDUNDANT) {
+                    $redundantCount++;
+                    $this->deleteReportsAndGroup($groupId);
+                } elseif ($result === WhitelistManagerInterface::RESULT_NOT_SAVED) {
+                    $errorCount++;
                     $this->deleteReportsAndGroup($groupId);
                 } else {
                     $convertedCount++;
-                    // Delete group and reports after successful conversion
                     $this->deleteReportsAndGroup($groupId);
                 }
             } catch (\Exception $e) {
@@ -124,6 +128,12 @@ class MassConvert extends AbstractReportGroup implements HttpPostActionInterface
         if ($existingCount > 0) {
             $this->messageManager->addWarningMessage(
                 __('%1 report group(s) were not converted because equivalent whitelist entries already exist.', $existingCount)
+            );
+        }
+
+        if ($redundantCount > 0) {
+            $this->messageManager->addWarningMessage(
+                __('%1 report group(s) were not converted because they are covered by existing wildcard entries.', $redundantCount)
             );
         }
 

@@ -1,18 +1,20 @@
 <?php
 /**
- * Copyright (c) 2025. MageCloud.  All rights reserved.
- * @author: Volodymyr Hryvinskyi <mailto:volodymyr@hryvinskyi.com>
+ * Copyright (c) 2026. Volodymyr Hryvinskyi. All rights reserved.
+ * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
+ * GitHub: https://github.com/hryvinskyi
  */
 
 declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Model\ReportGroup\Command;
 
+use Hryvinskyi\Csp\Api\BlockedUriValueExtractorInterface;
+use Hryvinskyi\Csp\Api\CspReportParserInterface;
 use Hryvinskyi\Csp\Api\Data\ReportGroupInterface;
 use Hryvinskyi\Csp\Api\Data\Status;
 use Hryvinskyi\Csp\Model\Report\Command\CspReportConverterInterface;
 use Hryvinskyi\Csp\Model\ResourceModel\ReportGroup as ReportGroupResource;
-use Magento\Framework\Exception\LocalizedException;
 use Magento\Store\Model\StoreManagerInterface;
 
 class SaveFromCspReport implements SaveFromCspReportInterface
@@ -20,7 +22,9 @@ class SaveFromCspReport implements SaveFromCspReportInterface
     public function __construct(
         private readonly ReportGroupResource $resource,
         private readonly StoreManagerInterface $storeManager,
-        private readonly CspReportConverterInterface $cspReportConverter
+        private readonly CspReportConverterInterface $cspReportConverter,
+        private readonly BlockedUriValueExtractorInterface $blockedUriValueExtractor,
+        private readonly CspReportParserInterface $cspReportParser
     ) {
     }
 
@@ -29,11 +33,10 @@ class SaveFromCspReport implements SaveFromCspReportInterface
      */
     public function execute(ReportGroupInterface $reportGroup, string $json): ReportGroupInterface
     {
-        $data = $this->parseJson($json);
-        $this->validateCspReportData($data);
+        $cspReport = $this->cspReportParser->parse($json);
 
-        $policy = $this->cspReportConverter->normalizePolicy($data['csp-report']['effective-directive']);
-        $value = $this->extractValue($data['csp-report']['blocked-uri']);
+        $policy = $this->cspReportConverter->normalizePolicy($cspReport['effective-directive']);
+        $value = $this->blockedUriValueExtractor->extractValue($cspReport['blocked-uri']);
         $storeId = (int)$this->storeManager->getStore()->getId();
 
         $groupId = $this->upsertGroup($policy, $value, $storeId);
@@ -49,55 +52,12 @@ class SaveFromCspReport implements SaveFromCspReportInterface
     }
 
     /**
-     * @param string $json
-     * @return array
-     * @throws LocalizedException
-     */
-    private function parseJson(string $json): array
-    {
-        try {
-            $data = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
-        } catch (\JsonException $e) {
-            throw new LocalizedException(__('Invalid JSON data: %1', $e->getMessage()));
-        }
-        return $data;
-    }
-
-    /**
-     * @param array $data
-     * @throws LocalizedException
-     */
-    private function validateCspReportData(array $data): void
-    {
-        if (!isset($data['csp-report'], $data['csp-report']['effective-directive'], $data['csp-report']['blocked-uri'])) {
-            throw new LocalizedException(__('Invalid CSP report data'));
-        }
-    }
-
-    /**
-     * @param string $blockedUri
-     * @return string|null
-     */
-    private function extractValue(string $blockedUri): ?string
-    {
-        try {
-            if (filter_var($blockedUri, FILTER_VALIDATE_URL) || str_contains($blockedUri, '.')) {
-                return parse_url($blockedUri, PHP_URL_HOST) ?: $blockedUri;
-            }
-            return $blockedUri;
-        } catch (\Throwable) {
-            return $blockedUri;
-        }
-    }
-
-    /**
      * Insert or update the group in the database.
      *
      * @param string $policy
      * @param string $value
      * @param int $storeId
      * @return int|null
-     * @throws LocalizedException
      */
     private function upsertGroup(string $policy, string $value, int $storeId): ?int
     {
@@ -131,7 +91,7 @@ class SaveFromCspReport implements SaveFromCspReportInterface
                     ->where("$valueKey = ?", $value)
                     ->where("$storeIdKey = ?", $storeId);
                 $groupId = $connection->fetchOne($select);
-                $groupId = $groupId ? (int)$groupId: null;
+                $groupId = $groupId ? (int)$groupId : null;
             }
         } else {
             $groupId = null;

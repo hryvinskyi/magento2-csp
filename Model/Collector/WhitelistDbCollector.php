@@ -10,9 +10,9 @@ declare(strict_types=1);
 namespace Hryvinskyi\Csp\Model\Collector;
 
 use Hryvinskyi\Csp\Api\ConfigInterface;
+use Hryvinskyi\Csp\Api\PolicyCollectionMergerInterface;
 use Hryvinskyi\Csp\Model\Whitelist\Command\GetAllActiveWhitelistByStoreIdInterface;
 use Magento\Csp\Api\PolicyCollectorInterface;
-use Magento\Csp\Model\Collector\MergerInterface;
 use Magento\Csp\Model\Policy\FetchPolicy;
 use Magento\Framework\App\State;
 use Magento\Framework\Exception\LocalizedException;
@@ -28,7 +28,7 @@ class WhitelistDbCollector implements PolicyCollectorInterface
         private readonly State $appState,
         private readonly StoreManagerInterface $storeManager,
         private readonly GetAllActiveWhitelistByStoreIdInterface $getAllActiveWhitelistByStoreId,
-        private readonly MergerInterface $merger
+        private readonly PolicyCollectionMergerInterface $policyCollectionMerger
     ) {
     }
 
@@ -54,15 +54,7 @@ class WhitelistDbCollector implements PolicyCollectorInterface
                 $valuesByType['hash'] ?? [],
             );
 
-            if (array_key_exists($policyId, $defaultPolicies)) {
-                if ($this->merger->canMerge($defaultPolicies[$policyId], $policy)) {
-                    $defaultPolicies[$policyId] = $this->merger->merge($defaultPolicies[$policyId], $policy);
-                } else {
-                    throw new \RuntimeException('Cannot merge a policy of ' . get_class($policy));
-                }
-            } else {
-                $defaultPolicies[$policyId] = $policy;
-            }
+            $defaultPolicies = $this->policyCollectionMerger->mergeOrAdd($defaultPolicies, $policyId, $policy);
         }
 
         return $defaultPolicies;

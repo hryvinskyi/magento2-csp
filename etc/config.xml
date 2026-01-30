@@ -20,7 +20,21 @@
                 <enable_redundant_wildcard_removal>0</enable_redundant_wildcard_removal>
             </general>
             <policies>
+                <storefront_hyva_checkout_index_index>
+                    <scripts>
+                        <policy_id>script-src</policy_id>
+                        <inline>0</inline>
+                        <event_handlers>1</event_handlers>
+                    </scripts>
+                </storefront_hyva_checkout_index_index>
                 <storefront>
+                    <scripts>
+                        <policy_id>script-src</policy_id>
+                        <self>1</self>
+                        <inline>1</inline>
+                        <eval>1</eval>
+                        <dynamic>0</dynamic>
+                    </scripts>
                     <frame-ancestors>
                         <inline>0</inline>
                     </frame-ancestors>

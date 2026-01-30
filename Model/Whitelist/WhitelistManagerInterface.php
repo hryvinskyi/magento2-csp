@@ -20,6 +20,7 @@ interface WhitelistManagerInterface
     public const RESULT_SUCCESS = 1;
     public const RESULT_EXISTS = 2;
     public const RESULT_NOT_SAVED = 3;
+    public const RESULT_REDUNDANT = 4;
 
     /**
      * Process a new whitelist

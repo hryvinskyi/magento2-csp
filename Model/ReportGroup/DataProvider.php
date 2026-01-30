@@ -1,54 +1,40 @@
 <?php
 /**
- * Copyright (c) 2025. MageCloud.  All rights reserved.
- * @author: Volodymyr Hryvinskyi <mailto:volodymyr@hryvinskyi.com>
+ * Copyright (c) 2026. Volodymyr Hryvinskyi. All rights reserved.
+ * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
+ * GitHub: https://github.com/hryvinskyi
  */
+
+declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Model\ReportGroup;
 
+use Hryvinskyi\Csp\Model\AbstractFormDataProvider;
 use Hryvinskyi\Csp\Model\ResourceModel\ReportGroup\CollectionFactory;
 use Magento\Framework\App\Request\DataPersistorInterface;
-use Magento\Ui\DataProvider\AbstractDataProvider;
 
-class DataProvider extends AbstractDataProvider
+class DataProvider extends AbstractFormDataProvider
 {
-    private $loadedData = [];
+    private const PERSISTOR_KEY = 'hryvinskyi_csp_reportgroup';
 
     public function __construct(
-        $name,
-        $primaryFieldName,
-        $requestFieldName,
+        string $name,
+        string $primaryFieldName,
+        string $requestFieldName,
         CollectionFactory $collectionFactory,
-        private readonly DataPersistorInterface $dataPersistor,
+        DataPersistorInterface $dataPersistor,
         array $meta = [],
         array $data = []
     ) {
-        $this->collection = $collectionFactory->create();
-        parent::__construct($name, $primaryFieldName, $requestFieldName, $meta, $data);
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public function getData()
-    {
-        if ($this->loadedData) {
-            return $this->loadedData;
-        }
-        $items = $this->collection->getItems();
-
-        foreach ($items as $item) {
-            $this->loadedData[$item->getId()] = $item->getData();
-        }
-
-        $data = $this->dataPersistor->get('hryvinskyi_csp_reportgroup');
-        if (!empty($data)) {
-            $item = $this->collection->getNewEmptyItem();
-            $item->setData($data);
-            $this->loadedData[$item->getId()] = $item->getData();
-            $this->dataPersistor->clear('hryvinskyi_csp_reportgroup');
-        }
-
-        return $this->loadedData;
+        parent::__construct(
+            $name,
+            $primaryFieldName,
+            $requestFieldName,
+            $collectionFactory->create(),
+            $dataPersistor,
+            self::PERSISTOR_KEY,
+            $meta,
+            $data
+        );
     }
 }

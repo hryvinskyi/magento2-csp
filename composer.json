@@ -1,6 +1,6 @@
 {
   "name": "hryvinskyi/magento2-csp",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Advanced Content Security Policy (CSP) module for Magento 2 with whitelist management, violation reports, header splitting, and value optimization",
   "type": "magento2-module",
   "require": {

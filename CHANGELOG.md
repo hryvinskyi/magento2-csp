@@ -1,6 +1,27 @@
 # Changelog
 
 All notable changes to the Hryvinskyi_Csp module will be documented in this file.
+
+## [1.2.1] - 2026-01-30
+### Fixed
+- Fixed bug in `StoreUrlCollector` that incorrectly set `inlineAllowed=true` for `script-src` policies
+- Corrected FetchPolicy constructor parameter comments to match actual parameter names
+- The `inline` config setting now correctly controls whether `'unsafe-inline'` appears in CSP headers
+- Fixed reports not being deleted when equivalent whitelist entries already exist during mass conversion
+- `WhitelistManager::processNewWhitelist()` now calls `deleteRelatedReports()` for all result types
+
+### Added
+- Added `RESULT_REDUNDANT` constant to `WhitelistManagerInterface` for entries covered by existing wildcards
+- Added duplicate and redundancy checking during CSP report conversion:
+  - Detects if a new entry is already covered by an existing wildcard (e.g., `cdn.example.com` when `*.example.com` exists)
+  - Detects if a new wildcard is covered by a broader existing wildcard (e.g., `*.sub.example.com` when `*.example.com` exists)
+  - Automatically removes existing entries that become redundant when adding a new wildcard
+- Separate warning message in admin for reports skipped due to wildcard coverage vs exact duplicates
+
+### Improved
+- Enhanced `WhitelistManager` with `DomainMatcherInterface` integration for wildcard matching
+- Mass convert now shows distinct counts for: converted, existing duplicates, redundant (wildcard-covered), and errors
+
 ## [1.2.0] - 2026-01-30
 ### Added
 - Added CSP value optimization feature to remove duplicate and redundant entries from CSP headers

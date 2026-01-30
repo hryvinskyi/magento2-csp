@@ -62,21 +62,9 @@ class MassConvertManager implements MassConvertManagerInterface
                 $errorMessages[] = $e->getMessage();
             }
 
-            $this->reportRepository->deleteByDomainAndPolicy(
+            $this->deleteRelatedReportsAndGroups(
                 $newWhitelist->getValue(),
-                $entity->getEffectiveDirective()
-            );
-            $this->reportRepository->deleteByDomainAndPolicy(
-                $newWhitelist->getValue(),
-                $newWhitelist->getPolicy()
-            );
-
-            $this->reportGroupRepository->deleteByValueAndPolicy(
-                $newWhitelist->getValue(),
-                $entity->getEffectiveDirective()
-            );
-            $this->reportGroupRepository->deleteByValueAndPolicy(
-                $newWhitelist->getValue(),
+                $entity->getEffectiveDirective(),
                 $newWhitelist->getPolicy()
             );
         }
@@ -85,5 +73,21 @@ class MassConvertManager implements MassConvertManagerInterface
             'count' => $count,
             'messages' => implode(', ', $errorMessages),
         ];
+    }
+
+    /**
+     * Delete related reports and report groups by value and policies.
+     *
+     * @param string $value
+     * @param string $effectiveDirective
+     * @param string $policy
+     * @return void
+     */
+    private function deleteRelatedReportsAndGroups(string $value, string $effectiveDirective, string $policy): void
+    {
+        $this->reportRepository->deleteByDomainAndPolicy($value, $effectiveDirective);
+        $this->reportRepository->deleteByDomainAndPolicy($value, $policy);
+        $this->reportGroupRepository->deleteByValueAndPolicy($value, $effectiveDirective);
+        $this->reportGroupRepository->deleteByValueAndPolicy($value, $policy);
     }
 }

@@ -41,17 +41,11 @@ class FormDataProvider extends AbstractDataProvider
         $items = $this->collection->getItems();
 
         foreach ($items as $item) {
-            $data = $item->getData();
-            if (isset($data[WhitelistInterface::STORE_IDS]) && is_string($data[WhitelistInterface::STORE_IDS])) {
-                $data[WhitelistInterface::STORE_IDS] = explode(',', $data[WhitelistInterface::STORE_IDS]);
-            }
+            $data = $this->convertStoreIdsToArray($item->getData());
             $this->loadedData[$item->getId()] = $data;
         }
 
-        $data = $this->dataPersistor->get('hryvinskyi_csp_whitelist');
-        if (isset($data[WhitelistInterface::STORE_IDS]) && is_string($data[WhitelistInterface::STORE_IDS])) {
-            $data[WhitelistInterface::STORE_IDS] = explode(',', $data[WhitelistInterface::STORE_IDS]);
-        }
+        $data = $this->convertStoreIdsToArray($this->dataPersistor->get('hryvinskyi_csp_whitelist'));
         if (!empty($data)) {
             $item = $this->collection->getNewEmptyItem();
             $item->setData($data);
@@ -60,5 +54,24 @@ class FormDataProvider extends AbstractDataProvider
         }
 
         return $this->loadedData;
+    }
+
+    /**
+     * Convert store_ids from comma-separated string to array.
+     *
+     * @param array|null $data
+     * @return array
+     */
+    private function convertStoreIdsToArray(?array $data): array
+    {
+        if ($data === null) {
+            return [];
+        }
+
+        if (isset($data[WhitelistInterface::STORE_IDS]) && is_string($data[WhitelistInterface::STORE_IDS])) {
+            $data[WhitelistInterface::STORE_IDS] = explode(',', $data[WhitelistInterface::STORE_IDS]);
+        }
+
+        return $data;
     }
 }

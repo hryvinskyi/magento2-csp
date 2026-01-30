@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace Hryvinskyi\Csp\Controller\Adminhtml\ReportGroup;
 
 use Hryvinskyi\Csp\Api\ReportGroupRepositoryInterface;
+use Hryvinskyi\Csp\Model\ReportGroup\MassActionInterface;
 use Hryvinskyi\Csp\Model\ResourceModel\ReportGroup\CollectionFactory;
 use Magento\Framework\Controller\ResultFactory;
 use Magento\Backend\App\Action\Context;
@@ -27,6 +28,7 @@ class MassDelete extends \Magento\Backend\App\Action
         private readonly Filter $filter,
         private readonly CollectionFactory $entityCollectionFactory,
         private readonly ReportGroupRepositoryInterface $entityRepository,
+        private readonly MassActionInterface $massAction
     ) {
         parent::__construct($context);
     }
@@ -38,12 +40,10 @@ class MassDelete extends \Magento\Backend\App\Action
     {
         $collection = $this->filter->getCollection($this->entityCollectionFactory->create());
 
-        foreach ($collection as $item) {
-            $this->entityRepository->delete($item);
-        }
+        $deletedCount = $this->massAction->deleteItems($collection, $this->entityRepository);
 
         $this->messageManager->addSuccessMessage(
-            __('A total of %1 record(s) have been deleted.', $collection->count())
+            __('A total of %1 record(s) have been deleted.', $deletedCount)
         );
 
         /** @var \Magento\Backend\Model\View\Result\Redirect $resultRedirect */

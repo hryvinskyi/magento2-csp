@@ -10,8 +10,8 @@ declare(strict_types=1);
 namespace Hryvinskyi\Csp\Model\Collector;
 
 use Hryvinskyi\Csp\Api\ConfigInterface;
+use Hryvinskyi\Csp\Api\PolicyCollectionMergerInterface;
 use Magento\Csp\Api\PolicyCollectorInterface;
-use Magento\Csp\Model\Collector\MergerInterface;
 use Magento\Csp\Model\Policy\FetchPolicy;
 use Magento\Framework\Url\ScopeResolverInterface;
 use Magento\Framework\UrlInterface;
@@ -23,7 +23,7 @@ class StoreUrlCollector implements PolicyCollectorInterface
     public function __construct(
         private readonly ScopeResolverInterface $scopeResolver,
         private readonly ConfigInterface $config,
-        private readonly MergerInterface $merger
+        private readonly PolicyCollectionMergerInterface $policyCollectionMerger
     ) {
     }
 
@@ -44,15 +44,7 @@ class StoreUrlCollector implements PolicyCollectorInterface
 
         foreach (FetchPolicy::POLICIES as $directive) {
             $policy = $this->createFetchPolicy($directive, $storeUrls);
-            if (array_key_exists($directive, $policies)) {
-                if ($this->merger->canMerge($policies[$directive], $policy)) {
-                    $policies[$directive] = $this->merger->merge($policies[$directive], $policy);
-                } else {
-                    throw new \RuntimeException('Cannot merge a policy of ' . get_class($policy));
-                }
-            } else {
-                $policies[$directive] = $policy;
-            }
+            $policies = $this->policyCollectionMerger->mergeOrAdd($policies, $directive, $policy);
         }
 
         return $policies;
@@ -83,17 +75,9 @@ class StoreUrlCollector implements PolicyCollectorInterface
     private function createFetchPolicy(string $policyId, array $hosts): FetchPolicy
     {
         return new FetchPolicy(
-            $policyId,
-            false, // selfAllowed
-            $hosts,
-            [],    // schemes
-            false, // blobAllowed
-            $policyId === 'script-src' ? true : false, // dataAllowed
-            false, // evalAllowed
-            [],    // hashes
-            [],    // nonces
-            false, // nonceAllowed
-            false  // noneAllowed
+            id: $policyId,
+            noneAllowed: false,
+            hostSources: $hosts
         );
     }
 
