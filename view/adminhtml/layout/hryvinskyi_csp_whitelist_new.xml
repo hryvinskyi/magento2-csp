@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -9,8 +9,22 @@
 
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
-    <head>
-        <css src="Hryvinskyi_Csp::css/styles.css"/>
-    </head>
-    <update handle="hryvinskyi_csp_whitelist_edit"/>
+    <update handle="hryvinskyi_csp_menu"/>
+    <body>
+        <referenceBlock name="hryvinskyi.csp.menu">
+            <arguments>
+                <argument name="menu_title" xsi:type="string" translate="true">CSP: New Whitelist</argument>
+                <argument name="items" xsi:type="array">
+                    <item name="whitelist" xsi:type="array">
+                        <item name="class" xsi:type="array">
+                            <item name="current" xsi:type="boolean">true</item>
+                        </item>
+                    </item>
+                </argument>
+            </arguments>
+        </referenceBlock>
+        <referenceContainer name="content">
+            <uiComponent name="hryvinskyi_csp_whitelist_form"/>
+        </referenceContainer>
+    </body>
 </page>

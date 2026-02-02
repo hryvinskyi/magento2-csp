@@ -2,6 +2,17 @@
 
 All notable changes to the Hryvinskyi_Csp module will be documented in this file.
 
+## [1.2.2] - 2026-02-02
+### Added
+- Added extensible admin menu integration using Hryvinskyi_Base module
+- Added SVG icons for menu items (Whitelist, Violation Report, Configuration)
+- Added current page highlighting with visual indicator in admin menu
+- Added Hryvinskyi_Base module as a dependency
+
+### Changed
+- Refactored admin layout files to use shared menu system via `hryvinskyi_csp_menu` layout handle
+- Updated all CSP admin pages to display page-specific titles
+
 ## [1.2.1] - 2026-01-30
 ### Fixed
 - Fixed bug in `StoreUrlCollector` that incorrectly set `inlineAllowed=true` for `script-src` policies
