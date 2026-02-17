@@ -13,7 +13,7 @@
     <body>
         <referenceBlock name="hryvinskyi.csp.menu">
             <arguments>
-                <argument name="menu_title" xsi:type="string" translate="true">CSP: Violation Report</argument>
+                <argument name="menu_title" xsi:type="string" translate="true">Content Security Policy: Violation Report</argument>
                 <argument name="items" xsi:type="array">
                     <item name="violation_report" xsi:type="array">
                         <item name="class" xsi:type="array">

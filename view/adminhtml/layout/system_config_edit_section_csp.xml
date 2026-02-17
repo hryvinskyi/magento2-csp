@@ -6,16 +6,15 @@
  * GitHub: https://github.com/hryvinskyi
  */
 -->
-
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <update handle="hryvinskyi_csp_menu"/>
     <body>
         <referenceBlock name="hryvinskyi.csp.menu">
             <arguments>
-                <argument name="menu_title" xsi:type="string" translate="true">Content Security Policy: Reports</argument>
+                <argument name="menu_title" xsi:type="string" translate="true">Content Security Policy: Configuration</argument>
                 <argument name="items" xsi:type="array">
-                    <item name="violation_report" xsi:type="array">
+                    <item name="configuration" xsi:type="array">
                         <item name="class" xsi:type="array">
                             <item name="current" xsi:type="boolean">true</item>
                         </item>
@@ -23,8 +22,5 @@
                 </argument>
             </arguments>
         </referenceBlock>
-        <referenceContainer name="content">
-            <uiComponent name="hryvinskyi_csp_report_listing"/>
-        </referenceContainer>
     </body>
 </page>

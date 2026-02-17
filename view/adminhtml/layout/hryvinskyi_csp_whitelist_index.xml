@@ -13,7 +13,7 @@
     <body>
         <referenceBlock name="hryvinskyi.csp.menu">
             <arguments>
-                <argument name="menu_title" xsi:type="string" translate="true">CSP: Whitelist</argument>
+                <argument name="menu_title" xsi:type="string" translate="true">Content Security Policy: Whitelist</argument>
                 <argument name="items" xsi:type="array">
                     <item name="whitelist" xsi:type="array">
                         <item name="class" xsi:type="array">
