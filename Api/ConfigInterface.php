@@ -77,4 +77,25 @@ interface ConfigInterface
      * @return bool
      */
     public function isRedundantWildcardRemovalEnabled(): bool;
+
+    /**
+     * Check if automatic report cleanup is enabled
+     *
+     * @return bool
+     */
+    public function isReportCleanupEnabled(): bool;
+
+    /**
+     * Get report cleanup mode ('date' or 'count')
+     *
+     * @return string
+     */
+    public function getReportCleanupMode(): string;
+
+    /**
+     * Get report cleanup threshold (days for date mode, max records for count mode)
+     *
+     * @return int
+     */
+    public function getReportCleanupThreshold(): int;
 }

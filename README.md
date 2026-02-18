@@ -29,6 +29,7 @@ This module allows administrators to manage CSP whitelists from the Magento admi
 17. **Redundancy Detection**: Visual indicators showing duplicate and redundant whitelist entries
 18. **Advanced Grid Filtering**: Filter whitelist entries by hash validation status and redundancy status
 19. **Advanced Grid Sorting**: Sort whitelist entries by computed columns (hash validation, redundancy)
+20. **Automatic Report Cleanup**: Scheduled cleanup of old violation reports by date or record count, with CLI command for manual execution
 
 ## Requirements
 
@@ -205,6 +206,37 @@ This helps you quickly identify and clean up redundant whitelist entries to keep
 1. Filter by "Duplicate" to find and remove duplicate entries
 2. Filter by "Redundant" to find entries that can be safely removed because they're covered by wildcards
 3. Sort by "Hash Validation" to group invalid hashes together for review
+
+### Report Cleanup
+
+The `hryvinskyi_csp_violation_report` table can grow very large over time. The module provides automatic and manual cleanup options. Aggregated counts in the report group table are preserved.
+
+**Automatic cleanup (cron):**
+
+1. Go to **Stores** > **Configuration** > **Security** > **Content Security Policy** > **Report Cleanup**
+2. Set **Enable automatic cleanup** to **Yes**
+3. Choose a mode:
+   - **By Date**: Delete reports older than N days (default: 30)
+   - **By Record Count**: Keep only the N most recent reports
+4. Set the threshold value
+
+The cron job runs daily at 2:00 AM.
+
+**Manual cleanup (CLI):**
+
+```bash
+# Use config values
+bin/magento hryvinskyi:csp:report:clean
+
+# Override mode and threshold
+bin/magento hryvinskyi:csp:report:clean --mode=date --threshold=30
+
+# Keep only 1000 newest records
+bin/magento hryvinskyi:csp:report:clean --mode=count --threshold=1000
+
+# Dry run — see what would be deleted without deleting
+bin/magento hryvinskyi:csp:report:clean --dry-run
+```
 
 ## Support
 If you encounter any issues or have questions, please contact the author or open an issue on GitHub.

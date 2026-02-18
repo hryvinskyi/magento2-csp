@@ -88,6 +88,36 @@
                     </comment>
                 </field>
             </group>
+            <group id="report_cleanup" translate="label" type="text" sortOrder="1" showInDefault="1" showInWebsite="0" showInStore="0">
+                <label>Report Cleanup</label>
+                <field id="enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="0" showInStore="0" canRestore="1">
+                    <label>Enable automatic cleanup</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>
+                        <![CDATA[Automatically clean old CSP violation reports via cron (daily at 2 AM).]]>
+                    </comment>
+                </field>
+                <field id="mode" translate="label comment" type="select" sortOrder="20" showInDefault="1" showInWebsite="0" showInStore="0" canRestore="1">
+                    <label>Cleanup mode</label>
+                    <source_model>Hryvinskyi\Csp\Model\Config\Source\CleanupMode</source_model>
+                    <comment>
+                        <![CDATA[<strong>By Date</strong> — delete reports older than the threshold (in days).<br/><strong>By Record Count</strong> — keep only the most recent N reports.]]>
+                    </comment>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="threshold" translate="label comment" type="text" sortOrder="30" showInDefault="1" showInWebsite="0" showInStore="0" canRestore="1">
+                    <label>Threshold</label>
+                    <validate>validate-number validate-greater-than-zero</validate>
+                    <comment>
+                        <![CDATA[Number of days (date mode) or maximum records to keep (count mode). Default: 30.]]>
+                    </comment>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+            </group>
             <group id="mode">
                 <group id="admin">
                     <field id="report_uri" type="text" showInDefault="0" showInWebsite="0" showInStore="0"/>

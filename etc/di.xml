@@ -38,6 +38,8 @@
 
     <preference for="Hryvinskyi\Csp\Model\ReportGroup\Command\SaveFromCspReportInterface" type="Hryvinskyi\Csp\Model\ReportGroup\Command\SaveFromCspReport"/>
 
+    <preference for="Hryvinskyi\Csp\Api\ReportCleanupInterface" type="Hryvinskyi\Csp\Model\Report\Cleanup"/>
+
     <preference for="Hryvinskyi\Csp\Api\CspHashGeneratorInterface" type="Hryvinskyi\Csp\Model\CspHashGenerator"/>
     <preference for="Hryvinskyi\Csp\Api\RedundancyCalculatorInterface" type="Hryvinskyi\Csp\Model\Whitelist\RedundancyCalculator"/>
     <preference for="Hryvinskyi\Csp\Api\HashValidationCalculatorInterface" type="Hryvinskyi\Csp\Model\Whitelist\HashValidationCalculator"/>
@@ -184,6 +186,7 @@
             <argument name="commands" xsi:type="array">
                 <item name="hryvinskyi_csp_generate_script_hashes" xsi:type="object">Hryvinskyi\Csp\Command\GenerateCspScriptHashesCommand\Proxy</item>
                 <item name="hryvinskyi_csp_flush_cache" xsi:type="object">Hryvinskyi\Csp\Command\FlushCspCacheCommand\Proxy</item>
+                <item name="hryvinskyi_csp_clean_old_reports" xsi:type="object">Hryvinskyi\Csp\Command\CleanOldReportsCommand\Proxy</item>
             </argument>
         </arguments>
     </type>
@@ -248,6 +251,16 @@
             <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
             <argument name="config" xsi:type="object">Hryvinskyi\Csp\Api\ConfigInterface</argument>
             <argument name="domainMatcher" xsi:type="object">Hryvinskyi\Csp\Api\DomainMatcherInterface</argument>
+        </arguments>
+    </type>
+    <type name="Hryvinskyi\Csp\Cron\CleanOldReports">
+        <arguments>
+            <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Hryvinskyi\Csp\Model\Report\Cleanup">
+        <arguments>
+            <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
         </arguments>
     </type>
     <type name="Hryvinskyi\Csp\Model\Whitelist\WhitelistManager">

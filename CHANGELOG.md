@@ -2,6 +2,14 @@
 
 All notable changes to the Hryvinskyi_Csp module will be documented in this file.
 
+## [1.2.4] - 2026-02-18
+### Added
+- Automatic cleanup of old CSP violation reports via cron (daily at 2 AM)
+- Two cleanup modes: **By Date** (delete reports older than N days) and **By Record Count** (keep only N newest reports)
+- Admin configuration at Stores > Configuration > Security > Content Security Policy > Report Cleanup
+- Console command `hryvinskyi:csp:report:clean` with `--mode`, `--threshold`, and `--dry-run` options
+- `ReportCleanupInterface` service for programmatic report cleanup
+
 ## [1.2.2] - 2026-02-02
 ### Added
 - Added extensible admin menu integration using Hryvinskyi_Base module

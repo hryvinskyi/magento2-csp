@@ -19,6 +19,11 @@
                 <enable_value_optimization>0</enable_value_optimization>
                 <enable_redundant_wildcard_removal>0</enable_redundant_wildcard_removal>
             </general>
+            <report_cleanup>
+                <enabled>0</enabled>
+                <mode>date</mode>
+                <threshold>30</threshold>
+            </report_cleanup>
             <policies>
                 <storefront_hyva_checkout_index_index>
                     <scripts>
