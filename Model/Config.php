@@ -26,6 +26,10 @@ class Config implements ConfigInterface, DebugConfigInterface
     public const XML_PATH_CSP_DEBUG_MODE_ENABLED = 'csp/general/debug_mode_enabled';
     public const XML_PATH_CSP_VALUE_OPTIMIZATION_ENABLED = 'csp/general/enable_value_optimization';
     public const XML_PATH_CSP_REDUNDANT_WILDCARD_REMOVAL_ENABLED = 'csp/general/enable_redundant_wildcard_removal';
+    public const XML_PATH_CSP_DEFAULT_SRC_CONSOLIDATION_ENABLED = 'csp/general/enable_default_src_consolidation';
+    public const XML_PATH_CSP_SUBDOMAIN_WILDCARD_CONSOLIDATION_ENABLED = 'csp/general/enable_subdomain_wildcard_consolidation';
+    public const XML_PATH_CSP_SUBDOMAIN_WILDCARD_THRESHOLD = 'csp/general/subdomain_wildcard_threshold';
+    public const XML_PATH_CSP_SCHEME_PATH_STRIPPING_ENABLED = 'csp/general/enable_scheme_path_stripping';
     public const XML_PATH_CSP_REPORT_CLEANUP_ENABLED = 'csp/report_cleanup/enabled';
     public const XML_PATH_CSP_REPORT_CLEANUP_MODE = 'csp/report_cleanup/mode';
     public const XML_PATH_CSP_REPORT_CLEANUP_THRESHOLD = 'csp/report_cleanup/threshold';
@@ -129,6 +133,38 @@ class Config implements ConfigInterface, DebugConfigInterface
     public function isRedundantWildcardRemovalEnabled(): bool
     {
         return $this->scopeConfig->isSetFlag(self::XML_PATH_CSP_REDUNDANT_WILDCARD_REMOVAL_ENABLED);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function isDefaultSrcConsolidationEnabled(): bool
+    {
+        return $this->scopeConfig->isSetFlag(self::XML_PATH_CSP_DEFAULT_SRC_CONSOLIDATION_ENABLED);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function isSubdomainWildcardConsolidationEnabled(): bool
+    {
+        return $this->scopeConfig->isSetFlag(self::XML_PATH_CSP_SUBDOMAIN_WILDCARD_CONSOLIDATION_ENABLED);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getSubdomainWildcardThreshold(): int
+    {
+        return (int)($this->scopeConfig->getValue(self::XML_PATH_CSP_SUBDOMAIN_WILDCARD_THRESHOLD) ?: 3);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function isSchemePathStrippingEnabled(): bool
+    {
+        return $this->scopeConfig->isSetFlag(self::XML_PATH_CSP_SCHEME_PATH_STRIPPING_ENABLED);
     }
 
     /**

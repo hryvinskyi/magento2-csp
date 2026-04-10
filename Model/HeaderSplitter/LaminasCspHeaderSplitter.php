@@ -53,10 +53,36 @@ class LaminasCspHeaderSplitter implements CspHeaderSplitterInterface
         $headerParts = [];
         $currentPart = '';
 
-        // Extract the report-uri directive
+        // Extract default-src and report-uri — these must be included in every split part
+        // so that directives not present in a given part still fall back correctly
+        $defaultSrc = '';
         $reportUri = '';
-        if (preg_match('/report-uri\s+([^;]+);?/', $headerValue, $reportUriMatch)) {
-            $reportUri = 'report-uri ' . trim($reportUriMatch[1]);
+        foreach ($directives as $directive) {
+            $directive = trim($directive);
+            if (str_starts_with($directive, 'default-src')) {
+                $defaultSrc = $directive;
+            } elseif (str_starts_with($directive, 'report-uri')) {
+                $reportUri = $directive;
+            }
+        }
+
+        // Calculate reserved space for suffixes appended to every part
+        $suffixParts = array_filter([$defaultSrc, $reportUri]);
+        $suffix = !empty($suffixParts) ? '; ' . implode('; ', $suffixParts) : '';
+
+        // Check if the header only contains default-src and/or report-uri
+        $hasOtherDirectives = false;
+        foreach ($directives as $d) {
+            $d = trim($d);
+            if (!empty($d) && !str_starts_with($d, 'default-src') && !str_starts_with($d, 'report-uri')) {
+                $hasOtherDirectives = true;
+                break;
+            }
+        }
+        if (!$hasOtherDirectives) {
+            // Restore the original header value — nothing to split
+            $response->setHeader($headerName, implode('; ', $suffixParts), true);
+            return;
         }
 
         foreach ($directives as $directive) {
@@ -65,29 +91,25 @@ class LaminasCspHeaderSplitter implements CspHeaderSplitterInterface
                 continue;
             }
 
-            if (!empty($reportUri)) {
-                $directive .= '; ' . $reportUri;
-            }
-
             // First directive in a new part
             if (empty($currentPart)) {
                 $currentPart = $directive;
                 continue;
             }
 
-            // Check if adding this directive would exceed max size
-            if (strlen($currentPart . '; ' . $directive) <= $maxHeaderSize) {
+            // Check if adding this directive would exceed max size (accounting for suffix)
+            if (strlen($currentPart . '; ' . $directive . $suffix) <= $maxHeaderSize) {
                 $currentPart .= '; ' . $directive;
             } else {
-                $headerParts[] = $currentPart;
+                $headerParts[] = $currentPart . $suffix;
                 $currentPart = $directive;
 
                 // Check if individual directive is too large
-                if (strlen($directive) > $maxHeaderSize) {
+                if (strlen($directive . $suffix) > $maxHeaderSize) {
                     $this->logger->error(
                         sprintf(
                             'CSP directive exceeds max header size (%d bytes): %s',
-                            strlen($directive),
+                            strlen($directive . $suffix),
                             substr($directive, 0, 50) . '...'
                         )
                     );
@@ -95,9 +117,9 @@ class LaminasCspHeaderSplitter implements CspHeaderSplitterInterface
             }
         }
 
-        // Add the last part
+        // Add the last part with suffix
         if (!empty($currentPart)) {
-            $headerParts[] = $currentPart;
+            $headerParts[] = $currentPart . $suffix;
         }
 
         // Set each part as a separate header

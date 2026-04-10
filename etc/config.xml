@@ -18,6 +18,10 @@
                 <max_header_size>4096</max_header_size>
                 <enable_value_optimization>0</enable_value_optimization>
                 <enable_redundant_wildcard_removal>0</enable_redundant_wildcard_removal>
+                <enable_default_src_consolidation>0</enable_default_src_consolidation>
+                <enable_subdomain_wildcard_consolidation>0</enable_subdomain_wildcard_consolidation>
+                <subdomain_wildcard_threshold>3</subdomain_wildcard_threshold>
+                <enable_scheme_path_stripping>0</enable_scheme_path_stripping>
             </general>
             <report_cleanup>
                 <enabled>0</enabled>

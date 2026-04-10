@@ -196,7 +196,7 @@ class RedundancyCalculatorTest extends TestCase
         $this->assertSame(RedundancyStatusOptions::REDUNDANT, $result[0]['redundancy_status']);
     }
 
-    public function testCalculateForItemsWildcardNotRedundantWithHigherId(): void
+    public function testCalculateForItemsHostRedundantRegardlessOfOrder(): void
     {
         $this->setupCollectionMock([
             ['rule_id' => 1, 'policy' => 'script-src', 'value' => 'www.example.com'],
@@ -214,8 +214,55 @@ class RedundancyCalculatorTest extends TestCase
 
         $result = $this->calculator->calculateForItems($items);
 
-        // www.example.com (id=1) is NOT redundant because *.example.com has higher id (2)
-        $this->assertSame(RedundancyStatusOptions::UNIQUE, $result[0]['redundancy_status']);
+        // www.example.com (id=1) IS redundant because *.example.com (id=2) covers it
+        // Order-independent: wildcard coverage detected regardless of rule_id direction
+        $this->assertSame(RedundancyStatusOptions::REDUNDANT, $result[0]['redundancy_status']);
+    }
+
+    public function testCalculateForItemsWildcardRedundantRegardlessOfOrder(): void
+    {
+        $this->setupCollectionMock([
+            ['rule_id' => 1, 'policy' => 'script-src', 'value' => '*.sub.example.com'],
+            ['rule_id' => 2, 'policy' => 'script-src', 'value' => '*.example.com'],
+        ]);
+
+        $items = [
+            [
+                'rule_id' => 1,
+                'policy' => 'script-src',
+                'value_type' => 'host',
+                'value' => '*.sub.example.com',
+            ],
+        ];
+
+        $result = $this->calculator->calculateForItems($items);
+
+        // *.sub.example.com (id=1) IS redundant because *.example.com (id=2) covers it
+        $this->assertSame(RedundancyStatusOptions::REDUNDANT, $result[0]['redundancy_status']);
+    }
+
+    public function testCalculateForItemsBothDirectionsDetected(): void
+    {
+        $this->setupCollectionMock([
+            ['rule_id' => 1, 'policy' => 'script-src', 'value' => 'www.example.com'],
+            ['rule_id' => 2, 'policy' => 'script-src', 'value' => '*.example.com'],
+            ['rule_id' => 3, 'policy' => 'script-src', 'value' => 'api.example.com'],
+        ]);
+
+        $items = [
+            ['rule_id' => 1, 'policy' => 'script-src', 'value_type' => 'host', 'value' => 'www.example.com'],
+            ['rule_id' => 2, 'policy' => 'script-src', 'value_type' => 'host', 'value' => '*.example.com'],
+            ['rule_id' => 3, 'policy' => 'script-src', 'value_type' => 'host', 'value' => 'api.example.com'],
+        ];
+
+        $result = $this->calculator->calculateForItems($items);
+
+        // id=1 (www) is redundant — covered by wildcard id=2
+        $this->assertSame(RedundancyStatusOptions::REDUNDANT, $result[0]['redundancy_status']);
+        // id=2 (wildcard) is unique — it's the broadest
+        $this->assertSame(RedundancyStatusOptions::UNIQUE, $result[1]['redundancy_status']);
+        // id=3 (api) is redundant — covered by wildcard id=2
+        $this->assertSame(RedundancyStatusOptions::REDUNDANT, $result[2]['redundancy_status']);
     }
 
     // ==================== DoubleClick Domain Tests ====================

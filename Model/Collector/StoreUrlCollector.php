@@ -18,8 +18,30 @@ use Magento\Framework\UrlInterface;
 
 class StoreUrlCollector implements PolicyCollectorInterface
 {
+    /**
+     * Directives that actually need store URLs.
+     * Store URLs are not relevant for base-uri, form-action, frame-ancestors, or object-src.
+     */
+    private const STORE_URL_DIRECTIVES = [
+        'default-src',
+        'script-src',
+        'style-src',
+        'img-src',
+        'font-src',
+        'connect-src',
+        'media-src',
+    ];
+
+    /**
+     * @var array<int, string>
+     */
     private array $storeUrls;
 
+    /**
+     * @param ScopeResolverInterface $scopeResolver
+     * @param ConfigInterface $config
+     * @param PolicyCollectionMergerInterface $policyCollectionMerger
+     */
     public function __construct(
         private readonly ScopeResolverInterface $scopeResolver,
         private readonly ConfigInterface $config,
@@ -42,7 +64,7 @@ class StoreUrlCollector implements PolicyCollectorInterface
         $policies = $defaultPolicies;
         $storeUrls = $this->getStoreUrls();
 
-        foreach (FetchPolicy::POLICIES as $directive) {
+        foreach (self::STORE_URL_DIRECTIVES as $directive) {
             $policy = $this->createFetchPolicy($directive, $storeUrls);
             $policies = $this->policyCollectionMerger->mergeOrAdd($policies, $directive, $policy);
         }

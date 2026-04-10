@@ -42,6 +42,32 @@ class CspValueOptimizer implements CspValueOptimizerInterface
     ];
 
     /**
+     * Directives whose values are URIs, not host-sources.
+     * These must never have scheme/path stripping or deduplication applied.
+     */
+    private const URI_VALUE_DIRECTIVES = [
+        'report-uri',
+        'report-to',
+    ];
+
+    /**
+     * Directives that inherit from default-src when not explicitly set.
+     * frame-ancestors, base-uri, and form-action do NOT fall back to default-src per the CSP spec.
+     */
+    private const DEFAULT_SRC_FALLBACK_DIRECTIVES = [
+        'child-src',
+        'connect-src',
+        'font-src',
+        'frame-src',
+        'img-src',
+        'manifest-src',
+        'media-src',
+        'object-src',
+        'script-src',
+        'style-src',
+    ];
+
+    /**
      * @param LoggerInterface $logger
      * @param ConfigInterface $config
      * @param DomainMatcherInterface $domainMatcher
@@ -63,12 +89,24 @@ class CspValueOptimizer implements CspValueOptimizerInterface
         }
 
         $directives = $this->parseDirectives($headerValue);
-        $optimizedDirectives = [];
 
+        // Optimize each directive individually (skip URI-value directives like report-uri)
         foreach ($directives as $directiveName => $values) {
-            $optimizedValues = $this->optimizeDirectiveValues($directiveName, $values);
-            if (!empty($optimizedValues)) {
-                $optimizedDirectives[] = $directiveName . ' ' . implode(' ', $optimizedValues);
+            if (in_array($directiveName, self::URI_VALUE_DIRECTIVES, true)) {
+                continue;
+            }
+            $directives[$directiveName] = $this->optimizeDirectiveValues($directiveName, $values);
+        }
+
+        // Cross-directive optimization: consolidate common values into default-src
+        if ($this->config->isDefaultSrcConsolidationEnabled()) {
+            $directives = $this->consolidateIntoDefaultSrc($directives);
+        }
+
+        $optimizedDirectives = [];
+        foreach ($directives as $directiveName => $values) {
+            if (!empty($values)) {
+                $optimizedDirectives[] = $directiveName . ' ' . implode(' ', $values);
             }
         }
 
@@ -84,15 +122,25 @@ class CspValueOptimizer implements CspValueOptimizerInterface
             return $values;
         }
 
-        // Step 1: Remove exact duplicates
+        // Step 1: Strip schemes and paths from host values (if enabled)
+        if ($this->config->isSchemePathStrippingEnabled()) {
+            $values = $this->stripSchemesAndPaths($values);
+        }
+
+        // Step 2: Remove exact duplicates
         $values = $this->removeDuplicates($values);
 
-        // Step 2: Remove redundant wildcard-covered entries (if enabled)
+        // Step 3: Remove redundant wildcard-covered entries (if enabled)
         if ($this->config->isRedundantWildcardRemovalEnabled()) {
             $values = $this->removeRedundantWildcards($values);
         }
 
-        // Step 3: Sort for consistent output (keywords first, then alphabetical)
+        // Step 4: Consolidate subdomains into wildcards (if enabled)
+        if ($this->config->isSubdomainWildcardConsolidationEnabled()) {
+            $values = $this->consolidateSubdomainsToWildcards($values);
+        }
+
+        // Step 5: Sort for consistent output (keywords first, then alphabetical)
         return $this->sortValues($values);
     }
 
@@ -169,6 +217,246 @@ class CspValueOptimizer implements CspValueOptimizerInterface
         $filteredWildcards = $this->removeRedundantWildcardsFromList($wildcards);
 
         return array_merge($keywords, $filteredWildcards, $filteredHosts, $others);
+    }
+
+    /**
+     * Strip scheme prefixes and paths from host-like values
+     *
+     * In CSP, `example.com` matches both http and https origins.
+     * Stripping `https://` and paths reduces redundancy.
+     *
+     * @param array<int, string> $values
+     * @return array<int, string>
+     */
+    private function stripSchemesAndPaths(array $values): array
+    {
+        $result = [];
+
+        foreach ($values as $value) {
+            // Skip keywords, hashes, nonces, scheme-sources, and wildcards
+            if ($this->isKeyword($value) || $this->isHash($value) || $this->isNonce($value)) {
+                $result[] = $value;
+                continue;
+            }
+
+            $stripped = $value;
+
+            // Strip scheme (https:// or http://)
+            $stripped = preg_replace('#^https?://#i', '', $stripped) ?? $stripped;
+
+            // Strip path component (keep host and optional port)
+            $stripped = preg_replace('#(/[^\s]*)$#', '', $stripped) ?? $stripped;
+
+            // Strip trailing slashes
+            $stripped = rtrim($stripped, '/');
+
+            if ($stripped !== $value && !empty($stripped)) {
+                $this->logger->debug(sprintf(
+                    'CSP Optimizer: Stripped scheme/path from "%s" to "%s"',
+                    $value,
+                    $stripped
+                ));
+            }
+
+            $result[] = !empty($stripped) ? $stripped : $value;
+        }
+
+        return $result;
+    }
+
+    /**
+     * Consolidate multiple subdomains of the same parent domain into a wildcard
+     *
+     * When N or more subdomains of the same parent domain exist (e.g. api.google.com,
+     * maps.google.com, fonts.google.com), they are replaced with *.google.com.
+     *
+     * @param array<int, string> $values
+     * @return array<int, string>
+     */
+    private function consolidateSubdomainsToWildcards(array $values): array
+    {
+        $threshold = $this->config->getSubdomainWildcardThreshold();
+        $keywords = [];
+        $wildcards = [];
+        $others = [];
+        /** @var array<string, array<int, string>> $domainGroups */
+        $domainGroups = [];
+
+        foreach ($values as $value) {
+            if ($this->isKeyword($value) || $this->isHash($value) || $this->isNonce($value)) {
+                $keywords[] = $value;
+                continue;
+            }
+
+            if ($this->domainMatcher->isWildcard($value)) {
+                $wildcards[] = $value;
+                continue;
+            }
+
+            // Skip port-bearing hosts — wildcard *.example.com won't cover example.com:8080
+            if (preg_match('/:\d+/', $value)) {
+                $others[] = $value;
+                continue;
+            }
+
+            $domain = $this->domainMatcher->extractDomain($value);
+            $parts = explode('.', $domain);
+
+            // Need at least 3 parts (sub.example.com) to extract a parent domain
+            if (count($parts) >= 3) {
+                $parentDomain = implode('.', array_slice($parts, 1));
+                $domainGroups[$parentDomain][] = $value;
+            } else {
+                $others[] = $value;
+            }
+        }
+
+        // Process domain groups
+        $consolidatedHosts = [];
+        foreach ($domainGroups as $parentDomain => $subdomains) {
+            $wildcard = '*.' . $parentDomain;
+
+            // Check if a wildcard already covers this parent
+            $alreadyCovered = false;
+            foreach ($wildcards as $existingWildcard) {
+                if ($existingWildcard === $wildcard
+                    || $this->domainMatcher->isWildcardCoveredByBroader($wildcard, $existingWildcard)
+                ) {
+                    $alreadyCovered = true;
+                    break;
+                }
+            }
+
+            if ($alreadyCovered) {
+                // Existing wildcard already covers these — drop them
+                $this->logger->debug(sprintf(
+                    'CSP Optimizer: Dropped %d subdomains of "%s" (already covered by wildcard)',
+                    count($subdomains),
+                    $parentDomain
+                ));
+                continue;
+            }
+
+            if (count($subdomains) >= $threshold) {
+                $wildcards[] = $wildcard;
+                $this->logger->debug(sprintf(
+                    'CSP Optimizer: Consolidated %d subdomains of "%s" into "%s"',
+                    count($subdomains),
+                    $parentDomain,
+                    $wildcard
+                ));
+            } else {
+                array_push($consolidatedHosts, ...$subdomains);
+            }
+        }
+
+        return array_merge($keywords, $wildcards, $consolidatedHosts, $others);
+    }
+
+    /**
+     * Consolidate values shared across multiple fetch directives into default-src
+     *
+     * When a directive's values are ALL common (shared by every eligible directive),
+     * the directive is removed entirely so it falls back to default-src.
+     * Directives with unique values are left untouched — default-src is only a fallback
+     * and does NOT supplement an explicitly present directive.
+     *
+     * @param array<string, array<int, string>> $directives
+     * @return array<string, array<int, string>>
+     */
+    private function consolidateIntoDefaultSrc(array $directives): array
+    {
+        // If default-src already contains 'none', consolidation would create a contradictory policy
+        $existingDefaultSrc = $directives['default-src'] ?? [];
+        if (in_array("'none'", $existingDefaultSrc, true)) {
+            return $directives;
+        }
+
+        // Collect only the fallback-eligible directives that are present
+        $eligibleDirectives = [];
+        foreach (self::DEFAULT_SRC_FALLBACK_DIRECTIVES as $name) {
+            if (isset($directives[$name]) && !empty($directives[$name])) {
+                $eligibleDirectives[$name] = $directives[$name];
+            }
+        }
+
+        // Need at least 2 directives to consolidate
+        if (count($eligibleDirectives) < 2) {
+            return $directives;
+        }
+
+        // Find values that appear in ALL eligible directives
+        $valueSets = array_map(static function (array $values): array {
+            return array_map('strtolower', $values);
+        }, $eligibleDirectives);
+
+        $commonValues = array_values(array_intersect(...array_values($valueSets)));
+
+        if (empty($commonValues)) {
+            return $directives;
+        }
+
+        // Determine which directives consist ENTIRELY of common values (no unique values).
+        // Only those can be removed — they'll fall back to default-src correctly.
+        // Directives with unique values must keep ALL their values because
+        // an explicit directive does NOT inherit from default-src.
+        $directivesToRemove = [];
+        foreach ($eligibleDirectives as $name => $values) {
+            $uniqueValues = array_filter($values, static function (string $value) use ($commonValues): bool {
+                return !in_array(strtolower($value), $commonValues, true);
+            });
+
+            if (empty($uniqueValues)) {
+                $directivesToRemove[] = $name;
+            }
+        }
+
+        // Only proceed if at least one directive can be fully removed
+        if (empty($directivesToRemove)) {
+            return $directives;
+        }
+
+        // Map common lowercase values back to their original-case forms from the first removable directive
+        $firstRemovable = $directives[$directivesToRemove[0]];
+        $originalCaseMap = [];
+        foreach ($firstRemovable as $value) {
+            $lower = strtolower($value);
+            if (in_array($lower, $commonValues, true)) {
+                $originalCaseMap[$lower] = $value;
+            }
+        }
+
+        $commonOriginalValues = array_values($originalCaseMap);
+
+        // Add common values to default-src
+        $existingDefaultSrcLower = array_map('strtolower', $existingDefaultSrc);
+
+        foreach ($commonOriginalValues as $value) {
+            if (!in_array(strtolower($value), $existingDefaultSrcLower, true)) {
+                $existingDefaultSrc[] = $value;
+                $existingDefaultSrcLower[] = strtolower($value);
+            }
+        }
+        $directives['default-src'] = $existingDefaultSrc;
+
+        // Remove only the fully-common directives
+        foreach ($directivesToRemove as $name) {
+            unset($directives[$name]);
+        }
+
+        $this->logger->debug(sprintf(
+            'CSP Optimizer: Consolidated %d values into default-src, removed %d directives (%s)',
+            count($commonOriginalValues),
+            count($directivesToRemove),
+            implode(', ', $directivesToRemove)
+        ));
+
+        // Ensure default-src is first in output
+        $defaultSrc = $directives['default-src'];
+        unset($directives['default-src']);
+        $directives = ['default-src' => $defaultSrc] + $directives;
+
+        return $directives;
     }
 
     /**

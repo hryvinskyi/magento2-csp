@@ -2,6 +2,25 @@
 
 All notable changes to the Hryvinskyi_Csp module will be documented in this file.
 
+## [1.3.0] - 2026-04-10
+### Fixed
+- **[CRITICAL] Header splitting now preserves `default-src`**: Previously, `default-src` was dropped during header splitting, causing directives not present in a split part to fall back to "unrestricted" instead of the intended `default-src` policy. `default-src` and `report-uri` are now included in every split header part.
+- **Header splitting edge case**: Fixed silent header loss when the CSP header only contained `default-src` and/or `report-uri` directives.
+- **RedundancyCalculator order-independent**: Redundancy detection now works regardless of `rule_id` insertion order. A host covered by a wildcard with a higher `rule_id` is now correctly flagged as redundant.
+- **StoreUrlCollector directive targeting**: Store URLs are now only added to relevant directives (`default-src`, `script-src`, `style-src`, `img-src`, `font-src`, `connect-src`, `media-src`) instead of all 14 fetch directives, reducing header bloat.
+
+### Added
+- **Default-src consolidation** (`enable_default_src_consolidation`): Values shared across all fallback-eligible directives are automatically moved into `default-src` and removed from individual directives. This can reduce header size by 40-70%. Respects CSP spec: `frame-ancestors`, `base-uri`, and `form-action` are excluded since they do not inherit from `default-src`. Skips consolidation when existing `default-src` contains `'none'`.
+- **Subdomain-to-wildcard consolidation** (`enable_subdomain_wildcard_consolidation`): When N or more subdomains of the same parent domain exist (e.g., `api.google.com`, `maps.google.com`, `fonts.google.com`), they are automatically replaced with `*.parent.com`. Configurable threshold via `subdomain_wildcard_threshold` (default: 3). Port-bearing hosts are excluded from consolidation.
+- **Scheme and path stripping** (`enable_scheme_path_stripping`): Strips `https://` and `http://` prefixes and `/path` suffixes from host values during optimization. In CSP, `example.com` matches both schemes, so the scheme prefix is redundant. Preserves ports, keywords, hashes, and nonces.
+- New configuration options at **Stores > Configuration > Security > Content Security Policy > General**:
+  - Enable default-src consolidation
+  - Enable subdomain-to-wildcard consolidation
+  - Subdomain wildcard threshold (default: 3)
+  - Enable scheme and path stripping
+- Comprehensive unit tests for all new features (174 total tests, 366 assertions)
+- New test files: `LaminasCspHeaderSplitterTest`, `StoreUrlCollectorTest`
+
 ## [1.2.4] - 2026-02-18
 ### Added
 - Automatic cleanup of old CSP violation reports via cron (daily at 2 AM)

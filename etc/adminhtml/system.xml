@@ -51,17 +51,22 @@
                     <label>Enable CSP header splitting</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <comment>
-                        <![CDATA[Enable splitting of CSP headers if they exceed the maximum header size.]]>
+                        <![CDATA[<strong style="color:#e22626">Warning: Header splitting has fundamental limitations.</strong><br>
+                        When CSP is split into multiple HTTP headers, the browser enforces <strong>all headers simultaneously</strong> (intersection).
+                        Directives present in one header but absent in another will fall back to <code>default-src</code>, which may be more restrictive
+                        than intended, causing resources to be blocked even though they are whitelisted in the correct directive.]]>
                     </comment>
                 </field>
                 <field id="max_header_size" translate="label comment" type="text" sortOrder="21" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="0">
                     <label>Max CSP header size (bytes)</label>
                     <validate>validate-number validate-greater-than-zero</validate>
                     <comment>
-                        <![CDATA[Maximum allowed size for a single CSP header. Default is 4096 bytes. <br>
-                        if you enabled header splitting, derictive <b>default-src</b> will be skipped.
-                        because it is not supported by the CSP splitting.]]>
+                        <![CDATA[Maximum allowed size for a single CSP header part. Default is 4096 bytes.<br>
+                        The <code>default-src</code> and <code>report-uri</code> directives are included in every split part to maintain correct fallback behavior.]]>
                     </comment>
+                    <depends>
+                        <field id="enable_header_splitting">1</field>
+                    </depends>
                 </field>
                 <field id="enable_value_optimization" translate="label comment" type="select" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="0">
                     <label>Enable CSP value optimization</label>
@@ -78,6 +83,51 @@
                     </comment>
                     <depends>
                         <field id="enable_value_optimization">1</field>
+                    </depends>
+                </field>
+                <field id="enable_scheme_path_stripping" translate="label comment" type="select" sortOrder="32" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="0">
+                    <label>Enable scheme and path stripping</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>
+                        <![CDATA[Strip <code>https://</code> prefixes and <code>/path</code> suffixes from host values. In CSP, <code>example.com</code> already matches both HTTP and HTTPS origins.
+                        Keywords, hashes, nonces, and ports are preserved. The <code>report-uri</code> directive is never modified.]]>
+                    </comment>
+                    <depends>
+                        <field id="enable_value_optimization">1</field>
+                    </depends>
+                </field>
+                <field id="enable_default_src_consolidation" translate="label comment" type="select" sortOrder="33" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="0">
+                    <label>Enable default-src consolidation</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>
+                        <![CDATA[When a directive's values are entirely shared across all other directives, remove it so the browser falls back to <code>default-src</code>.
+                        Directives with any unique values are left untouched. <code>default-src</code> only acts as a fallback when a directive is completely absent.
+                        <code>frame-ancestors</code>, <code>base-uri</code>, and <code>form-action</code> are excluded (they do not inherit from <code>default-src</code> per the CSP spec).]]>
+                    </comment>
+                    <depends>
+                        <field id="enable_value_optimization">1</field>
+                    </depends>
+                </field>
+                <field id="enable_subdomain_wildcard_consolidation" translate="label comment" type="select" sortOrder="34" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="0">
+                    <label>Enable subdomain-to-wildcard consolidation</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>
+                        <![CDATA[<strong style="color:#e22626">⚠ Security trade-off:</strong> When N+ subdomains of the same parent domain exist, replace them with <code>*.parent.com</code>.
+                        This allows <strong>any</strong> subdomain, including ones not originally whitelisted. Only enable if you trust all subdomains of consolidated domains.]]>
+                    </comment>
+                    <depends>
+                        <field id="enable_value_optimization">1</field>
+                    </depends>
+                </field>
+                <field id="subdomain_wildcard_threshold" translate="label comment" type="text" sortOrder="35" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="0">
+                    <label>Subdomain wildcard threshold</label>
+                    <validate>validate-number validate-greater-than-zero</validate>
+                    <comment>
+                        <![CDATA[Minimum number of subdomains required to trigger wildcard consolidation. Default: 3.]]>
+                    </comment>
+                    <depends>
+                        <field id="enable_value_optimization">1</field>
+                        <field id="enable_subdomain_wildcard_consolidation">1</field>
                     </depends>
                 </field>
                 <field id="debug_mode_enabled" translate="label comment" type="select" sortOrder="9999" showInDefault="1" showInWebsite="0" showInStore="0" canRestore="0">
@@ -101,7 +151,7 @@
                     <label>Cleanup mode</label>
                     <source_model>Hryvinskyi\Csp\Model\Config\Source\CleanupMode</source_model>
                     <comment>
-                        <![CDATA[<strong>By Date</strong> — delete reports older than the threshold (in days).<br/><strong>By Record Count</strong> — keep only the most recent N reports.]]>
+                        <![CDATA[<strong>By Date</strong>: delete reports older than the threshold (in days).<br/><strong>By Record Count</strong>: keep only the most recent N reports.]]>
                     </comment>
                     <depends>
                         <field id="enabled">1</field>

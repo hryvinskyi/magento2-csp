@@ -112,7 +112,7 @@ class RedundancyCalculator implements RedundancyCalculatorInterface
     }
 
     /**
-     * Check if an entry is a duplicate (exact same policy and value exists with lower rule_id)
+     * Check if an entry is a duplicate (exact same policy and value exists in another entry)
      *
      * @param int $ruleId
      * @param string $value
@@ -122,8 +122,11 @@ class RedundancyCalculator implements RedundancyCalculatorInterface
     private function isDuplicate(int $ruleId, string $value, array $policyEntries): bool
     {
         foreach ($policyEntries as $entry) {
-            if ($entry['rule_id'] < $ruleId && $entry['value'] === $value) {
-                return true;
+            if ($entry['rule_id'] !== $ruleId && $entry['value'] === $value) {
+                // Mark as duplicate only for the higher rule_id to avoid marking both
+                if ($entry['rule_id'] < $ruleId) {
+                    return true;
+                }
             }
         }
 
@@ -131,7 +134,7 @@ class RedundancyCalculator implements RedundancyCalculatorInterface
     }
 
     /**
-     * Check if an entry is redundant (covered by a wildcard with lower rule_id)
+     * Check if an entry is redundant (covered by a wildcard in any other entry)
      *
      * @param int $ruleId
      * @param string $value
@@ -148,7 +151,7 @@ class RedundancyCalculator implements RedundancyCalculatorInterface
     }
 
     /**
-     * Check if a host is covered by any wildcard entry
+     * Check if a host is covered by any wildcard entry regardless of rule_id order
      *
      * @param int $ruleId
      * @param string $host
@@ -158,7 +161,7 @@ class RedundancyCalculator implements RedundancyCalculatorInterface
     private function isHostCoveredByWildcard(int $ruleId, string $host, array $policyEntries): bool
     {
         foreach ($policyEntries as $entry) {
-            if ($entry['rule_id'] >= $ruleId || !$this->domainMatcher->isWildcard($entry['value'])) {
+            if ($entry['rule_id'] === $ruleId || !$this->domainMatcher->isWildcard($entry['value'])) {
                 continue;
             }
 
@@ -171,7 +174,7 @@ class RedundancyCalculator implements RedundancyCalculatorInterface
     }
 
     /**
-     * Check if a wildcard is covered by a broader wildcard entry
+     * Check if a wildcard is covered by a broader wildcard entry regardless of rule_id order
      *
      * @param int $ruleId
      * @param string $wildcard
@@ -181,7 +184,7 @@ class RedundancyCalculator implements RedundancyCalculatorInterface
     private function isWildcardCoveredByBroaderWildcard(int $ruleId, string $wildcard, array $policyEntries): bool
     {
         foreach ($policyEntries as $entry) {
-            if ($entry['rule_id'] >= $ruleId || !$this->domainMatcher->isWildcard($entry['value'])) {
+            if ($entry['rule_id'] === $ruleId || !$this->domainMatcher->isWildcard($entry['value'])) {
                 continue;
             }
 

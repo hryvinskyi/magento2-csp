@@ -30,6 +30,9 @@ This module allows administrators to manage CSP whitelists from the Magento admi
 18. **Advanced Grid Filtering**: Filter whitelist entries by hash validation status and redundancy status
 19. **Advanced Grid Sorting**: Sort whitelist entries by computed columns (hash validation, redundancy)
 20. **Automatic Report Cleanup**: Scheduled cleanup of old violation reports by date or record count, with CLI command for manual execution
+21. **Default-Src Consolidation**: Automatically moves values shared across all directives into `default-src`, reducing header size by 40-70%
+22. **Subdomain-to-Wildcard Consolidation**: Automatically replaces groups of subdomains with wildcard entries (e.g., 3+ `*.google.com` subdomains become `*.google.com`)
+23. **Scheme and Path Stripping**: Removes redundant `https://` prefixes and `/path` suffixes from CSP host values
 
 ## Requirements
 
@@ -183,6 +186,78 @@ The optimization removes:
 - `www.example.com` and `api.example.com` (covered by `*.example.com`)
 
 When debug mode is enabled, the module logs details about removed entries and bytes saved.
+
+### Default-Src Consolidation
+
+When multiple CSP directives share common values, the header repeats those values in every directive. The default-src consolidation feature identifies values present in **all** fallback-eligible directives and moves them into `default-src`, removing them from individual directives.
+
+**Example:**
+
+Before:
+```
+script-src 'self' cdn.example.com 'unsafe-eval'; style-src 'self' cdn.example.com 'unsafe-inline'; img-src 'self' cdn.example.com data:
+```
+
+After (with consolidation enabled):
+```
+default-src 'self' cdn.example.com; script-src 'unsafe-eval'; style-src 'unsafe-inline'; img-src data:
+```
+
+This can reduce header size by **40-70%** depending on how many values are shared.
+
+To enable:
+1. Go to **Stores** > **Configuration** > **Security** > **Content Security Policy**
+2. Set **Enable CSP value optimization** to **Yes**
+3. Set **Enable default-src consolidation** to **Yes**
+
+**Note:** `frame-ancestors`, `base-uri`, and `form-action` are excluded from consolidation since they do not inherit from `default-src` per the CSP specification. Consolidation is also skipped when `default-src` already contains `'none'`.
+
+### Subdomain-to-Wildcard Consolidation
+
+When multiple subdomains of the same parent domain are whitelisted, the module can automatically consolidate them into a single wildcard entry.
+
+**Example (threshold: 3):**
+
+Before:
+```
+script-src api.google.com maps.google.com fonts.google.com analytics.google.com
+```
+
+After:
+```
+script-src *.google.com
+```
+
+To configure:
+1. Go to **Stores** > **Configuration** > **Security** > **Content Security Policy**
+2. Set **Enable CSP value optimization** to **Yes**
+3. Set **Enable subdomain-to-wildcard consolidation** to **Yes**
+4. Set **Subdomain wildcard threshold** (default: 3) — the minimum number of subdomains required to trigger consolidation
+
+**Note:** Port-bearing hosts (e.g., `api.example.com:8080`) are excluded from consolidation since wildcards do not cover port-specific origins.
+
+### Scheme and Path Stripping
+
+CSP host-source `example.com` already matches both `http://` and `https://` origins. The scheme and path stripping feature removes redundant scheme prefixes and path suffixes from host values, reducing header size and improving deduplication.
+
+**Example:**
+
+Before:
+```
+script-src https://cdn.example.com https://api.example.com/v1 http://cdn.example.com
+```
+
+After (with stripping enabled):
+```
+script-src api.example.com cdn.example.com
+```
+
+To enable:
+1. Go to **Stores** > **Configuration** > **Security** > **Content Security Policy**
+2. Set **Enable CSP value optimization** to **Yes**
+3. Set **Enable scheme and path stripping** to **Yes**
+
+Keywords (`'self'`, `data:`, `https:`, etc.), hashes, and nonces are never stripped. Ports are preserved.
 
 ### Redundancy Detection
 

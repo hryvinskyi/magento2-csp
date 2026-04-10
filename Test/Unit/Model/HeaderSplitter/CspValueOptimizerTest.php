@@ -682,6 +682,375 @@ class CspValueOptimizerTest extends TestCase
         $this->assertStringNotContainsString('www.youtube.com', $result);
     }
 
+    // ==================== Scheme and Path Stripping Tests ====================
+
+    public function testSchemeStrippingRemovesHttps(): void
+    {
+        $this->configMock->method('isSchemePathStrippingEnabled')->willReturn(true);
+
+        $input = "script-src 'self' https://cdn.example.com https://api.example.com";
+        $result = $this->optimizer->optimizeHeader($input);
+
+        $this->assertStringContainsString('cdn.example.com', $result);
+        $this->assertStringNotContainsString('https://cdn.example.com', $result);
+    }
+
+    public function testSchemeStrippingRemovesHttp(): void
+    {
+        $this->configMock->method('isSchemePathStrippingEnabled')->willReturn(true);
+
+        $input = "script-src http://cdn.example.com";
+        $result = $this->optimizer->optimizeHeader($input);
+
+        $this->assertStringContainsString('cdn.example.com', $result);
+        $this->assertStringNotContainsString('http://cdn.example.com', $result);
+    }
+
+    public function testPathStrippingRemovesPaths(): void
+    {
+        $this->configMock->method('isSchemePathStrippingEnabled')->willReturn(true);
+
+        $input = "script-src https://example.com/api/v1/endpoint";
+        $result = $this->optimizer->optimizeHeader($input);
+
+        $this->assertStringContainsString('example.com', $result);
+        $this->assertStringNotContainsString('/api/v1/endpoint', $result);
+    }
+
+    public function testSchemeStrippingPreservesPort(): void
+    {
+        $this->configMock->method('isSchemePathStrippingEnabled')->willReturn(true);
+
+        $input = "script-src https://example.com:8080/path";
+        $result = $this->optimizer->optimizeHeader($input);
+
+        $this->assertStringContainsString('example.com:8080', $result);
+        $this->assertStringNotContainsString('https://', $result);
+        $this->assertStringNotContainsString('/path', $result);
+    }
+
+    public function testSchemeStrippingPreservesKeywords(): void
+    {
+        $this->configMock->method('isSchemePathStrippingEnabled')->willReturn(true);
+
+        $input = "script-src 'self' 'unsafe-inline' data: blob: https:";
+        $result = $this->optimizer->optimizeHeader($input);
+
+        $this->assertStringContainsString("'self'", $result);
+        $this->assertStringContainsString("'unsafe-inline'", $result);
+        $this->assertStringContainsString('data:', $result);
+        $this->assertStringContainsString('blob:', $result);
+        $this->assertStringContainsString('https:', $result);
+    }
+
+    public function testSchemeStrippingPreservesHashes(): void
+    {
+        $this->configMock->method('isSchemePathStrippingEnabled')->willReturn(true);
+
+        $hash = "'sha256-abc123def456='";
+        $input = "script-src {$hash} https://example.com";
+        $result = $this->optimizer->optimizeHeader($input);
+
+        $this->assertStringContainsString($hash, $result);
+    }
+
+    public function testSchemeStrippingPreservesNonces(): void
+    {
+        $this->configMock->method('isSchemePathStrippingEnabled')->willReturn(true);
+
+        $nonce = "'nonce-abc123def456'";
+        $input = "script-src {$nonce} https://example.com";
+        $result = $this->optimizer->optimizeHeader($input);
+
+        $this->assertStringContainsString($nonce, $result);
+    }
+
+    public function testSchemeStrippingDisabledPreservesSchemes(): void
+    {
+        $this->configMock->method('isSchemePathStrippingEnabled')->willReturn(false);
+
+        $input = "script-src https://cdn.example.com";
+        $result = $this->optimizer->optimizeHeader($input);
+
+        $this->assertStringContainsString('https://cdn.example.com', $result);
+    }
+
+    public function testSchemeStrippingDeduplicatesAfterStrip(): void
+    {
+        $this->configMock->method('isSchemePathStrippingEnabled')->willReturn(true);
+
+        $input = "script-src https://example.com example.com http://example.com";
+        $result = $this->optimizer->optimizeHeader($input);
+
+        // After stripping schemes, all three become "example.com" — deduplication removes extras
+        $this->assertSame(1, substr_count($result, 'example.com'));
+    }
+
+    // ==================== Subdomain-to-Wildcard Consolidation Tests ====================
+
+    public function testSubdomainConsolidationCreatesWildcard(): void
+    {
+        $this->configMock->method('isSubdomainWildcardConsolidationEnabled')->willReturn(true);
+        $this->configMock->method('getSubdomainWildcardThreshold')->willReturn(3);
+
+        $input = "script-src api.google.com maps.google.com fonts.google.com";
+        $result = $this->optimizer->optimizeHeader($input);
+
+        $this->assertStringContainsString('*.google.com', $result);
+        $this->assertStringNotContainsString('api.google.com', $result);
+        $this->assertStringNotContainsString('maps.google.com', $result);
+        $this->assertStringNotContainsString('fonts.google.com', $result);
+    }
+
+    public function testSubdomainConsolidationBelowThreshold(): void
+    {
+        $this->configMock->method('isSubdomainWildcardConsolidationEnabled')->willReturn(true);
+        $this->configMock->method('getSubdomainWildcardThreshold')->willReturn(3);
+
+        $input = "script-src api.google.com maps.google.com";
+        $result = $this->optimizer->optimizeHeader($input);
+
+        // Only 2 subdomains, threshold is 3 — no wildcard
+        $this->assertStringNotContainsString('*.google.com', $result);
+        $this->assertStringContainsString('api.google.com', $result);
+        $this->assertStringContainsString('maps.google.com', $result);
+    }
+
+    public function testSubdomainConsolidationDisabledPreservesAll(): void
+    {
+        $this->configMock->method('isSubdomainWildcardConsolidationEnabled')->willReturn(false);
+
+        $input = "script-src api.google.com maps.google.com fonts.google.com analytics.google.com";
+        $result = $this->optimizer->optimizeHeader($input);
+
+        $this->assertStringNotContainsString('*.google.com', $result);
+        $this->assertStringContainsString('api.google.com', $result);
+    }
+
+    public function testSubdomainConsolidationSkipsExistingWildcard(): void
+    {
+        $this->configMock->method('isSubdomainWildcardConsolidationEnabled')->willReturn(true);
+        $this->configMock->method('getSubdomainWildcardThreshold')->willReturn(3);
+        $this->configMock->method('isRedundantWildcardRemovalEnabled')->willReturn(true);
+
+        $input = "script-src *.google.com api.google.com maps.google.com fonts.google.com";
+        $result = $this->optimizer->optimizeHeader($input);
+
+        // Wildcard already exists — subdomains should just be dropped (by wildcard removal)
+        $this->assertStringContainsString('*.google.com', $result);
+        $this->assertSame(1, substr_count($result, '*.google.com'));
+    }
+
+    public function testSubdomainConsolidationSkipsPortBearingHosts(): void
+    {
+        $this->configMock->method('isSubdomainWildcardConsolidationEnabled')->willReturn(true);
+        $this->configMock->method('getSubdomainWildcardThreshold')->willReturn(3);
+
+        $input = "script-src api.example.com:8080 maps.example.com:8080 fonts.example.com:8080";
+        $result = $this->optimizer->optimizeHeader($input);
+
+        // Port-bearing hosts should NOT be consolidated into wildcards
+        $this->assertStringNotContainsString('*.example.com', $result);
+        $this->assertStringContainsString('api.example.com:8080', $result);
+    }
+
+    public function testSubdomainConsolidationPreservesKeywords(): void
+    {
+        $this->configMock->method('isSubdomainWildcardConsolidationEnabled')->willReturn(true);
+        $this->configMock->method('getSubdomainWildcardThreshold')->willReturn(3);
+
+        $input = "script-src 'self' 'unsafe-inline' api.google.com maps.google.com fonts.google.com";
+        $result = $this->optimizer->optimizeHeader($input);
+
+        $this->assertStringContainsString("'self'", $result);
+        $this->assertStringContainsString("'unsafe-inline'", $result);
+        $this->assertStringContainsString('*.google.com', $result);
+    }
+
+    public function testSubdomainConsolidationMultipleParentDomains(): void
+    {
+        $this->configMock->method('isSubdomainWildcardConsolidationEnabled')->willReturn(true);
+        $this->configMock->method('getSubdomainWildcardThreshold')->willReturn(3);
+
+        $input = "script-src a.google.com b.google.com c.google.com x.facebook.com y.facebook.com z.facebook.com";
+        $result = $this->optimizer->optimizeHeader($input);
+
+        $this->assertStringContainsString('*.google.com', $result);
+        $this->assertStringContainsString('*.facebook.com', $result);
+    }
+
+    public function testSubdomainConsolidationTwoPartDomainsNotGrouped(): void
+    {
+        $this->configMock->method('isSubdomainWildcardConsolidationEnabled')->willReturn(true);
+        $this->configMock->method('getSubdomainWildcardThreshold')->willReturn(3);
+
+        // Two-part domains (example.com) have no parent to group under
+        $input = "script-src example.com google.com facebook.com";
+        $result = $this->optimizer->optimizeHeader($input);
+
+        $this->assertStringContainsString('example.com', $result);
+        $this->assertStringContainsString('google.com', $result);
+        $this->assertStringContainsString('facebook.com', $result);
+    }
+
+    // ==================== Default-Src Consolidation Tests ====================
+
+    public function testDefaultSrcConsolidationRemovesFullyCommonDirectives(): void
+    {
+        $this->configMock->method('isDefaultSrcConsolidationEnabled')->willReturn(true);
+
+        // All three directives have IDENTICAL values — all can be removed
+        $input = "script-src 'self' cdn.example.com; style-src 'self' cdn.example.com; img-src 'self' cdn.example.com";
+        $result = $this->optimizer->optimizeHeader($input);
+
+        // Shared values should be in default-src
+        $this->assertStringContainsString('default-src', $result);
+        $this->assertMatchesRegularExpression("/default-src[^;]*'self'/", $result);
+        $this->assertMatchesRegularExpression('/default-src[^;]*cdn\.example\.com/', $result);
+
+        // Individual directives removed (all values were common)
+        $this->assertStringNotContainsString('script-src', $result);
+        $this->assertStringNotContainsString('style-src', $result);
+        $this->assertStringNotContainsString('img-src', $result);
+    }
+
+    public function testDefaultSrcConsolidationKeepsDirectivesWithUniqueValues(): void
+    {
+        $this->configMock->method('isDefaultSrcConsolidationEnabled')->willReturn(true);
+
+        // Each directive has unique values — none can be fully removed
+        $input = "script-src 'self' cdn.example.com 'unsafe-eval'; style-src 'self' cdn.example.com 'unsafe-inline'; img-src 'self' cdn.example.com data:";
+        $result = $this->optimizer->optimizeHeader($input);
+
+        // Directives with unique values must keep ALL their values
+        // because explicit directives do NOT inherit from default-src
+        $this->assertMatchesRegularExpression("/script-src[^;]*'self'/", $result);
+        $this->assertMatchesRegularExpression("/script-src[^;]*'unsafe-eval'/", $result);
+        $this->assertMatchesRegularExpression("/script-src[^;]*cdn\.example\.com/", $result);
+        $this->assertMatchesRegularExpression("/style-src[^;]*'unsafe-inline'/", $result);
+        $this->assertMatchesRegularExpression('/img-src[^;]*data:/', $result);
+    }
+
+    public function testDefaultSrcConsolidationMixedRemovableAndNot(): void
+    {
+        $this->configMock->method('isDefaultSrcConsolidationEnabled')->willReturn(true);
+
+        // script-src has unique 'unsafe-eval', but style-src and img-src are fully common
+        $input = "script-src 'self' cdn.example.com 'unsafe-eval'; style-src 'self' cdn.example.com; img-src 'self' cdn.example.com";
+        $result = $this->optimizer->optimizeHeader($input);
+
+        // default-src gets the common values
+        $this->assertMatchesRegularExpression("/default-src[^;]*'self'/", $result);
+        $this->assertMatchesRegularExpression('/default-src[^;]*cdn\.example\.com/', $result);
+
+        // style-src and img-src are removed (fully common)
+        $this->assertStringNotContainsString('style-src', $result);
+        $this->assertStringNotContainsString('img-src', $result);
+
+        // script-src kept with ALL its values (has unique 'unsafe-eval')
+        $this->assertMatchesRegularExpression("/script-src[^;]*'self'/", $result);
+        $this->assertMatchesRegularExpression("/script-src[^;]*cdn\.example\.com/", $result);
+        $this->assertMatchesRegularExpression("/script-src[^;]*'unsafe-eval'/", $result);
+    }
+
+    public function testDefaultSrcConsolidationDisabledKeepsAll(): void
+    {
+        $this->configMock->method('isDefaultSrcConsolidationEnabled')->willReturn(false);
+
+        $input = "script-src 'self' cdn.example.com; style-src 'self' cdn.example.com";
+        $result = $this->optimizer->optimizeHeader($input);
+
+        // No default-src created
+        $this->assertStringNotContainsString('default-src', $result);
+        $this->assertStringContainsString('script-src', $result);
+        $this->assertStringContainsString('style-src', $result);
+    }
+
+    public function testDefaultSrcConsolidationSkipsWhenExistingDefaultSrcHasNone(): void
+    {
+        $this->configMock->method('isDefaultSrcConsolidationEnabled')->willReturn(true);
+
+        $input = "default-src 'none'; script-src 'self' cdn.example.com; style-src 'self' cdn.example.com";
+        $result = $this->optimizer->optimizeHeader($input);
+
+        // Should not consolidate since default-src has 'none'
+        $this->assertMatchesRegularExpression("/default-src 'none'/", $result);
+        $this->assertStringContainsString('script-src', $result);
+        $this->assertStringContainsString('style-src', $result);
+    }
+
+    public function testDefaultSrcConsolidationSkipsNonFallbackDirectives(): void
+    {
+        $this->configMock->method('isDefaultSrcConsolidationEnabled')->willReturn(true);
+
+        // frame-ancestors and base-uri do NOT fall back to default-src
+        $input = "frame-ancestors 'self' cdn.example.com; base-uri 'self' cdn.example.com; script-src 'self' other.com";
+        $result = $this->optimizer->optimizeHeader($input);
+
+        // Only 1 eligible directive (script-src), needs at least 2 — no consolidation
+        $this->assertStringNotContainsString('default-src', $result);
+    }
+
+    public function testDefaultSrcConsolidationWithNoCommonValues(): void
+    {
+        $this->configMock->method('isDefaultSrcConsolidationEnabled')->willReturn(true);
+
+        $input = "script-src cdn-a.example.com; style-src cdn-b.example.com; img-src cdn-c.example.com";
+        $result = $this->optimizer->optimizeHeader($input);
+
+        // No common values — no default-src created
+        $this->assertStringNotContainsString('default-src', $result);
+    }
+
+    public function testDefaultSrcConsolidationSkipsWhenNoDirectiveFullyCommon(): void
+    {
+        $this->configMock->method('isDefaultSrcConsolidationEnabled')->willReturn(true);
+
+        // All directives have unique values — none can be removed
+        $input = "script-src 'self' unique-a.com; style-src 'self' unique-b.com";
+        $result = $this->optimizer->optimizeHeader($input);
+
+        // No consolidation possible — no directive is fully common
+        $this->assertStringNotContainsString('default-src', $result);
+    }
+
+    public function testDefaultSrcConsolidationOutputOrderDefaultSrcFirst(): void
+    {
+        $this->configMock->method('isDefaultSrcConsolidationEnabled')->willReturn(true);
+
+        $input = "script-src 'self' cdn.example.com; style-src 'self' cdn.example.com; img-src 'self' cdn.example.com";
+        $result = $this->optimizer->optimizeHeader($input);
+
+        // default-src should appear first in the output
+        $this->assertStringStartsWith('default-src', $result);
+    }
+
+    // ==================== URI-Value Directive Tests ====================
+
+    public function testReportUriNotStripped(): void
+    {
+        $this->configMock->method('isSchemePathStrippingEnabled')->willReturn(true);
+
+        $input = "script-src 'self' https://cdn.example.com; report-uri https://example.com/csp_report";
+        $result = $this->optimizer->optimizeHeader($input);
+
+        $this->assertStringContainsString('report-uri https://example.com/csp_report', $result);
+    }
+
+    public function testReportUriPreservedWithAllOptimizations(): void
+    {
+        $this->configMock->method('isSchemePathStrippingEnabled')->willReturn(true);
+        $this->configMock->method('isRedundantWildcardRemovalEnabled')->willReturn(true);
+        $this->configMock->method('isDefaultSrcConsolidationEnabled')->willReturn(true);
+        $this->configMock->method('isSubdomainWildcardConsolidationEnabled')->willReturn(true);
+        $this->configMock->method('getSubdomainWildcardThreshold')->willReturn(3);
+
+        $input = "script-src 'self'; style-src 'self'; report-uri https://example.com/csp_report_watch";
+        $result = $this->optimizer->optimizeHeader($input);
+
+        $this->assertStringContainsString('report-uri https://example.com/csp_report_watch', $result);
+    }
+
     // ==================== Logging Tests ====================
 
     public function testLogsWarningForUniversalWildcard(): void

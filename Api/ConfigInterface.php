@@ -79,6 +79,34 @@ interface ConfigInterface
     public function isRedundantWildcardRemovalEnabled(): bool;
 
     /**
+     * Check if default-src consolidation is enabled
+     *
+     * @return bool
+     */
+    public function isDefaultSrcConsolidationEnabled(): bool;
+
+    /**
+     * Check if subdomain-to-wildcard consolidation is enabled
+     *
+     * @return bool
+     */
+    public function isSubdomainWildcardConsolidationEnabled(): bool;
+
+    /**
+     * Get the minimum number of subdomains required to consolidate into a wildcard
+     *
+     * @return int
+     */
+    public function getSubdomainWildcardThreshold(): int;
+
+    /**
+     * Check if scheme and path stripping is enabled
+     *
+     * @return bool
+     */
+    public function isSchemePathStrippingEnabled(): bool;
+
+    /**
      * Check if automatic report cleanup is enabled
      *
      * @return bool
