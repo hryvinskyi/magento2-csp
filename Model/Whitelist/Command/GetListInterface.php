@@ -31,5 +31,5 @@ interface GetListInterface
      *
      * @return WhitelistSearchResultsInterface
      */
-    public function execute(SearchCriteriaInterface $searchCriteria = null): WhitelistSearchResultsInterface;
+    public function execute(?SearchCriteriaInterface $searchCriteria = null): WhitelistSearchResultsInterface;
 }
