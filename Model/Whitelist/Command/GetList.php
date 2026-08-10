@@ -29,7 +29,7 @@ class GetList implements GetListInterface
     /**
      * @inheritdoc
      */
-    public function execute(SearchCriteriaInterface $searchCriteria = null): WhitelistSearchResultsInterface
+    public function execute(?SearchCriteriaInterface $searchCriteria = null): WhitelistSearchResultsInterface
     {
         $collection = $this->collectionFactory->create();
 

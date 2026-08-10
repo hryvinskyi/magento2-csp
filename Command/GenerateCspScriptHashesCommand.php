@@ -65,7 +65,7 @@ class GenerateCspScriptHashesCommand extends Command
         private readonly StoreManagerInterface $storeManager,
         private readonly ResourceConnection $resourceConnection,
         private readonly FilterProvider $filterProvider,
-        string $name = null
+        ?string $name = null
     ) {
         parent::__construct($name);
     }
@@ -578,7 +578,7 @@ class GenerateCspScriptHashesCommand extends Command
         }
 
         $output->writeln("<fg=blue>├─</> <info>Found " . count($matches) . " script tags total</info>");
-        
+
         $scriptIndex = 0;
         $skippedIndex = 0;
         $totalIndex = 0;
@@ -590,7 +590,7 @@ class GenerateCspScriptHashesCommand extends Command
 
             $output->writeln("<fg=blue>├─</> <fg=yellow>--- Examining Script Tag #$totalIndex ---</fg=yellow>");
             $output->writeln("<fg=blue>├─</> <comment>Content length: " . strlen($scriptContent) . " characters</comment>");
-            
+
             // Check if we should skip this script
             if ($this->shouldSkipScript($fullTag, $scriptContent)) {
                 $skippedIndex++;
