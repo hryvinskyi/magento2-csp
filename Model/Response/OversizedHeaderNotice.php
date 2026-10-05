@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Model\Response;
 
+use Hryvinskyi\Csp\Api\OversizedHeaderNoticeInterface;
 use Magento\Framework\App\CacheInterface;
 use Magento\Framework\FlagManager;
 use Magento\Framework\Stdlib\DateTime\DateTime;
@@ -19,7 +20,7 @@ use Magento\Framework\Stdlib\DateTime\DateTime;
  * A proxy that limits header size answers such a response with an error (nginx "upstream sent too big header",
  * Varnish 503). Writes are throttled to one per hour.
  */
-class OversizedHeaderNotice
+class OversizedHeaderNotice implements OversizedHeaderNoticeInterface
 {
     private const FLAG_CODE = 'hryvinskyi_csp_oversized_header';
     private const THROTTLE_CACHE_ID = 'HRYVINSKYI_CSP_OVERSIZED_HEADER_RECORDED';
@@ -39,12 +40,7 @@ class OversizedHeaderNotice
     }
 
     /**
-     * Record an oversized unsplit header.
-     *
-     * @param string $headerName
-     * @param int $bytes
-     * @param int $maxBytes
-     * @return void
+     * @inheritDoc
      */
     public function record(string $headerName, int $bytes, int $maxBytes): void
     {
@@ -61,9 +57,7 @@ class OversizedHeaderNotice
     }
 
     /**
-     * The last oversized header recorded within the past week, or null.
-     *
-     * @return array{header: string, bytes: int, limit: int, time: int}|null
+     * @inheritDoc
      */
     public function recent(): ?array
     {

@@ -94,6 +94,21 @@ class SourceValueRulesTest extends TestCase
         $this->assertSame('abc=', $this->rules()->normalizeHash(" 'sha256-abc=' "));
     }
 
+    public function testAppliesTheRulesOfTheValueType(): void
+    {
+        $sha256 = base64_encode(str_repeat('a', 32));
+        $rules = $this->rules();
+
+        $this->assertNull($rules->valueError('host', 'sha256', 'cdn.example.com'));
+        $this->assertNotNull($rules->valueError('host', '', $sha256));
+        $this->assertNull($rules->valueError('hash', 'sha256', $sha256));
+        $this->assertNotNull($rules->valueError('hash', 'sha256', 'cdn.example.com'));
+        $this->assertSame(
+            'Choose host or hash as the value type.',
+            (string)$rules->valueError('nonce', '', 'cdn.example.com')
+        );
+    }
+
     /**
      * @return SourceValueRules
      */

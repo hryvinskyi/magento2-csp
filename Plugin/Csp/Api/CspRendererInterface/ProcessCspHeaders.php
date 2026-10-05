@@ -9,7 +9,7 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Plugin\Csp\Api\CspRendererInterface;
 
-use Hryvinskyi\Csp\Model\Response\CspHeaderProcessor;
+use Hryvinskyi\Csp\Api\CspHeaderProcessorInterface;
 use Magento\Csp\Api\CspRendererInterface;
 use Magento\Framework\App\Response\HttpInterface as HttpResponse;
 
@@ -19,9 +19,9 @@ use Magento\Framework\App\Response\HttpInterface as HttpResponse;
 class ProcessCspHeaders
 {
     /**
-     * @param CspHeaderProcessor $headerProcessor
+     * @param CspHeaderProcessorInterface $headerProcessor
      */
-    public function __construct(private readonly CspHeaderProcessor $headerProcessor)
+    public function __construct(private readonly CspHeaderProcessorInterface $headerProcessor)
     {
     }
 
@@ -35,7 +35,7 @@ class ProcessCspHeaders
      */
     public function afterRender(CspRendererInterface $subject, mixed $result, HttpResponse $response): mixed
     {
-        $this->headerProcessor->process($response);
+        $this->headerProcessor->processHeaders($response);
 
         return $result;
     }

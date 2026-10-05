@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace Hryvinskyi\Csp\Model\Whitelist;
 
 use Hryvinskyi\Csp\Api\Data\HashAlgorithm;
+use Hryvinskyi\Csp\Api\Data\ValueType;
 use Hryvinskyi\Csp\Model\Policy\HostSourceParser;
 use Hryvinskyi\Csp\Model\Policy\SourceKind;
 use Magento\Framework\Phrase;
@@ -29,6 +30,23 @@ class SourceValueRules
      */
     public function __construct(private readonly HostSourceParser $hostSourceParser)
     {
+    }
+
+    /**
+     * Why the value cannot be saved as the given value type, or null when it can.
+     *
+     * @param string $valueType
+     * @param string $algorithm Hash algorithm; used by hash values only
+     * @param string $value
+     * @return Phrase|null
+     */
+    public function valueError(string $valueType, string $algorithm, string $value): ?Phrase
+    {
+        return match (ValueType::tryFrom($valueType)) {
+            ValueType::HOST => $this->hostError($value),
+            ValueType::HASH => $this->hashError($algorithm, $value),
+            null => __('Choose host or hash as the value type.'),
+        };
     }
 
     /**

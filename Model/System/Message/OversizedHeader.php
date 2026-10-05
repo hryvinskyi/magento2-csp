@@ -9,7 +9,7 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Model\System\Message;
 
-use Hryvinskyi\Csp\Model\Response\OversizedHeaderNotice;
+use Hryvinskyi\Csp\Api\OversizedHeaderNoticeInterface;
 use Magento\Framework\AuthorizationInterface;
 use Magento\Framework\Notification\MessageInterface;
 
@@ -22,11 +22,11 @@ class OversizedHeader implements MessageInterface
     private const ACL_RESOURCE = 'Hryvinskyi_Csp::whitelist';
 
     /**
-     * @param OversizedHeaderNotice $notice
+     * @param OversizedHeaderNoticeInterface $notice
      * @param AuthorizationInterface $authorization
      */
     public function __construct(
-        private readonly OversizedHeaderNotice $notice,
+        private readonly OversizedHeaderNoticeInterface $notice,
         private readonly AuthorizationInterface $authorization
     ) {
     }

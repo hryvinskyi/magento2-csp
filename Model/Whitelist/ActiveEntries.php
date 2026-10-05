@@ -10,7 +10,6 @@ declare(strict_types=1);
 namespace Hryvinskyi\Csp\Model\Whitelist;
 
 use Hryvinskyi\Csp\Api\Data\Area;
-use Hryvinskyi\Csp\Api\Data\ValueType;
 use Hryvinskyi\Csp\Model\ResourceModel\Whitelist\CollectionFactory;
 use Magento\Framework\App\Cache\StateInterface;
 use Magento\Framework\App\Cache\Type\Collection as CollectionCache;
@@ -131,11 +130,7 @@ class ActiveEntries
             return false;
         }
 
-        return match (ValueType::tryFrom($entry['value_type'])) {
-            ValueType::HOST => $this->sourceValueRules->hostError($entry['value']) === null,
-            ValueType::HASH => $this->sourceValueRules->hashError($entry['value_algorithm'], $entry['value']) === null,
-            null => false,
-        };
+        return $this->sourceValueRules->valueError($entry['value_type'], $entry['value_algorithm'], $entry['value']) === null;
     }
 
     /**

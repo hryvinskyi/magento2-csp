@@ -10,7 +10,6 @@ declare(strict_types=1);
 namespace Hryvinskyi\Csp\Model\Whitelist;
 
 use Hryvinskyi\Csp\Api\Data\Area;
-use Hryvinskyi\Csp\Api\Data\ValueType;
 use Hryvinskyi\Csp\Api\Data\WhitelistInterface;
 use Magento\Framework\Phrase;
 use Magento\Store\Model\StoreManagerInterface;
@@ -89,11 +88,11 @@ class EntryValidator
             return __('The value may be at most %1 characters long.', self::MAX_LENGTH);
         }
 
-        return match (ValueType::tryFrom((string)$entry->getValueType())) {
-            ValueType::HOST => $this->sourceValueRules->hostError($value),
-            ValueType::HASH => $this->sourceValueRules->hashError((string)$entry->getValueAlgorithm(), $value),
-            null => __('Choose host or hash as the value type.'),
-        };
+        return $this->sourceValueRules->valueError(
+            (string)$entry->getValueType(),
+            (string)$entry->getValueAlgorithm(),
+            $value
+        );
     }
 
     /**

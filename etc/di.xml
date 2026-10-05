@@ -39,6 +39,41 @@
     <preference for="Hryvinskyi\Csp\Model\Report\RateLimiter\ReportRateLimiterInterface" type="Hryvinskyi\Csp\Model\Report\RateLimiter\CacheReportRateLimiter"/>
     <preference for="Hryvinskyi\Csp\Model\Report\ViolationRecorderInterface" type="Hryvinskyi\Csp\Model\Report\ViolationRecorder"/>
 
+    <!-- Policy header processing -->
+    <preference for="Hryvinskyi\Csp\Api\CspHeaderProcessorInterface" type="Hryvinskyi\Csp\Model\Response\CspHeaderProcessor"/>
+    <preference for="Hryvinskyi\Csp\Api\PolicySplitterInterface" type="Hryvinskyi\Csp\Model\Policy\Split\VerifiedPolicySplitter"/>
+    <preference for="Hryvinskyi\Csp\Api\ResponseHeaderLinesInterface" type="Hryvinskyi\Csp\Model\Response\LaminasHeaderLines"/>
+    <preference for="Hryvinskyi\Csp\Api\OversizedHeaderNoticeInterface" type="Hryvinskyi\Csp\Model\Response\OversizedHeaderNotice"/>
+    <type name="Hryvinskyi\Csp\Model\Response\CspHeaderProcessor">
+        <arguments>
+            <argument name="headerNames" xsi:type="array">
+                <item name="enforced" xsi:type="string">Content-Security-Policy</item>
+                <item name="report_only" xsi:type="string">Content-Security-Policy-Report-Only</item>
+            </argument>
+            <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
+        </arguments>
+    </type>
+    <!-- Split strategy; the verified splitter keeps its parts only when they are safe to send -->
+    <type name="Hryvinskyi\Csp\Model\Policy\Split\VerifiedPolicySplitter">
+        <arguments>
+            <argument name="strategy" xsi:type="object">Hryvinskyi\Csp\Model\Policy\Split\DirectiveFamilySplitter</argument>
+            <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Hryvinskyi\Csp\Model\Policy\Split\DirectiveFamilySplitter">
+        <arguments>
+            <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Hryvinskyi\Csp\Model\Response\LaminasHeaderLines">
+        <arguments>
+            <argument name="multipleHeaderClasses" xsi:type="array">
+                <item name="content-security-policy" xsi:type="string">Laminas\Http\Header\ContentSecurityPolicy</item>
+                <item name="content-security-policy-report-only" xsi:type="string">Laminas\Http\Header\ContentSecurityPolicyReportOnly</item>
+            </argument>
+        </arguments>
+    </type>
+
     <!-- Header optimisation steps, applied in sort order -->
     <type name="Hryvinskyi\Csp\Model\Policy\PolicyOptimizer">
         <arguments>
@@ -185,16 +220,6 @@
             </argument>
         </arguments>
     </virtualType>
-    <type name="Hryvinskyi\Csp\Model\Response\CspHeaderProcessor">
-        <arguments>
-            <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
-        </arguments>
-    </type>
-    <type name="Hryvinskyi\Csp\Model\Policy\PolicySplitter">
-        <arguments>
-            <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
-        </arguments>
-    </type>
     <type name="Hryvinskyi\Csp\Model\Whitelist\ActiveEntries">
         <arguments>
             <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>

@@ -7,48 +7,44 @@
 
 declare(strict_types=1);
 
-namespace Hryvinskyi\Csp\Model\Policy;
+namespace Hryvinskyi\Csp\Model\Policy\Split;
 
 use Hryvinskyi\Csp\Api\Data\PolicyInterface;
 use Hryvinskyi\Csp\Api\Data\PolicyInterfaceFactory;
+use Hryvinskyi\Csp\Api\PolicySplitterInterface;
+use Hryvinskyi\Csp\Model\Policy\DirectiveCatalog;
+use Hryvinskyi\Csp\Model\Policy\FallbackResolver;
 use Psr\Log\LoggerInterface;
 
 /**
- * Splits a policy that is larger than a header may be into several policies a browser enforces together.
+ * Splits a policy into parts that keep directives linked by fallback together.
  *
  * A browser applies every CSP header and lets a request through only if each header that restricts it allows it.
  * To keep what the policy allows, `default-src` is replaced by explicit copies of its value in every directive that
  * fell back to it, directives linked by fallback stay in one part, and `report-uri`/`report-to` repeat in every part.
- * The result is checked with {@see PolicyEquivalence}; when it does not hold, or one group alone exceeds the limit,
- * the policy is returned unsplit and the reason is logged.
+ * Groups are packed first-fit, largest first. When one group alone exceeds the limit, the policy is returned unsplit
+ * and the reason is logged.
  */
-class PolicySplitter
+class DirectiveFamilySplitter implements PolicySplitterInterface
 {
     private const SEPARATOR_BYTES = 2;
 
     /**
      * @param DirectiveCatalog $catalog
      * @param FallbackResolver $fallbackResolver
-     * @param PolicyEquivalence $equivalence
      * @param PolicyInterfaceFactory $policyFactory
      * @param LoggerInterface $logger
      */
     public function __construct(
         private readonly DirectiveCatalog $catalog,
         private readonly FallbackResolver $fallbackResolver,
-        private readonly PolicyEquivalence $equivalence,
         private readonly PolicyInterfaceFactory $policyFactory,
         private readonly LoggerInterface $logger
     ) {
     }
 
     /**
-     * Parts that together allow what the policy allows, each at most the given size; the policy alone when it fits
-     * or cannot be split without changing what it allows.
-     *
-     * @param PolicyInterface $policy
-     * @param int $maxBytes
-     * @return list<PolicyInterface>
+     * @inheritDoc
      */
     public function split(PolicyInterface $policy, int $maxBytes): array
     {
@@ -81,24 +77,16 @@ class PolicySplitter
             $bins = $this->place($bins, $group, $maxBytes - $suffixBytes);
         }
 
-        $parts = array_map(
+        if (count($bins) < 2) {
+            return [$policy];
+        }
+
+        return array_map(
             fn (array $bin): PolicyInterface => $this->policyFactory->create([
                 'directives' => array_merge($bin['directives'], $perPart),
             ]),
             $bins
         );
-
-        $differences = $this->equivalence->splitDifferences($policy, $parts);
-        if ($differences !== []) {
-            $this->logger->warning(sprintf(
-                'CSP header not split: the parts would treat "%s" differently.',
-                implode('", "', $differences)
-            ));
-
-            return [$policy];
-        }
-
-        return count($parts) > 1 ? $parts : [$policy];
     }
 
     /**

@@ -7,18 +7,22 @@
 
 declare(strict_types=1);
 
-namespace Hryvinskyi\Csp\Test\Unit\Model\Policy;
+namespace Hryvinskyi\Csp\Test\Unit\Model\Policy\Split;
 
 use Hryvinskyi\Csp\Api\Data\PolicyInterface;
 use Hryvinskyi\Csp\Model\Policy\DirectiveCatalog;
 use Hryvinskyi\Csp\Model\Policy\FallbackResolver;
-use Hryvinskyi\Csp\Model\Policy\PolicySplitter;
+use Hryvinskyi\Csp\Model\Policy\Split\DirectiveFamilySplitter;
+use Hryvinskyi\Csp\Test\Unit\Model\Policy\ParsesPolicies;
 use Hryvinskyi\Csp\Test\Unit\Support\AssertsBrowserDecisions;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 
-class PolicySplitterTest extends TestCase
+/**
+ * The strategy alone: its parts are checked against an independent CSP evaluator, without the verifying splitter.
+ */
+class DirectiveFamilySplitterTest extends TestCase
 {
     use ParsesPolicies;
     use AssertsBrowserDecisions;
@@ -55,16 +59,15 @@ class PolicySplitterTest extends TestCase
      */
     private LoggerInterface $logger;
 
-    private PolicySplitter $splitter;
+    private DirectiveFamilySplitter $splitter;
 
     protected function setUp(): void
     {
         $catalog = new DirectiveCatalog();
         $this->logger = $this->createMock(LoggerInterface::class);
-        $this->splitter = new PolicySplitter(
+        $this->splitter = new DirectiveFamilySplitter(
             $catalog,
             new FallbackResolver($catalog),
-            $this->equivalence(),
             $this->policyFactory(),
             $this->logger
         );

@@ -11,156 +11,127 @@ namespace Hryvinskyi\Csp\Model\Response;
 
 use Hryvinskyi\Csp\Api\Config\HeaderSplittingConfigInterface;
 use Hryvinskyi\Csp\Api\Config\OptimizationConfigInterface;
+use Hryvinskyi\Csp\Api\CspHeaderProcessorInterface;
 use Hryvinskyi\Csp\Api\Data\PolicyInterface;
+use Hryvinskyi\Csp\Api\OversizedHeaderNoticeInterface;
+use Hryvinskyi\Csp\Api\PolicySplitterInterface;
+use Hryvinskyi\Csp\Api\ResponseHeaderLinesInterface;
 use Hryvinskyi\Csp\Model\Policy\PolicyOptimizer;
 use Hryvinskyi\Csp\Model\Policy\PolicyParser;
-use Hryvinskyi\Csp\Model\Policy\PolicySplitter;
-use Laminas\Http\AbstractMessage;
-use Laminas\Http\Header\HeaderInterface;
-use Laminas\Http\Header\MultipleHeaderInterface;
 use Magento\Framework\App\Response\HttpInterface as HttpResponse;
 use Psr\Log\LoggerInterface;
 
 /**
- * Optimises and, when it is too large, splits the CSP headers Magento rendered into the response.
+ * Optimises and, when it is too large, splits each CSP header configured in `headerNames`.
  *
  * A header the response already carries on several lines is left alone. Split parts are kept only if the response
  * sends every one of them as its own line; otherwise the unsplit header is written back.
  */
-class CspHeaderProcessor
+class CspHeaderProcessor implements CspHeaderProcessorInterface
 {
-    private const HEADERS = ['Content-Security-Policy', 'Content-Security-Policy-Report-Only'];
-
     /**
      * @param OptimizationConfigInterface $optimizationConfig
      * @param HeaderSplittingConfigInterface $splittingConfig
      * @param PolicyParser $parser
      * @param PolicyOptimizer $optimizer
-     * @param PolicySplitter $splitter
-     * @param LaminasPluginRegistrar $pluginRegistrar
-     * @param OversizedHeaderNotice $oversizedHeaderNotice
+     * @param PolicySplitterInterface $splitter
+     * @param ResponseHeaderLinesInterface $headerLines
+     * @param OversizedHeaderNoticeInterface $oversizedHeaderNotice
      * @param LoggerInterface $logger
+     * @param array<string, string> $headerNames
      */
     public function __construct(
         private readonly OptimizationConfigInterface $optimizationConfig,
         private readonly HeaderSplittingConfigInterface $splittingConfig,
         private readonly PolicyParser $parser,
         private readonly PolicyOptimizer $optimizer,
-        private readonly PolicySplitter $splitter,
-        private readonly LaminasPluginRegistrar $pluginRegistrar,
-        private readonly OversizedHeaderNotice $oversizedHeaderNotice,
-        private readonly LoggerInterface $logger
+        private readonly PolicySplitterInterface $splitter,
+        private readonly ResponseHeaderLinesInterface $headerLines,
+        private readonly OversizedHeaderNoticeInterface $oversizedHeaderNotice,
+        private readonly LoggerInterface $logger,
+        private readonly array $headerNames = []
     ) {
     }
 
     /**
-     * Rewrite the response's CSP headers.
-     *
-     * @param HttpResponse $response
-     * @return void
+     * @inheritDoc
      */
-    public function process(HttpResponse $response): void
+    public function processHeaders(HttpResponse $response): void
     {
         $optimize = $this->optimizationConfig->isValueOptimizationEnabled();
-        $splitRequested = $this->splittingConfig->isHeaderSplittingEnabled();
-        if (!$optimize && !$splitRequested) {
+        $split = $this->splittingConfig->isHeaderSplittingEnabled();
+        if (!$optimize && !$split) {
             return;
         }
-        $canSplit = $splitRequested && $this->pluginRegistrar->registerPlugins($response);
-        if ($splitRequested && !$canSplit) {
-            $this->logger->warning('CSP headers not split: the response cannot carry several lines of a header.');
-        }
 
-        foreach (self::HEADERS as $headerName) {
-            $values = $this->lines($response, $headerName);
-            if (count($values) !== 1) {
-                continue;
-            }
-
-            $policy = $this->optimizer->optimize($this->parser->parse($values[0]));
-            $parts = $canSplit ? $this->splitter->split($policy, $this->splittingConfig->getMaxHeaderSize()) : [$policy];
-            $this->replace($response, $headerName, $parts);
-            if (count($parts) > 1 && !$this->sentAsSeparateLines($response, $headerName, count($parts))) {
-                $this->logger->warning(sprintf(
-                    '%s not split: a part holds a directive the response cannot send on its own line.',
-                    $headerName
-                ));
-                $parts = [$policy];
-                $this->replace($response, $headerName, $parts);
-            }
-
-            $maxBytes = $this->splittingConfig->getMaxHeaderSize();
-            if ($splitRequested && count($parts) === 1 && $policy->byteLength() > $maxBytes) {
-                $this->oversizedHeaderNotice->record($headerName, $policy->byteLength(), $maxBytes);
+        foreach ($this->headerNames as $headerName) {
+            $values = $this->headerLines->values($response, $headerName);
+            if (count($values) === 1) {
+                $this->process($response, $headerName, $values[0], $split);
             }
         }
     }
 
     /**
-     * Values of every line of the header.
+     * Rewrite one header line.
      *
      * @param HttpResponse $response
      * @param string $headerName
-     * @return list<string>
-     */
-    private function lines(HttpResponse $response, string $headerName): array
-    {
-        if (!$response instanceof AbstractMessage) {
-            $header = $response->getHeader($headerName);
-
-            return $header instanceof HeaderInterface ? [$header->getFieldValue()] : [];
-        }
-
-        $values = [];
-        foreach ($response->getHeaders() as $header) {
-            if ($header instanceof HeaderInterface && strcasecmp($header->getFieldName(), $headerName) === 0) {
-                $values[] = $header->getFieldValue();
-            }
-        }
-
-        return $values;
-    }
-
-    /**
-     * Whether the response sends the header on the expected number of separate lines.
-     *
-     * @param HttpResponse $response
-     * @param string $headerName
-     * @param int $expected
-     * @return bool
-     */
-    private function sentAsSeparateLines(HttpResponse $response, string $headerName, int $expected): bool
-    {
-        if (!$response instanceof AbstractMessage) {
-            return false;
-        }
-
-        $lines = 0;
-        foreach ($response->getHeaders() as $header) {
-            if ($header instanceof HeaderInterface && strcasecmp($header->getFieldName(), $headerName) === 0) {
-                if (!$header instanceof MultipleHeaderInterface) {
-                    return false;
-                }
-                $lines++;
-            }
-        }
-
-        return $lines === $expected;
-    }
-
-    /**
-     * Replace the header with one line per part.
-     *
-     * @param HttpResponse $response
-     * @param string $headerName
-     * @param list<PolicyInterface> $parts
+     * @param string $value
+     * @param bool $split
      * @return void
      */
-    private function replace(HttpResponse $response, string $headerName, array $parts): void
+    private function process(HttpResponse $response, string $headerName, string $value, bool $split): void
     {
-        $response->clearHeader($headerName);
-        foreach ($parts as $part) {
-            $response->setHeader($headerName, $part->toHeaderValue(), false);
+        $policy = $this->optimizer->optimize($this->parser->parse($value));
+        $maxBytes = $this->splittingConfig->getMaxHeaderSize();
+        $parts = $split ? $this->parts($response, $headerName, $policy, $maxBytes) : [$policy];
+
+        if (!$this->headerLines->replace($response, $headerName, $this->values($parts))) {
+            $this->logger->warning(sprintf(
+                '%s not split: the response does not send each part on its own line.',
+                $headerName
+            ));
+            $parts = [$policy];
+            $this->headerLines->replace($response, $headerName, $this->values($parts));
         }
+
+        if ($split && count($parts) === 1 && $policy->byteLength() > $maxBytes) {
+            $this->oversizedHeaderNotice->record($headerName, $policy->byteLength(), $maxBytes);
+        }
+    }
+
+    /**
+     * Parts to send; the policy alone when it fits, cannot be split, or the response cannot carry several lines.
+     *
+     * @param HttpResponse $response
+     * @param string $headerName
+     * @param PolicyInterface $policy
+     * @param int $maxBytes
+     * @return list<PolicyInterface>
+     */
+    private function parts(HttpResponse $response, string $headerName, PolicyInterface $policy, int $maxBytes): array
+    {
+        if ($policy->byteLength() <= $maxBytes) {
+            return [$policy];
+        }
+        if (!$this->headerLines->allowSeveralLines($response, $headerName)) {
+            $this->logger->warning(sprintf('%s not split: the response cannot carry several lines of it.', $headerName));
+
+            return [$policy];
+        }
+
+        return $this->splitter->split($policy, $maxBytes);
+    }
+
+    /**
+     * Header values of the parts.
+     *
+     * @param list<PolicyInterface> $parts
+     * @return list<string>
+     */
+    private function values(array $parts): array
+    {
+        return array_map(static fn (PolicyInterface $part): string => $part->toHeaderValue(), $parts);
     }
 }

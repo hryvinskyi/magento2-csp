@@ -45,6 +45,11 @@ reports are accepted only from the store's own pages.
 - `--yes` for `hryvinskyi:csp:generate-script-hashes`.
 - Extension points: `PolicyOptimizationStepInterface`, `ViolationReportParserInterface`,
   `ReportCleanupStrategyInterface`, `DynamicPolicyRegistryInterface`.
+- Header processing contracts: `PolicySplitterInterface`, `ResponseHeaderLinesInterface`,
+  `OversizedHeaderNoticeInterface`. The `PolicySplitterInterface` preference checks the parts of whichever strategy
+  is set as its `strategy` argument (default `Split\DirectiveFamilySplitter`) and sends the header whole when they
+  would change what the policy allows or exceed the limit. The headers processed are the `headerNames` argument of
+  `Model\Response\CspHeaderProcessor`.
 
 ### Changed
 - Report cleanup is on by default (30 days) and deletes by last report time in batches, then pending groups left
@@ -60,8 +65,10 @@ reports are accepted only from the store's own pages.
   `HeaderSplittingConfigInterface`, `ReportingConfigInterface`, `ReportCleanupConfigInterface`).
 - `CachedCspManagerInterface`, `Api\Block\*`, `Api\Cache\*`, `Api\Serializer\*`, the `hryvinskyi_csp_policies` cache
   type, block observers.
-- `CspHeaderProcessorInterface`, `CspHeaderSplitterInterface`, `CspValueOptimizerInterface`,
-  `LaminasPluginRegistrarInterface`, `CspReportParserInterface`, `BlockedUriValueExtractorInterface`,
+- `CspHeaderSplitterInterface` (use `PolicySplitterInterface`, which returns the parts instead of writing them to the
+  response), `LaminasPluginRegistrarInterface` (use `ResponseHeaderLinesInterface`), `CspValueOptimizerInterface`
+  (add a `PolicyOptimizationStepInterface`), `CspReportParserInterface`,
+  `BlockedUriValueExtractorInterface`,
   `DomainMatcherInterface`, `PolicyCollectionMergerInterface`, `SearchCriteriaFilterInterface`,
   `Whitelist\SearchCriteria\*`.
 - `ReportRepositoryInterface::saveFromCspReport()`, `deleteByDomainAndPolicy()`;

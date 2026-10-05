@@ -61,11 +61,13 @@ class WhitelistDbCollector implements PolicyCollectorInterface
             $sources[$policy] ??= ['hosts' => [], 'schemes' => [], 'hashes' => []];
             if ($entry['value_type'] === ValueType::HASH->value) {
                 $sources[$policy]['hashes'][$entry['value']] = $entry['value_algorithm'];
-            } elseif (SourceKind::of($entry['value']) === SourceKind::Scheme) {
-                $sources[$policy]['schemes'][] = rtrim($entry['value'], ':');
-            } else {
-                $sources[$policy]['hosts'][] = $entry['value'];
+                continue;
             }
+            if (SourceKind::of($entry['value']) === SourceKind::Scheme) {
+                $sources[$policy]['schemes'][] = rtrim($entry['value'], ':');
+                continue;
+            }
+            $sources[$policy]['hosts'][] = $entry['value'];
         }
 
         foreach ($sources as $policy => $policySources) {
