@@ -9,137 +9,79 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Model\Report;
 
+use Hryvinskyi\Csp\Api\Data\Status;
 use Hryvinskyi\Csp\Api\ReportCleanupInterface;
-use Hryvinskyi\Csp\Model\ResourceModel\Report as ReportResource;
+use Hryvinskyi\Csp\Api\ReportCleanupStrategyInterface;
+use Hryvinskyi\Csp\Model\Report\Cleanup\ReportTable;
 use Psr\Log\LoggerInterface;
 
+/**
+ * @inheritDoc
+ */
 class Cleanup implements ReportCleanupInterface
 {
-    private const TABLE_NAME = 'hryvinskyi_csp_violation_report';
-
+    /**
+     * @param ReportTable $reportTable
+     * @param LoggerInterface $logger
+     * @param array<string, ReportCleanupStrategyInterface> $strategies Mode code => strategy
+     */
     public function __construct(
-        private readonly ReportResource $reportResource,
-        private readonly LoggerInterface $logger
+        private readonly ReportTable $reportTable,
+        private readonly LoggerInterface $logger,
+        private readonly array $strategies = []
     ) {
     }
 
     /**
      * @inheritDoc
      */
-    public function cleanByDate(int $days): int
+    public function modes(): array
     {
-        $connection = $this->reportResource->getConnection();
-        $tableName = $this->reportResource->getTable(self::TABLE_NAME);
-
-        try {
-            $deleted = $connection->delete(
-                $tableName,
-                ['created_at < NOW() - INTERVAL ? DAY' => $days]
-            );
-
-            $this->logger->info(
-                sprintf('CSP report cleanup (by date): deleted %d records older than %d days.', $deleted, $days)
-            );
-
-            return (int)$deleted;
-        } catch (\Exception $e) {
-            $this->logger->error(
-                sprintf('CSP report cleanup (by date) failed: %s', $e->getMessage())
-            );
-            throw $e;
-        }
+        return array_keys($this->strategies);
     }
 
     /**
      * @inheritDoc
      */
-    public function cleanByCount(int $maxRecords): int
+    public function clean(string $mode, int $threshold): int
     {
-        $connection = $this->reportResource->getConnection();
-        $tableName = $this->reportResource->getTable(self::TABLE_NAME);
-
-        try {
-            $totalCount = $this->getTotalCount();
-
-            if ($totalCount <= $maxRecords) {
-                return 0;
-            }
-
-            $deleteCount = $totalCount - $maxRecords;
-
-            $select = $connection->select()
-                ->from($tableName, ['report_id'])
-                ->order('created_at ASC')
-                ->limit($deleteCount);
-
-            $idsToDelete = $connection->fetchCol($select);
-
-            if (empty($idsToDelete)) {
-                return 0;
-            }
-
-            $deleted = $connection->delete(
-                $tableName,
-                ['report_id IN (?)' => $idsToDelete]
-            );
-
-            $this->logger->info(
-                sprintf(
-                    'CSP report cleanup (by count): deleted %d records, keeping %d most recent.',
-                    $deleted,
-                    $maxRecords
-                )
-            );
-
-            return (int)$deleted;
-        } catch (\Exception $e) {
-            $this->logger->error(
-                sprintf('CSP report cleanup (by count) failed: %s', $e->getMessage())
-            );
-            throw $e;
-        }
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getTotalCount(): int
-    {
-        $connection = $this->reportResource->getConnection();
-        $tableName = $this->reportResource->getTable(self::TABLE_NAME);
-
-        $select = $connection->select()
-            ->from($tableName, ['cnt' => new \Zend_Db_Expr('COUNT(*)')]);
-
-        return (int)$connection->fetchOne($select);
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function countByDate(int $days): int
-    {
-        $connection = $this->reportResource->getConnection();
-        $tableName = $this->reportResource->getTable(self::TABLE_NAME);
-
-        $select = $connection->select()
-            ->from($tableName, ['cnt' => new \Zend_Db_Expr('COUNT(*)')])
-            ->where('created_at < NOW() - INTERVAL ? DAY', $days);
-
-        return (int)$connection->fetchOne($select);
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function countByCount(int $maxRecords): int
-    {
-        $totalCount = $this->getTotalCount();
-
-        if ($totalCount <= $maxRecords) {
-            return 0;
+        $deleted = $this->strategy($mode, $threshold)->clean($threshold);
+        $groups = $this->reportTable->deleteEmptyGroups(Status::PENDING->value);
+        if ($deleted > 0 || $groups > 0) {
+            $this->logger->info('CSP violation reports cleaned.', [
+                'mode' => $mode,
+                'threshold' => $threshold,
+                'reports' => $deleted,
+                'groups' => $groups,
+            ]);
         }
 
-        return $totalCount - $maxRecords;
+        return $deleted;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function countAffected(string $mode, int $threshold): int
+    {
+        return $this->strategy($mode, $threshold)->countAffected($threshold);
+    }
+
+    /**
+     * Strategy of the mode.
+     *
+     * @param string $mode
+     * @param int $threshold
+     * @return ReportCleanupStrategyInterface
+     * @throws \InvalidArgumentException
+     */
+    private function strategy(string $mode, int $threshold): ReportCleanupStrategyInterface
+    {
+        if ($threshold < 1) {
+            throw new \InvalidArgumentException('The cleanup threshold must be a positive number.');
+        }
+
+        return $this->strategies[$mode]
+            ?? throw new \InvalidArgumentException(sprintf('Unknown cleanup mode "%s". Use one of: %s.', $mode, implode(', ', $this->modes())));
     }
 }

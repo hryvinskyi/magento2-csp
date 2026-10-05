@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2026. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -9,26 +9,33 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Controller\Adminhtml\ReportGroup;
 
+use Hryvinskyi\Csp\Api\Data\ReportGroupInterface;
 use Hryvinskyi\Csp\Api\ReportGroupRepositoryInterface;
-use Hryvinskyi\Csp\Model\ReportGroup\MassActionInterface;
 use Hryvinskyi\Csp\Model\ResourceModel\ReportGroup\CollectionFactory;
-use Magento\Framework\Controller\ResultFactory;
+use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
-use Magento\Framework\Controller\ResultInterface;
+use Magento\Framework\App\Action\HttpPostActionInterface;
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Ui\Component\MassAction\Filter;
 
 /**
- * @method \Magento\Framework\App\Request\Http getRequest()
- * @method \Magento\Framework\App\Response\Http getResponse()
+ * Deletes the report groups selected in the grid with their reports.
  */
-class MassDelete extends \Magento\Backend\App\Action
+class MassDelete extends Action implements HttpPostActionInterface
 {
+    public const ADMIN_RESOURCE = 'Hryvinskyi_Csp::reports_manage';
+
+    /**
+     * @param Context $context
+     * @param Filter $filter
+     * @param CollectionFactory $collectionFactory
+     * @param ReportGroupRepositoryInterface $reportGroupRepository
+     */
     public function __construct(
         Context $context,
         private readonly Filter $filter,
-        private readonly CollectionFactory $entityCollectionFactory,
-        private readonly ReportGroupRepositoryInterface $entityRepository,
-        private readonly MassActionInterface $massAction
+        private readonly CollectionFactory $collectionFactory,
+        private readonly ReportGroupRepositoryInterface $reportGroupRepository
     ) {
         parent::__construct($context);
     }
@@ -36,19 +43,21 @@ class MassDelete extends \Magento\Backend\App\Action
     /**
      * @inheritdoc
      */
-    public function execute(): ResultInterface
+    public function execute()
     {
-        $collection = $this->filter->getCollection($this->entityCollectionFactory->create());
+        $deleted = 0;
+        try {
+            foreach ($this->filter->getCollection($this->collectionFactory->create()) as $group) {
+                if ($group instanceof ReportGroupInterface) {
+                    $this->reportGroupRepository->delete($group);
+                    $deleted++;
+                }
+            }
+            $this->messageManager->addSuccessMessage((string)__('A total of %1 record(s) have been deleted.', $deleted));
+        } catch (LocalizedException $exception) {
+            $this->messageManager->addErrorMessage($exception->getMessage());
+        }
 
-        $deletedCount = $this->massAction->deleteItems($collection, $this->entityRepository);
-
-        $this->messageManager->addSuccessMessage(
-            __('A total of %1 record(s) have been deleted.', $deletedCount)
-        );
-
-        /** @var \Magento\Backend\Model\View\Result\Redirect $resultRedirect */
-        $resultRedirect = $this->resultFactory->create(ResultFactory::TYPE_REDIRECT);
-
-        return $resultRedirect->setPath('*/*/');
+        return $this->resultRedirectFactory->create()->setPath('*/*/');
     }
 }

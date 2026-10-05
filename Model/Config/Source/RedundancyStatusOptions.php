@@ -22,7 +22,9 @@ class RedundancyStatusOptions implements OptionSourceInterface
     public const REDUNDANT = 3;
 
     /**
-     * @inheritDoc
+     * Options.
+     *
+     * @return list<array{value: mixed, label: mixed}>
      */
     public function toOptionArray(): array
     {

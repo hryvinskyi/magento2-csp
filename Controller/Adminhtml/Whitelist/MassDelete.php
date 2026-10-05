@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -11,26 +11,31 @@ namespace Hryvinskyi\Csp\Controller\Adminhtml\Whitelist;
 
 use Hryvinskyi\Csp\Api\WhitelistRepositoryInterface;
 use Hryvinskyi\Csp\Model\ResourceModel\Whitelist\CollectionFactory;
+use Hryvinskyi\Csp\Model\Whitelist as WhitelistModel;
 use Magento\Backend\App\Action;
-use Magento\Framework\App\Cache\Type\Collection;
-use Magento\Framework\Controller\ResultFactory;
 use Magento\Backend\App\Action\Context;
-use Magento\PageCache\Model\Cache\Type;
+use Magento\Framework\App\Action\HttpPostActionInterface;
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Ui\Component\MassAction\Filter;
 
 /**
- * @method \Magento\Framework\App\Request\Http getRequest()
- * @method \Magento\Framework\App\Response\Http getResponse()
+ * Deletes the whitelist entries selected in the grid.
  */
-class MassDelete extends Action
+class MassDelete extends Action implements HttpPostActionInterface
 {
+    public const ADMIN_RESOURCE = 'Hryvinskyi_Csp::whitelist_delete';
+
+    /**
+     * @param Context $context
+     * @param Filter $filter
+     * @param CollectionFactory $collectionFactory
+     * @param WhitelistRepositoryInterface $entityRepository
+     */
     public function __construct(
         Context $context,
         private readonly Filter $filter,
-        private readonly CollectionFactory $entityCollectionFactory,
-        private readonly WhitelistRepositoryInterface $entityRepository,
-        private readonly Collection $cacheTypeCollection,
-        private readonly Type $cacheType
+        private readonly CollectionFactory $collectionFactory,
+        private readonly WhitelistRepositoryInterface $entityRepository
     ) {
         parent::__construct($context);
     }
@@ -40,22 +45,19 @@ class MassDelete extends Action
      */
     public function execute()
     {
-        $collection = $this->filter->getCollection($this->entityCollectionFactory->create());
-
-        foreach ($collection as $item) {
-            $this->entityRepository->delete($item);
+        $deleted = 0;
+        try {
+            foreach ($this->filter->getCollection($this->collectionFactory->create()) as $entry) {
+                if ($entry instanceof WhitelistModel) {
+                    $this->entityRepository->delete($entry);
+                    $deleted++;
+                }
+            }
+            $this->messageManager->addSuccessMessage((string)__('A total of %1 record(s) have been deleted.', $deleted));
+        } catch (LocalizedException $exception) {
+            $this->messageManager->addErrorMessage($exception->getMessage());
         }
 
-        $this->cacheTypeCollection->clean();
-        $this->cacheType->clean();
-
-        $this->messageManager->addSuccessMessage(
-            __('A total of %1 record(s) have been deleted.', $collection->count())
-        );
-
-        /** @var \Magento\Backend\Model\View\Result\Redirect $resultRedirect */
-        $resultRedirect = $this->resultFactory->create(ResultFactory::TYPE_REDIRECT);
-
-        return $resultRedirect->setPath('*/*/');
+        return $this->resultRedirectFactory->create()->setPath('*/*/');
     }
 }

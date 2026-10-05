@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -9,25 +9,32 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Controller\Adminhtml\Whitelist;
 
-use Hryvinskyi\Csp\Api\Data\WhitelistInterface;
 use Hryvinskyi\Csp\Api\WhitelistRepositoryInterface;
+use Hryvinskyi\Csp\Model\Whitelist\EntryDataMapper;
 use Magento\Backend\App\Action;
-use Magento\Framework\Api\DataObjectHelper;
-use Magento\Framework\App\Cache\Type\Collection;
-use Magento\PageCache\Model\Cache\Type;
+use Magento\Backend\App\Action\Context;
+use Magento\Framework\App\Action\HttpPostActionInterface;
+use Magento\Framework\Controller\Result\Json;
+use Magento\Framework\Controller\ResultFactory;
+use Magento\Framework\Controller\ResultInterface;
+use Magento\Framework\Exception\LocalizedException;
 
 /**
- * @method \Magento\Framework\App\Request\Http getRequest()
- * @method \Magento\Framework\App\Response\Http getResponse()
+ * Saves whitelist entries edited in the grid.
  */
-class InlineEdit extends Action
+class InlineEdit extends Action implements HttpPostActionInterface
 {
+    public const ADMIN_RESOURCE = 'Hryvinskyi_Csp::whitelist_save';
+
+    /**
+     * @param Context $context
+     * @param WhitelistRepositoryInterface $entityRepository
+     * @param EntryDataMapper $entryDataMapper
+     */
     public function __construct(
-        Action\Context $context,
+        Context $context,
         private readonly WhitelistRepositoryInterface $entityRepository,
-        private readonly DataObjectHelper $dataObjectHelper,
-        private readonly Collection $cacheTypeCollection,
-        private readonly Type $cacheType
+        private readonly EntryDataMapper $entryDataMapper
     ) {
         parent::__construct($context);
     }
@@ -37,41 +44,41 @@ class InlineEdit extends Action
      */
     public function execute()
     {
-        /** @var \Magento\Framework\Controller\Result\Json $resultJson */
-        $resultJson = $this->resultFactory->create(\Magento\Framework\Controller\ResultFactory::TYPE_JSON);
-        $error = false;
-        $messages = [];
-
+        $resultJson = $this->resultFactory->create(ResultFactory::TYPE_JSON);
         $items = $this->getRequest()->getParam('items', []);
-        if (!(count($items) && $this->getRequest()->getParam('isAjax'))) {
-            return $resultJson->setData([
-                'messages' => [__('Please correct the data sent.')],
-                'error' => true,
-            ]);
+        if (!is_array($items) || $items === [] || !$this->getRequest()->getParam('isAjax')) {
+            return $this->respond($resultJson, [(string)__('Please correct the data sent.')], true);
         }
 
-        foreach (array_keys($items) as $itemId) {
+        $messages = [];
+        foreach ($items as $id => $data) {
+            if (!is_numeric($id) || !is_array($data)) {
+                continue;
+            }
             try {
-                $entity = $this->entityRepository->getById($itemId);
-                $this->dataObjectHelper->populateWithArray(
-                    $entity,
-                    $items[$itemId],
-                    WhitelistInterface::class
-                );
+                $entity = $this->entityRepository->getById((int)$id);
+                $this->entryDataMapper->apply($entity, $data);
                 $this->entityRepository->save($entity);
-                $this->cacheTypeCollection->clean();
-                $this->cacheType->clean();
-            } catch (\Magento\Framework\Exception\LocalizedException $e) {
-                $messages[] = sprintf('[%s]: %s', $itemId, $e->getMessage());
-            } catch (\Exception) {
-                $messages[] = sprintf('[%s]: %s', $itemId, __('Something went wrong while saving the entity.'));
-                $error = true;
+            } catch (LocalizedException $exception) {
+                $messages[] = sprintf('[%s]: %s', $id, $exception->getMessage());
             }
         }
 
-        return $resultJson->setData([
-            'messages' => $messages,
-            'error' => $error
-        ]);
+        return $this->respond($resultJson, $messages, $messages !== []);
+    }
+
+    /**
+     * @param ResultInterface $result
+     * @param list<string> $messages
+     * @param bool $error
+     * @return ResultInterface
+     */
+    private function respond(ResultInterface $result, array $messages, bool $error): ResultInterface
+    {
+        if ($result instanceof Json) {
+            $result->setData(['messages' => $messages, 'error' => $error]);
+        }
+
+        return $result;
     }
 }

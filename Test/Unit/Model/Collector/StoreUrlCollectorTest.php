@@ -9,145 +9,46 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Test\Unit\Model\Collector;
 
-use Hryvinskyi\Csp\Api\ConfigInterface;
-use Hryvinskyi\Csp\Api\PolicyCollectionMergerInterface;
+use Hryvinskyi\Csp\Api\Config\RulesConfigInterface;
 use Hryvinskyi\Csp\Model\Collector\StoreUrlCollector;
-use Magento\Framework\Url\ScopeInterface;
-use Magento\Framework\Url\ScopeResolverInterface;
-use PHPUnit\Framework\MockObject\MockObject;
+use Hryvinskyi\Csp\Model\Store\StoreHostsProviderInterface;
+use Hryvinskyi\Csp\Test\Unit\Support\RealFetchPolicyFactory;
+use Magento\Csp\Api\Data\PolicyInterface;
+use Magento\Csp\Model\Policy\FetchPolicy;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @covers \Hryvinskyi\Csp\Model\Collector\StoreUrlCollector
- */
 class StoreUrlCollectorTest extends TestCase
 {
-    private StoreUrlCollector $collector;
-    private MockObject|ScopeResolverInterface $scopeResolverMock;
-    private MockObject|ConfigInterface $configMock;
-    private MockObject|PolicyCollectionMergerInterface $mergerMock;
-
-    protected function setUp(): void
+    public function testAllowsEveryStoreHostInResourceDirectives(): void
     {
-        $this->scopeResolverMock = $this->createMock(ScopeResolverInterface::class);
-        $this->configMock = $this->createMock(ConfigInterface::class);
-        $this->mergerMock = $this->createMock(PolicyCollectionMergerInterface::class);
+        $collected = $this->collector(true, ['shop.example.com', 'static.example.com:8080'])->collect();
 
-        $scopeMock = $this->createMock(ScopeInterface::class);
-        $scopeMock->method('getBaseUrl')->willReturn('https://example.com/');
-        $this->scopeResolverMock->method('getScopes')->willReturn([$scopeMock]);
-
-        $this->collector = new StoreUrlCollector(
-            $this->scopeResolverMock,
-            $this->configMock,
-            $this->mergerMock
+        $this->assertSame(
+            ['default-src', 'script-src', 'style-src', 'img-src', 'font-src', 'connect-src', 'media-src'],
+            array_map(static fn (PolicyInterface $policy): string => $policy->getId(), $collected)
         );
+        $this->assertInstanceOf(FetchPolicy::class, $collected[0]);
+        $this->assertSame(['shop.example.com', 'static.example.com:8080'], $collected[0]->getHostSources());
     }
 
-    // ==================== Disabled Tests ====================
-
-    public function testCollectReturnsDefaultPoliciesWhenDisabled(): void
+    public function testAddsNothingWhenDisabledOrWithoutHosts(): void
     {
-        $this->configMock->method('isAddAllStorefrontUrls')->willReturn(false);
-
-        $this->mergerMock->expects($this->never())->method('mergeOrAdd');
-
-        $defaultPolicies = ['existing-policy'];
-        $result = $this->collector->collect($defaultPolicies);
-
-        $this->assertSame($defaultPolicies, $result);
+        $this->assertSame([], $this->collector(false, ['shop.example.com'])->collect());
+        $this->assertSame([], $this->collector(true, [])->collect());
     }
 
-    // ==================== Directive Targeting Tests ====================
-
-    public function testCollectOnlyTargetsRelevantDirectives(): void
+    /**
+     * @param bool $enabled
+     * @param list<string> $hosts
+     * @return StoreUrlCollector
+     */
+    private function collector(bool $enabled, array $hosts): StoreUrlCollector
     {
-        $this->configMock->method('isAddAllStorefrontUrls')->willReturn(true);
+        $config = $this->createStub(RulesConfigInterface::class);
+        $config->method('isAddAllStorefrontUrls')->willReturn($enabled);
+        $provider = $this->createStub(StoreHostsProviderInterface::class);
+        $provider->method('storefrontHosts')->willReturn($hosts);
 
-        $expectedDirectives = [
-            'default-src',
-            'script-src',
-            'style-src',
-            'img-src',
-            'font-src',
-            'connect-src',
-            'media-src',
-        ];
-
-        $calledDirectives = [];
-        $this->mergerMock->expects($this->exactly(7))
-            ->method('mergeOrAdd')
-            ->willReturnCallback(function ($policies, $directive, $policy) use (&$calledDirectives) {
-                $calledDirectives[] = $directive;
-                return $policies;
-            });
-
-        $this->collector->collect([]);
-
-        $this->assertSame($expectedDirectives, $calledDirectives);
-    }
-
-    public function testCollectDoesNotTargetBaseUri(): void
-    {
-        $this->configMock->method('isAddAllStorefrontUrls')->willReturn(true);
-
-        $calledDirectives = [];
-        $this->mergerMock->method('mergeOrAdd')
-            ->willReturnCallback(function ($policies, $directive, $policy) use (&$calledDirectives) {
-                $calledDirectives[] = $directive;
-                return $policies;
-            });
-
-        $this->collector->collect([]);
-
-        $this->assertNotContains('base-uri', $calledDirectives);
-    }
-
-    public function testCollectDoesNotTargetFrameAncestors(): void
-    {
-        $this->configMock->method('isAddAllStorefrontUrls')->willReturn(true);
-
-        $calledDirectives = [];
-        $this->mergerMock->method('mergeOrAdd')
-            ->willReturnCallback(function ($policies, $directive, $policy) use (&$calledDirectives) {
-                $calledDirectives[] = $directive;
-                return $policies;
-            });
-
-        $this->collector->collect([]);
-
-        $this->assertNotContains('frame-ancestors', $calledDirectives);
-    }
-
-    public function testCollectDoesNotTargetFormAction(): void
-    {
-        $this->configMock->method('isAddAllStorefrontUrls')->willReturn(true);
-
-        $calledDirectives = [];
-        $this->mergerMock->method('mergeOrAdd')
-            ->willReturnCallback(function ($policies, $directive, $policy) use (&$calledDirectives) {
-                $calledDirectives[] = $directive;
-                return $policies;
-            });
-
-        $this->collector->collect([]);
-
-        $this->assertNotContains('form-action', $calledDirectives);
-    }
-
-    public function testCollectDoesNotTargetObjectSrc(): void
-    {
-        $this->configMock->method('isAddAllStorefrontUrls')->willReturn(true);
-
-        $calledDirectives = [];
-        $this->mergerMock->method('mergeOrAdd')
-            ->willReturnCallback(function ($policies, $directive, $policy) use (&$calledDirectives) {
-                $calledDirectives[] = $directive;
-                return $policies;
-            });
-
-        $this->collector->collect([]);
-
-        $this->assertNotContains('object-src', $calledDirectives);
+        return new StoreUrlCollector($config, $provider, new RealFetchPolicyFactory());
     }
 }

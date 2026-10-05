@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -12,17 +12,23 @@ namespace Hryvinskyi\Csp\Controller\Adminhtml\ReportGroup;
 use Hryvinskyi\Csp\Api\ReportGroupRepositoryInterface;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
-use Magento\Framework\Controller\ResultInterface;
+use Magento\Framework\App\Action\HttpPostActionInterface;
+use Magento\Framework\Exception\LocalizedException;
 
 /**
- * @method \Magento\Framework\App\Request\Http getRequest()
- * @method \Magento\Framework\App\Response\Http getResponse()
+ * Deletes one report group with its reports.
  */
-class Delete extends Action
+class Delete extends Action implements HttpPostActionInterface
 {
+    public const ADMIN_RESOURCE = 'Hryvinskyi_Csp::reports_manage';
+
+    /**
+     * @param Context $context
+     * @param ReportGroupRepositoryInterface $reportGroupRepository
+     */
     public function __construct(
         Context $context,
-        private readonly ReportGroupRepositoryInterface $entityRepository
+        private readonly ReportGroupRepositoryInterface $reportGroupRepository
     ) {
         parent::__construct($context);
     }
@@ -30,25 +36,21 @@ class Delete extends Action
     /**
      * @inheritdoc
      */
-    public function execute(): ResultInterface
+    public function execute()
     {
-        /** @var \Magento\Backend\Model\View\Result\Redirect $resultRedirect */
-        $resultRedirect = $this->resultRedirectFactory->create();
         $id = $this->getRequest()->getParam('id');
-        if ($id === null) {
-            $this->messageManager->addErrorMessage(__('We can\'t find an group to delete.'));
+        if (!is_numeric($id)) {
+            $this->messageManager->addErrorMessage((string)__('Choose a report group to delete.'));
 
-            return $resultRedirect->setPath('*/*/');
+            return $this->resultRedirectFactory->create()->setPath('*/*/');
         }
         try {
-            $this->entityRepository->deleteById((int)$id);
-            $this->messageManager->addSuccessMessage(__('Entity has been deleted.'));
-
-            return $resultRedirect->setPath('*/*/');
-        } catch (\Exception $e) {
-            $this->messageManager->addErrorMessage($e->getMessage());
-
-            return $resultRedirect->setPath('*/*/edit', ['id' => $id]);
+            $this->reportGroupRepository->deleteById((int)$id);
+            $this->messageManager->addSuccessMessage((string)__('The report group has been deleted.'));
+        } catch (LocalizedException $exception) {
+            $this->messageManager->addErrorMessage($exception->getMessage());
         }
+
+        return $this->resultRedirectFactory->create()->setPath('*/*/');
     }
 }

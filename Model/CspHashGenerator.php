@@ -1,10 +1,9 @@
 <?php
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
-
 
 declare(strict_types=1);
 
@@ -12,6 +11,12 @@ namespace Hryvinskyi\Csp\Model;
 
 use Hryvinskyi\Csp\Api\CspHashGeneratorInterface;
 
+/**
+ * Computes the CSP hash of inline content the way a browser does.
+ *
+ * The HTML parser turns CRLF and CR into LF before the browser hashes the element's text, so line endings are
+ * normalised the same way; the bytes are hashed as they are, without any encoding conversion.
+ */
 class CspHashGenerator implements CspHashGeneratorInterface
 {
     /**
@@ -19,10 +24,6 @@ class CspHashGenerator implements CspHashGeneratorInterface
      */
     public function execute(string $script): string
     {
-        // Convert to UTF-8 and LF line endings
-        $script = mb_convert_encoding($script, 'UTF-8', 'auto');
-        $script = preg_replace('/\r\n|\r|\n/', "\n", $script);
-
-        return base64_encode(hash('sha256', $script, true));
+        return base64_encode(hash('sha256', str_replace(["\r\n", "\r"], "\n", $script), true));
     }
 }

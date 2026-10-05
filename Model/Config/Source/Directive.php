@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -17,7 +17,7 @@ class Directive implements OptionSourceInterface
     /**
      * Options getter
      *
-     * @return array
+     * @return list<array{value: mixed, label: mixed}>
      */
     public function toOptionArray(): array
     {

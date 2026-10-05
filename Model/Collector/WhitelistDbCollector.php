@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -9,26 +9,38 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Model\Collector;
 
-use Hryvinskyi\Csp\Api\ConfigInterface;
-use Hryvinskyi\Csp\Api\PolicyCollectionMergerInterface;
-use Hryvinskyi\Csp\Model\Whitelist\Command\GetAllActiveWhitelistByStoreIdInterface;
+use Hryvinskyi\Csp\Api\Config\RulesConfigInterface;
+use Hryvinskyi\Csp\Api\Data\Area;
+use Hryvinskyi\Csp\Api\Data\ValueType;
+use Hryvinskyi\Csp\Model\Policy\SourceKind;
+use Hryvinskyi\Csp\Model\Whitelist\ActiveEntries;
+use Hryvinskyi\Csp\Model\Whitelist\StoreIdList;
 use Magento\Csp\Api\PolicyCollectorInterface;
-use Magento\Csp\Model\Policy\FetchPolicy;
+use Magento\Csp\Model\Policy\FetchPolicyFactory;
+use Magento\Framework\App\Area as AppArea;
 use Magento\Framework\App\State;
-use Magento\Framework\Exception\LocalizedException;
-use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Store\Model\StoreManagerInterface;
 
+/**
+ * Adds the enabled whitelist entries of the current store and area to the policy.
+ *
+ * The admin is not a store: it receives the entries for every store whose area is the admin or every area.
+ */
 class WhitelistDbCollector implements PolicyCollectorInterface
 {
-    private array $rules = [];
-
+    /**
+     * @param RulesConfigInterface $config
+     * @param State $appState
+     * @param StoreManagerInterface $storeManager
+     * @param ActiveEntries $activeEntries
+     * @param FetchPolicyFactory $fetchPolicyFactory
+     */
     public function __construct(
-        private readonly ConfigInterface $config,
+        private readonly RulesConfigInterface $config,
         private readonly State $appState,
         private readonly StoreManagerInterface $storeManager,
-        private readonly GetAllActiveWhitelistByStoreIdInterface $getAllActiveWhitelistByStoreId,
-        private readonly PolicyCollectionMergerInterface $policyCollectionMerger
+        private readonly ActiveEntries $activeEntries,
+        private readonly FetchPolicyFactory $fetchPolicyFactory
     ) {
     }
 
@@ -37,64 +49,37 @@ class WhitelistDbCollector implements PolicyCollectorInterface
      */
     public function collect(array $defaultPolicies = []): array
     {
-        if ($this->config->isRulesEnabled() === false) {
+        if (!$this->config->isRulesEnabled()) {
             return $defaultPolicies;
         }
 
-        foreach ($this->getRules() as $policyId => $valuesByType) {
-            $policy = new FetchPolicy(
-                $policyId,
-                false,
-                $valuesByType['host'] ?? [],
-                [],
-                false,
-                false,
-                false,
-                [],
-                $valuesByType['hash'] ?? [],
-            );
+        $admin = $this->appState->getAreaCode() === AppArea::AREA_ADMINHTML;
+        $storeId = $admin ? StoreIdList::ALL_STORES : (int)$this->storeManager->getStore()->getId();
+        $sources = [];
+        foreach ($this->activeEntries->forScope($storeId, $admin ? Area::ADMINHTML : Area::FRONTEND) as $entry) {
+            $policy = $entry['policy'];
+            $sources[$policy] ??= ['hosts' => [], 'schemes' => [], 'hashes' => []];
+            if ($entry['value_type'] === ValueType::HASH->value) {
+                $sources[$policy]['hashes'][$entry['value']] = $entry['value_algorithm'];
+                continue;
+            }
+            if (SourceKind::of($entry['value']) === SourceKind::Scheme) {
+                $sources[$policy]['schemes'][] = rtrim($entry['value'], ':');
+                continue;
+            }
+            $sources[$policy]['hosts'][] = $entry['value'];
+        }
 
-            $defaultPolicies = $this->policyCollectionMerger->mergeOrAdd($defaultPolicies, $policyId, $policy);
+        foreach ($sources as $policy => $policySources) {
+            $defaultPolicies[] = $this->fetchPolicyFactory->create([
+                'id' => $policy,
+                'noneAllowed' => false,
+                'hostSources' => array_values(array_unique($policySources['hosts'])),
+                'schemeSources' => array_values(array_unique($policySources['schemes'])),
+                'hashValues' => $policySources['hashes'],
+            ]);
         }
 
         return $defaultPolicies;
-    }
-
-    /**
-     * Get rules and build the rules map if not yet generated
-     *
-     * @return array
-     * @throws LocalizedException
-     * @throws NoSuchEntityException
-     */
-    public function getRules(): array
-    {
-        // get from memory
-        if (!empty($this->rules)) {
-            return $this->rules;
-        }
-
-        $storeId = $this->appState->getAreaCode() === 'adminhtml' ? 0 : (int)$this->storeManager->getStore()->getId();
-        return $this->rules = $this->buildPolicyMap($storeId);
-    }
-
-    /**
-     * Build policy map from rules stores in database
-     *
-     * @param int $storeId
-     * @return array
-     */
-    public function buildPolicyMap(int $storeId): array
-    {
-        $result = [];
-        $whitelists = $this->getAllActiveWhitelistByStoreId->execute($storeId)->getItems();
-        foreach ($whitelists as $whitelist) {
-            $valueType = $whitelist->getValueType();
-            $key = $valueType === 'host' ? $whitelist->getIdentifier() : $whitelist->getValue();
-            $value = $valueType === 'host' ? $whitelist->getValue() : $whitelist->getValueAlgorithm();
-            $result[$whitelist->getPolicy()][$valueType][$key] = $value;
-        }
-
-        return $result;
     }
 }

@@ -19,11 +19,13 @@ use Magento\Ui\Component\Listing\Columns\Column;
  */
 class RedundancyStatus extends Column
 {
+    use MapsRowValues;
+
     /**
      * @param ContextInterface $context
      * @param UiComponentFactory $uiComponentFactory
-     * @param array<string, mixed> $components
-     * @param array<string, mixed> $data
+     * @param array<mixed> $components
+     * @param array<mixed> $data
      */
     public function __construct(
         ContextInterface $context,
@@ -35,25 +37,19 @@ class RedundancyStatus extends Column
     }
 
     /**
-     * @inheritDoc
+     * Replace the redundancy code with its icon.
+     *
+     * @param array<mixed> $dataSource
+     * @return array<mixed>
      */
     public function prepareDataSource(array $dataSource): array
     {
-        if (isset($dataSource['data']['items'])) {
-            foreach ($dataSource['data']['items'] as &$item) {
-                if (isset($item[$this->getData('name')])) {
-                    $status = (int)$item[$this->getData('name')];
-                    $item[$this->getData('name')] = match ($status) {
-                        RedundancyStatusOptions::DUPLICATE => $this->getDuplicateSvg(),
-                        RedundancyStatusOptions::REDUNDANT => $this->getRedundantSvg(),
-                        RedundancyStatusOptions::UNIQUE => $this->getUniqueSvg(),
-                        default => $this->getNotApplicableSvg(),
-                    };
-                }
-            }
-        }
-
-        return $dataSource;
+        return $this->mapRowValues($dataSource, $this->getName(), fn (int $status): string => match ($status) {
+            RedundancyStatusOptions::DUPLICATE => $this->getDuplicateSvg(),
+            RedundancyStatusOptions::REDUNDANT => $this->getRedundantSvg(),
+            RedundancyStatusOptions::UNIQUE => $this->getUniqueSvg(),
+            default => $this->getNotApplicableSvg(),
+        });
     }
 
     /**
