@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright (c) 2026. Volodymyr Hryvinskyi. All rights reserved.
+ * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
+ * GitHub: https://github.com/hryvinskyi
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Acl/etc/acl.xsd">
+    <acl>
+        <resources>
+            <resource id="Magento_Backend::admin">
+                <resource id="Magento_Backend::system">
+                    <resource id="Hryvinskyi_Csp::csp" title="Content Security Policy" translate="title" sortOrder="900">
+                        <resource id="Hryvinskyi_Csp::whitelist" title="Whitelist" translate="title" sortOrder="10">
+                            <resource id="Hryvinskyi_Csp::whitelist_save" title="Add and Edit Entries" translate="title" sortOrder="10"/>
+                            <resource id="Hryvinskyi_Csp::whitelist_delete" title="Delete Entries" translate="title" sortOrder="20"/>
+                            <resource id="Hryvinskyi_Csp::whitelist_import" title="Import Entries" translate="title" sortOrder="30"/>
+                        </resource>
+                        <resource id="Hryvinskyi_Csp::reports" title="Violation Reports" translate="title" sortOrder="20">
+                            <resource id="Hryvinskyi_Csp::reports_manage" title="Change Status and Delete" translate="title" sortOrder="10"/>
+                            <resource id="Hryvinskyi_Csp::reports_convert" title="Convert to Whitelist" translate="title" sortOrder="20"/>
+                        </resource>
+                    </resource>
+                </resource>
+            </resource>
+        </resources>
+    </acl>
+</config>

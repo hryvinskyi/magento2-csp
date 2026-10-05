@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Model;
 
+use Hryvinskyi\Csp\Api\Data\Area;
 use Hryvinskyi\Csp\Api\Data\ReportGroupInterface;
 use Hryvinskyi\Csp\Model\ResourceModel\ReportGroup as ReportGroupResource;
 use Magento\Framework\Model\AbstractModel;
@@ -40,8 +41,7 @@ class ReportGroup extends AbstractModel implements ReportGroupInterface
      */
     public function getGroupId(): ?int
     {
-        return $this->_getData(self::GROUP_ID) === null ? null :
-            (int)$this->_getData(self::GROUP_ID);
+        return $this->intData(self::GROUP_ID);
     }
 
     /**
@@ -59,8 +59,7 @@ class ReportGroup extends AbstractModel implements ReportGroupInterface
      */
     public function getPolicy(): ?string
     {
-        return $this->_getData(self::POLICY) === null ? null :
-            (string)$this->_getData(self::POLICY);
+        return $this->stringData(self::POLICY);
     }
 
     /**
@@ -78,8 +77,7 @@ class ReportGroup extends AbstractModel implements ReportGroupInterface
      */
     public function getValue(): ?string
     {
-        return $this->_getData(self::VALUE) === null ? null :
-            (string)$this->_getData(self::VALUE);
+        return $this->stringData(self::VALUE);
     }
 
     /**
@@ -97,8 +95,7 @@ class ReportGroup extends AbstractModel implements ReportGroupInterface
      */
     public function getStoreId(): ?int
     {
-        return $this->_getData(self::STORE_ID) === null ? null :
-            (int)$this->_getData(self::STORE_ID);
+        return $this->intData(self::STORE_ID);
     }
 
     /**
@@ -116,8 +113,7 @@ class ReportGroup extends AbstractModel implements ReportGroupInterface
      */
     public function getStatus(): ?int
     {
-        return $this->_getData(self::STATUS) === null ? null :
-            (int)$this->_getData(self::STATUS);
+        return $this->intData(self::STATUS);
     }
 
     /**
@@ -135,8 +131,7 @@ class ReportGroup extends AbstractModel implements ReportGroupInterface
      */
     public function getCount(): ?int
     {
-        return $this->_getData(self::COUNT) === null ? null :
-            (int)$this->_getData(self::COUNT);
+        return $this->intData(self::COUNT);
     }
 
     /**
@@ -149,4 +144,55 @@ class ReportGroup extends AbstractModel implements ReportGroupInterface
         return $this;
     }
 
+    /**
+     * Data value as a string, null when absent or not scalar.
+     *
+     * @param string $key
+     * @return string|null
+     */
+    private function stringData(string $key): ?string
+    {
+        $value = $this->_getData($key);
+
+        return is_scalar($value) ? (string)$value : null;
+    }
+
+    /**
+     * Data value as an integer, null when absent or not numeric.
+     *
+     * @param string $key
+     * @return int|null
+     */
+    private function intData(string $key): ?int
+    {
+        $value = $this->_getData($key);
+
+        return is_numeric($value) ? (int)$value : null;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getArea(): string
+    {
+        return $this->stringData(self::AREA) ?? Area::FRONTEND->value;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function setArea(string $area): ReportGroupInterface
+    {
+        $this->setData(self::AREA, $area);
+
+        return $this;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getUpdatedAt(): ?string
+    {
+        return $this->stringData(self::UPDATED_AT);
+    }
 }

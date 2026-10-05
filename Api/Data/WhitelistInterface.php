@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -9,6 +9,11 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Api\Data;
 
+/**
+ * Admin allowance of one source for one directive, in a store scope and an area.
+ *
+ * @api
+ */
 interface WhitelistInterface
 {
     /**#@+
@@ -20,7 +25,8 @@ interface WhitelistInterface
     public const VALUE_TYPE = 'value_type';
     public const VALUE_ALGORITHM = 'value_algorithm';
     public const VALUE = 'value';
-    public const STORE_IDS = 'store_ids';
+    public const STORE_ID = 'store_id';
+    public const AREA = 'area';
     public const CREATED_AT = 'created_at';
     public const UPDATED_AT = 'updated_at';
     public const STATUS = 'status';
@@ -125,20 +131,36 @@ interface WhitelistInterface
     public function setValue(string $value): WhitelistInterface;
 
     /**
-     * Get StoreIds value
+     * Ids of the stores the entry applies to; 0 stands for every store.
      *
-     * @return string|null
+     * @return int[]
      */
-    public function getStoreIds(): ?string;
+    public function getStoreIds(): array;
 
     /**
-     * Set StoreIds value
+     * Set the ids of the stores the entry applies to; 0 stands for every store.
      *
-     * @param string $storeIds
+     * @param int[] $storeIds
      *
      * @return $this
      */
-    public function setStoreIds(string $storeIds): WhitelistInterface;
+    public function setStoreIds(array $storeIds): WhitelistInterface;
+
+    /**
+     * Area the entry applies to: `all`, `frontend` or `adminhtml`.
+     *
+     * @return string
+     */
+    public function getArea(): string;
+
+    /**
+     * Set the area the entry applies to: `all`, `frontend` or `adminhtml`.
+     *
+     * @param string $area
+     *
+     * @return $this
+     */
+    public function setArea(string $area): WhitelistInterface;
 
     /**
      * Get CreatedAt value

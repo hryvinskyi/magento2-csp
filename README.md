@@ -4,44 +4,39 @@
 [![Total Downloads](https://poser.pugx.org/hryvinskyi/magento2-csp/downloads)](https://packagist.org/packages/hryvinskyi/magento2-csp)
 [![License](https://poser.pugx.org/hryvinskyi/magento2-csp/license)](https://packagist.org/packages/hryvinskyi/magento2-csp)
 
-## Overview
+`Hryvinskyi_Csp` manages the Content Security Policy of a Magento 2 store from the admin: a whitelist of allowed
+sources per store view and area, collection of the violations browsers report, one-click conversion of reports into
+whitelist entries, and post-processing of the policy header that keeps it small without changing what it allows.
 
-The `Hryvinskyi_Csp` module is a Magento 2 extension that provides additional Content Security Policy (CSP) configurations.
-This module allows administrators to manage CSP whitelists from the Magento admin panel 
+Upgrading from 1.x? Read the [2.0.0 upgrade notes](CHANGELOG.md#200---2026-10-05) first.
 
 ## Features
- 1. **CSP Whitelist Management**: Administrators can manage CSP whitelists directly from the Magento admin panel.
- 2. **Store-Specific Configuration**: Module provides store view specific CSP configuration.
- 3. **Violation Reports**: The module collects and displays CSP violation reports, helping administrators identify and address security issues.
- 4. **One-Click Conversion**: Possibility to convert violation reports to whitelist rule with one click.
- 5. **Mass Convert Reports**: Bulk conversion of multiple CSP report groups to whitelist entries with automatic cleanup.
- 6. **Automatic URL Collection**: Automatically collects and adds all storefront URLs to the CSP whitelist.
- 7. **CSP Header Splitting**: Automatically splits large CSP headers into multiple smaller ones to prevent issues with header size limits.
- 8. **CSP Value Optimization**: Removes duplicate entries and redundant wildcard-covered values from CSP headers to reduce header size.
- 9. **Flexible Configuration**: The module provides various configuration options to enable or disable specific CSP features.
-10. **Admin Panel Integration**: The module integrates with the Magento admin panel, providing a user-friendly interface for managing CSP settings.
-11. **Import/Export**: Support for importing and exporting whitelist rules.
-12. **Automatic Script Hash Generation**: Command-line tool to scan CMS pages/blocks and configs for inline scripts and generate CSP hashes
-13. **Visual Hash Validation**: See at a glance if your script hashes are valid
-14. **Template Nonce Provider**: ViewModel class for easy CSP nonce generation in templates
-15. **Enhanced Caching**: Improved CSP policy caching with better serialization and cache management
-16. **Report Grouping**: Organized CSP violation reports into logical groups for better management
-17. **Redundancy Detection**: Visual indicators showing duplicate and redundant whitelist entries
-18. **Advanced Grid Filtering**: Filter whitelist entries by hash validation status and redundancy status
-19. **Advanced Grid Sorting**: Sort whitelist entries by computed columns (hash validation, redundancy)
-20. **Automatic Report Cleanup**: Scheduled cleanup of old violation reports by date or record count, with CLI command for manual execution
-21. **Default-Src Consolidation**: Automatically moves values shared across all directives into `default-src`, reducing header size by 40-70%
-22. **Subdomain-to-Wildcard Consolidation**: Automatically replaces groups of subdomains with wildcard entries (e.g., 3+ `*.google.com` subdomains become `*.google.com`)
-23. **Scheme and Path Stripping**: Removes redundant `https://` prefixes and `/path` suffixes from CSP host values
+
+- **Whitelist** of hosts, schemes and hashes per directive, store view and area (storefront, admin or both).
+  Entries are validated: no keywords, no `*`, no CSP3 sub-directives, no stores that do not exist.
+- **Violation reports** from the browser's legacy `report-uri` format and the Reporting API, grouped by governing
+  directive, blocked value, store view and area; size-limited and rate-limited per client.
+- **Conversion** of report groups into whitelist entries. Inline code, eval, `*` and `data:`/`blob:` in directives that
+  load code are refused. An existing entry with the same directive, value and area gains the store instead of being
+  duplicated.
+- **Import** of whitelist entries from CSV (including the grid's own export) and XML.
+- **Header optimisation**: duplicate sources, hosts covered by a wildcard, `https://` on secure pages and directives
+  that allow exactly what their fallback allows are removed. Every step is checked against an independent CSP3
+  evaluator in the test suite. Replacing subdomains with a wildcard is the one opt-in step that widens the policy, and
+  only for domains you list as trusted.
+- **Header splitting** for policies above a size limit: the parts together allow exactly what the single header allows.
+  When that is impossible the header is sent whole and the admin is told.
+- **Script hashes**: a console command renders CMS pages, CMS blocks and configuration values as the storefront does
+  and allows their inline scripts by hash.
+- **Report cleanup** by age or by count, nightly and from the console.
+- **Template API**: allow hosts or hashes for the current page from a template.
 
 ## Requirements
 
-- Magento 2.4.4 or higher
-- PHP 8.1 or higher
+- Magento 2.4.6 or later (developed against 2.4.6-p13 and later patch releases)
+- PHP 8.1 – 8.4 with the `dom`, `intl`, `json`, `libxml` and `mbstring` extensions
 
 ## Installation
-
-### Composer (recommended)
 
 ```bash
 composer require hryvinskyi/magento2-csp
@@ -51,276 +46,120 @@ bin/magento setup:di:compile
 bin/magento setup:static-content:deploy
 ```
 
-### Manual Installation
+## Admin
 
-1. Download the module and upload it to `app/code/Hryvinskyi/Csp`
-2. Enable the module and update the database:
+**System > Content Security Policy** has three pages:
 
-```bash
-bin/magento module:enable Hryvinskyi_Csp
-bin/magento setup:upgrade
-bin/magento setup:di:compile
-bin/magento setup:static-content:deploy
-```
+- **Whitelist** – add, edit, import, export and delete entries. Each entry has a directive, a value (a host or scheme
+  source, or a base64 digest with its algorithm), store views and an area. The grid flags duplicates, entries covered
+  by a wildcard in the same scope, and hashes that do not match their script.
+- **Violation Reports** – report groups with their reports. *Convert to Whitelist* allows the value for the group's
+  store view and area; *Skip* keeps recording without an alert; *Deny* stops recording.
+- **Configuration** – **Stores > Configuration > Security > Content Security Policy**.
 
-## Usage
+Permissions are under **System > Permissions > User Roles > Role Resources > System > Content Security Policy**:
+viewing and editing the whitelist, deleting and importing entries, viewing reports, changing their status, and
+converting them (converting also needs the whitelist edit permission).
 
-**Admin Panel Navigation**
+## Violation reports
 
-The module adds a new menu item in the admin panel:
+With **Collect violation reports** on, the report URI of every page points to this module: storefront pages report to
+`/csp_report_watch` of their own store view, admin pages to `/csp_report_watch/admin/index` of the admin host. This
+replaces the Report URI set in core's Mode groups while it is on. A report is recorded only when its page belongs to
+the store view (or admin) that receives it; extension-injected resources are ignored, and query strings and fragments
+are removed from stored URLs.
 
- 1. **Content Security Policy**: Main menu item providing access to CSP features
-   - **Whitelist**: Manage CSP whitelist rules
-   - **Violation Report**: View and manage CSP violation reports
-   - **Configuration**: Configure CSP settings
-
-### Managing Whitelist Rules
-
- 1. Navigate to **System** > **Content Security Policy** > **Whitelist**
- 2. Click **Add** to create a whitelist entry manually
- 3. Fill in required fields:
-    - **Identifier**: Unique name for the rule 
-    - **Policy**: CSP directive (e.g., script-src, style-src)
-    - **Value Type**: Type of value (URL, Domain, etc.)
-    - **Value**: The actual value to whitelist 
-    - **Store Views**: Select applicable store views 
-    - **Status**: Enable or disable the rule
-
-### Using CSP Nonces in Templates
-
-The module provides a CspNonceProvider ViewModel for easy nonce generation in templates:
+The rate limit counts violations per client IP address. **Behind a proxy or CDN** every request comes from the proxy
+unless Magento knows the client's address header; configure it, for example in `app/etc/di.xml`:
 
 ```xml
-<!-- In your layout XML -->
-<block name="your.block" template="Your_Module::template.phtml">
+<type name="Magento\Framework\HTTP\PhpEnvironment\RemoteAddress">
     <arguments>
-        <argument name="cspNonceProviderViewModel" xsi:type="object">Hryvinskyi\Csp\ViewModel\CspNonceProvider</argument>
+        <argument name="alternativeHeaders" xsi:type="array">
+            <item name="x-forwarded-for" xsi:type="string">HTTP_X_FORWARDED_FOR</item>
+        </argument>
+    </arguments>
+</type>
+```
+
+## Allowing sources from templates
+
+`Hryvinskyi\Csp\ViewModel\DynamicCspProvider` adds sources to the policy of the page being rendered:
+
+```xml
+<block name="map" template="Vendor_Module::map.phtml">
+    <arguments>
+        <argument name="csp" xsi:type="object">Hryvinskyi\Csp\ViewModel\DynamicCspProvider</argument>
     </arguments>
 </block>
 ```
 
-In your template (template.phtml)
-
 ```php
-<?php
-
-$cspNonceProviderViewModel = $block->getData('cspNonceProviderViewModel')
-
-$nonce = '';
-if ($cspNonceProviderViewModel) {
-    $nonce = $cspNonceProviderViewModel->getNonce();
-}
-?>
-
-<script<?= $nonce !== '' ? ' nonce="' . $nonce .'"' : '' ?>>
-    // Your inline script here
-</script>
+$block->getData('csp')->addScriptSrc(['https://maps.example.com']);
+$block->getData('csp')->addFrameSrc(['https://maps.example.com']);
 ```
-### Generating Script Hashes
 
-To make inline scripts work with CSP, you must generate cryptographic SHA hashes and add them to your whitelist. 
-The module provides a console tool that lets you review each script and approve the addition of its hash to your CSP configuration.
-Use the built-in CLI tool:
+Services can use `Hryvinskyi\Csp\Api\DynamicPolicyRegistryInterface::allow($directive, $hosts, $hashes, $self)`.
+Only the directives Magento renders are accepted (`script-src`, `style-src`, `img-src`, `frame-src`, …), never a CSP3
+sub-directive such as `script-src-elem`: adding one would stop it falling back to its parent.
+
+Sources added this way apply to the page that rendered the template. Magento keeps them with the cached block HTML,
+and Varnish keeps the whole header with the page. **With the built-in full-page cache**, a cache hit renders the
+policy again without rendering blocks, so sources added from templates are missing on cached pages; whitelist such
+sources in the admin instead.
+
+For inline scripts prefer `Magento\Csp\Api\InlineUtilInterface` / `SecureHtmlRenderer` (core) or, on Hyvä,
+`HyvaCsp::registerInlineScript()`. `Hryvinskyi\Csp\ViewModel\CspNonceProvider::getNonce()` returns a per-request nonce
+and must only be used on pages that are never cached.
+
+## Script hashes
 
 ```bash
-bin/magento hryvinskyi:csp:generate-script-hashes --type=page --type=block --store=1
+bin/magento hryvinskyi:csp:generate-script-hashes [--store=1] [--type=page --type=block --type=config] [--yes]
 ```
 
-Options:
- - `--type`: Specify which entity types to scan (page, block, config)
- - `--store`: Specify store ID (default is all stores)
+The command renders each active CMS page and block with the CMS template filter of the store view, and reads the
+configuration values that apply to it. Every inline script that a hash can allow (no `src`, no `nonce`, a JavaScript
+type, no form key or other per-request value) is shown with its hash and, after confirmation or with `--yes`, allowed
+for that store view on the storefront. Add `-v` to print each script.
 
-### Screenshots
-![console-screenshot-1.jpg](docs/images/console-screenshot-1.jpg)
-![final_summary.jpg](docs/images/final_summary.jpg)
+## Header optimisation and splitting
 
-### Configuration
-Navigate to **System** > **Content Security Policy** > **Configuration** or **Stores** > **Configuration** > **Security** > **Content Security Policy** to access module settings.
+All steps are off by default and work on the final header Magento renders.
 
-### CSP Header Splitting
+| Setting | Effect |
+|---|---|
+| Optimize policy headers | Master switch; removes duplicate sources |
+| Remove hosts covered by a wildcard | `www.example.com` goes when `*.example.com` in the same directive covers it (same scheme, port and path) |
+| Remove https:// from hosts on secure pages | `https://cdn.example.com/p` becomes `cdn.example.com/p` on HTTPS pages only |
+| Remove redundant directives | A fetch directive goes when its fallback allows exactly the same for every kind of request |
+| Replace subdomains of trusted domains with a wildcard | **Widens the policy**: N subdomains of a listed trusted domain become `*.domain` |
+| Split large policy headers | Splits above the size limit into headers that together allow exactly the same |
 
-CSP headers can grow large, especially when many domains are whitelisted. Some servers and proxies have limits on header sizes, which can cause issues with security policy enforcement.
+Splitting repeats `report-uri` in every header and copies `default-src` into the directives that fell back to it, so
+the headers together are larger than the single header. If one group of related directives alone exceeds the limit,
+the header is sent unsplit and **System Messages** shows it: check the response header size against your web server
+and proxy limits (`curl -sI https://your-store/ | wc -c`).
 
-This module includes CSP header splitting functionality that automatically splits large CSP headers into multiple smaller headers to ensure proper delivery.
+## Report cleanup
 
-To configure header splitting:
-
-1. Go to **Stores** > **Configuration** > **Security** > **Content Security Policy**
-2. In the **General** section, you'll find:
-    - **Enable CSP header splitting**: Toggle to enable/disable the feature
-    - **Max CSP header size (bytes)**: Specify the maximum size for a single header before splitting occurs (default: 4096 bytes)
-
-When enabled, the module will monitor CSP header sizes and automatically split them if they exceed the configured maximum size.
-
-### CSP Value Optimization
-
-Over time, CSP headers can accumulate duplicate entries and redundant values that are already covered by wildcard patterns. This increases header size unnecessarily.
-
-The module includes CSP value optimization that can:
-- **Remove exact duplicates**: Eliminates entries like `data:` appearing multiple times in the same directive
-- **Remove wildcard-covered entries**: Removes specific domains when a wildcard already covers them (e.g., removes `www.example.com` when `*.example.com` exists)
-- **Detect redundant wildcards**: Removes wildcards covered by broader wildcards (e.g., `*.sub.example.com` when `*.example.com` exists)
-- **Warn about unrestricted wildcards**: Logs a warning when `*` is used, which makes all other entries redundant
-
-To configure value optimization:
-
-1. Go to **Stores** > **Configuration** > **Security** > **Content Security Policy**
-2. In the **General** section, you'll find:
-    - **Enable CSP value optimization**: Toggle to enable/disable duplicate removal
-    - **Enable redundant wildcard removal**: Toggle to enable/disable wildcard coverage analysis (requires optimization to be enabled)
-
-**Example optimization:**
-
-Before:
-```
-script-src 'self' data: *.example.com www.example.com api.example.com data: 'unsafe-inline'
-```
-
-After (with both options enabled):
-```
-script-src 'self' 'unsafe-inline' data: *.example.com
-```
-
-The optimization removes:
-- Duplicate `data:` entry
-- `www.example.com` and `api.example.com` (covered by `*.example.com`)
-
-When debug mode is enabled, the module logs details about removed entries and bytes saved.
-
-### Default-Src Consolidation
-
-When multiple CSP directives share common values, the header repeats those values in every directive. The default-src consolidation feature identifies values present in **all** fallback-eligible directives and moves them into `default-src`, removing them from individual directives.
-
-**Example:**
-
-Before:
-```
-script-src 'self' cdn.example.com 'unsafe-eval'; style-src 'self' cdn.example.com 'unsafe-inline'; img-src 'self' cdn.example.com data:
-```
-
-After (with consolidation enabled):
-```
-default-src 'self' cdn.example.com; script-src 'unsafe-eval'; style-src 'unsafe-inline'; img-src data:
-```
-
-This can reduce header size by **40-70%** depending on how many values are shared.
-
-To enable:
-1. Go to **Stores** > **Configuration** > **Security** > **Content Security Policy**
-2. Set **Enable CSP value optimization** to **Yes**
-3. Set **Enable default-src consolidation** to **Yes**
-
-**Note:** `frame-ancestors`, `base-uri`, and `form-action` are excluded from consolidation since they do not inherit from `default-src` per the CSP specification. Consolidation is also skipped when `default-src` already contains `'none'`.
-
-### Subdomain-to-Wildcard Consolidation
-
-When multiple subdomains of the same parent domain are whitelisted, the module can automatically consolidate them into a single wildcard entry.
-
-**Example (threshold: 3):**
-
-Before:
-```
-script-src api.google.com maps.google.com fonts.google.com analytics.google.com
-```
-
-After:
-```
-script-src *.google.com
-```
-
-To configure:
-1. Go to **Stores** > **Configuration** > **Security** > **Content Security Policy**
-2. Set **Enable CSP value optimization** to **Yes**
-3. Set **Enable subdomain-to-wildcard consolidation** to **Yes**
-4. Set **Subdomain wildcard threshold** (default: 3) — the minimum number of subdomains required to trigger consolidation
-
-**Note:** Port-bearing hosts (e.g., `api.example.com:8080`) are excluded from consolidation since wildcards do not cover port-specific origins.
-
-### Scheme and Path Stripping
-
-CSP host-source `example.com` already matches both `http://` and `https://` origins. The scheme and path stripping feature removes redundant scheme prefixes and path suffixes from host values, reducing header size and improving deduplication.
-
-**Example:**
-
-Before:
-```
-script-src https://cdn.example.com https://api.example.com/v1 http://cdn.example.com
-```
-
-After (with stripping enabled):
-```
-script-src api.example.com cdn.example.com
-```
-
-To enable:
-1. Go to **Stores** > **Configuration** > **Security** > **Content Security Policy**
-2. Set **Enable CSP value optimization** to **Yes**
-3. Set **Enable scheme and path stripping** to **Yes**
-
-Keywords (`'self'`, `data:`, `https:`, etc.), hashes, and nonces are never stripped. Ports are preserved.
-
-### Redundancy Detection
-
-The whitelist grid includes visual indicators to help identify duplicate and redundant entries:
-
-**Status Indicators:**
-- **Unique** (green): The entry is unique within its policy directive
-- **Duplicate** (yellow): An exact duplicate of another entry exists
-- **Redundant** (orange): The entry is covered by a wildcard pattern (e.g., `www.example.com` when `*.example.com` exists)
-- **N/A** (gray): Not applicable for non-host value types (hash, nonce, keyword)
-
-**Filtering and Sorting:**
-
-Both the **Hash Validation** and **Redundancy Status** columns support:
-- **Filtering**: Use the dropdown filter to show only entries with a specific status
-- **Sorting**: Click the column header to sort entries by their status
-
-This helps you quickly identify and clean up redundant whitelist entries to keep your CSP configuration optimized.
-
-**Example Use Cases:**
-1. Filter by "Duplicate" to find and remove duplicate entries
-2. Filter by "Redundant" to find entries that can be safely removed because they're covered by wildcards
-3. Sort by "Hash Validation" to group invalid hashes together for review
-
-### Report Cleanup
-
-The `hryvinskyi_csp_violation_report` table can grow very large over time. The module provides automatic and manual cleanup options. Aggregated counts in the report group table are preserved.
-
-**Automatic cleanup (cron):**
-
-1. Go to **Stores** > **Configuration** > **Security** > **Content Security Policy** > **Report Cleanup**
-2. Set **Enable automatic cleanup** to **Yes**
-3. Choose a mode:
-   - **By Date**: Delete reports older than N days (default: 30)
-   - **By Record Count**: Keep only the N most recent reports
-4. Set the threshold value
-
-The cron job runs daily at 2:00 AM.
-
-**Manual cleanup (CLI):**
+Enabled by default: every night reports not seen for 30 days are deleted, together with pending report groups left
+without reports. Change the mode (by date or by record count) and threshold under **Violation Report Cleanup**.
 
 ```bash
-# Use config values
-bin/magento hryvinskyi:csp:report:clean
-
-# Override mode and threshold
-bin/magento hryvinskyi:csp:report:clean --mode=date --threshold=30
-
-# Keep only 1000 newest records
-bin/magento hryvinskyi:csp:report:clean --mode=count --threshold=1000
-
-# Dry run — see what would be deleted without deleting
-bin/magento hryvinskyi:csp:report:clean --dry-run
+bin/magento hryvinskyi:csp:report:clean                        # configured mode and threshold
+bin/magento hryvinskyi:csp:report:clean --mode=count -t 1000    # keep the 1000 most recently seen
+bin/magento hryvinskyi:csp:report:clean --dry-run               # only count
 ```
 
 ## Support
-If you encounter any issues or have questions, please contact the author or open an issue on GitHub.
+
+Open an issue on [GitHub](https://github.com/hryvinskyi/magento2-csp/issues).
 
 ## License
-This module is licensed under the MIT License - see the LICENSE file for details.
+
+MIT
 
 ## Author
 
-Volodymyr Hryvinskyi  
-Email: volodymyr@hryvinskyi.com  
-GitHub: https://github.com/hryvinskyi
+Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>

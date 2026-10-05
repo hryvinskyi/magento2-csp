@@ -7,65 +7,94 @@
  */
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
-    <preference for="Hryvinskyi\Csp\Api\ConfigInterface" type="Hryvinskyi\Csp\Model\Config"/>
+    <!-- Configuration readers -->
+    <preference for="Hryvinskyi\Csp\Api\Config\RulesConfigInterface" type="Hryvinskyi\Csp\Model\Config"/>
+    <preference for="Hryvinskyi\Csp\Api\Config\OptimizationConfigInterface" type="Hryvinskyi\Csp\Model\Config"/>
+    <preference for="Hryvinskyi\Csp\Api\Config\HeaderSplittingConfigInterface" type="Hryvinskyi\Csp\Model\Config"/>
+    <preference for="Hryvinskyi\Csp\Api\Config\ReportingConfigInterface" type="Hryvinskyi\Csp\Model\Config"/>
+    <preference for="Hryvinskyi\Csp\Api\Config\ReportCleanupConfigInterface" type="Hryvinskyi\Csp\Model\Config"/>
+
+    <!-- Data and repositories -->
+    <preference for="Hryvinskyi\Csp\Api\Data\WhitelistInterface" type="Hryvinskyi\Csp\Model\Whitelist"/>
     <preference for="Hryvinskyi\Csp\Api\Data\ReportInterface" type="Hryvinskyi\Csp\Model\Report"/>
     <preference for="Hryvinskyi\Csp\Api\Data\ReportGroupInterface" type="Hryvinskyi\Csp\Model\ReportGroup"/>
-    <preference for="Hryvinskyi\Csp\Api\Data\WhitelistInterface" type="Hryvinskyi\Csp\Model\Whitelist"/>
+    <preference for="Hryvinskyi\Csp\Api\Data\ViolationInterface" type="Hryvinskyi\Csp\Model\Report\Violation"/>
+    <preference for="Hryvinskyi\Csp\Api\Data\PolicyInterface" type="Hryvinskyi\Csp\Model\Policy\Policy"/>
+    <preference for="Hryvinskyi\Csp\Api\Data\WhitelistSearchResultsInterface" type="Hryvinskyi\Csp\Model\WhitelistSearchResults"/>
+    <preference for="Hryvinskyi\Csp\Api\Data\ReportSearchResultsInterface" type="Hryvinskyi\Csp\Model\ReportSearchResults"/>
+    <preference for="Hryvinskyi\Csp\Api\Data\ReportGroupSearchResultsInterface" type="Hryvinskyi\Csp\Model\ReportGroupSearchResults"/>
     <preference for="Hryvinskyi\Csp\Api\WhitelistRepositoryInterface" type="Hryvinskyi\Csp\Model\WhitelistRepository"/>
     <preference for="Hryvinskyi\Csp\Api\ReportRepositoryInterface" type="Hryvinskyi\Csp\Model\ReportRepository"/>
     <preference for="Hryvinskyi\Csp\Api\ReportGroupRepositoryInterface" type="Hryvinskyi\Csp\Model\ReportGroupRepository"/>
-    <preference for="Hryvinskyi\Csp\Api\CspHeaderProcessorInterface" type="Hryvinskyi\Csp\Model\HeaderSplitter\LaminasCspHeaderProcessor"/>
-    <preference for="Hryvinskyi\Csp\Api\CspHeaderSplitterInterface" type="Hryvinskyi\Csp\Model\HeaderSplitter\LaminasCspHeaderSplitter"/>
-    <preference for="Hryvinskyi\Csp\Api\CspValueOptimizerInterface" type="Hryvinskyi\Csp\Model\HeaderSplitter\CspValueOptimizer"/>
-    <preference for="Hryvinskyi\Csp\Api\LaminasPluginRegistrarInterface" type="Hryvinskyi\Csp\Model\HeaderSplitter\LaminasPluginRegistrar"/>
-    <preference for="Hryvinskyi\Csp\Api\Data\ReportSearchResultsInterface" type="Hryvinskyi\Csp\Model\ReportSearchResults"/>
-    <preference for="Hryvinskyi\Csp\Api\Data\ReportGroupSearchResultsInterface" type="Hryvinskyi\Csp\Model\ReportGroupSearchResults"/>
-    <preference for="Hryvinskyi\Csp\Api\Data\WhitelistSearchResultsInterface" type="Hryvinskyi\Csp\Model\WhitelistSearchResults"/>
-
-    <preference for="Hryvinskyi\Csp\Api\Whitelist\SearchCriteria\AddActiveFilterInterface" type="Hryvinskyi\Csp\Model\Whitelist\SearchCriteria\AddActiveFilter"/>
-    <preference for="Hryvinskyi\Csp\Api\Whitelist\SearchCriteria\AddStoreFilterInterface" type="Hryvinskyi\Csp\Model\Whitelist\SearchCriteria\AddStoreFilter"/>
-
-    <preference for="Hryvinskyi\Csp\Model\Whitelist\WhitelistManagerInterface" type="Hryvinskyi\Csp\Model\Whitelist\WhitelistManager"/>
-    <preference for="Hryvinskyi\Csp\Model\Whitelist\MassConvertManagerInterface" type="Hryvinskyi\Csp\Model\Whitelist\MassConvertManager"/>
-    <preference for="Hryvinskyi\Csp\Model\Whitelist\Command\GetAllActiveWhitelistByStoreIdInterface" type="Hryvinskyi\Csp\Model\Whitelist\Command\GetAllActiveWhitelistByStoreId"/>
     <preference for="Hryvinskyi\Csp\Model\Whitelist\Command\GetListInterface" type="Hryvinskyi\Csp\Model\Whitelist\Command\GetList"/>
 
-    <preference for="Hryvinskyi\Csp\Model\Report\MassActionInterface" type="Hryvinskyi\Csp\Model\Report\MassAction"/>
-    <preference for="Hryvinskyi\Csp\Model\ReportGroup\MassActionInterface" type="Hryvinskyi\Csp\Model\ReportGroup\MassAction"/>
-    <preference for="Hryvinskyi\Csp\Model\Cache\CacheCleanerInterface" type="Hryvinskyi\Csp\Model\Cache\CacheCleaner"/>
-    <preference for="Hryvinskyi\Csp\Model\Report\Command\SaveFromCspReportInterface" type="Hryvinskyi\Csp\Model\Report\Command\SaveFromCspReport"/>
-    <preference for="Hryvinskyi\Csp\Model\Report\Command\CspReportConverterInterface" type="Hryvinskyi\Csp\Model\Report\Command\CspReportConverter"/>
-
-    <preference for="Hryvinskyi\Csp\Model\ReportGroup\Command\SaveFromCspReportInterface" type="Hryvinskyi\Csp\Model\ReportGroup\Command\SaveFromCspReport"/>
-
-    <preference for="Hryvinskyi\Csp\Api\ReportCleanupInterface" type="Hryvinskyi\Csp\Model\Report\Cleanup"/>
-
+    <!-- Services -->
+    <preference for="Hryvinskyi\Csp\Api\DynamicPolicyRegistryInterface" type="Hryvinskyi\Csp\Model\DynamicPolicyRegistry"/>
     <preference for="Hryvinskyi\Csp\Api\CspHashGeneratorInterface" type="Hryvinskyi\Csp\Model\CspHashGenerator"/>
     <preference for="Hryvinskyi\Csp\Api\RedundancyCalculatorInterface" type="Hryvinskyi\Csp\Model\Whitelist\RedundancyCalculator"/>
     <preference for="Hryvinskyi\Csp\Api\HashValidationCalculatorInterface" type="Hryvinskyi\Csp\Model\Whitelist\HashValidationCalculator"/>
-    <preference for="Hryvinskyi\Csp\Api\DomainMatcherInterface" type="Hryvinskyi\Csp\Model\DomainMatcher"/>
-    <preference for="Hryvinskyi\Csp\Api\PolicyCollectionMergerInterface" type="Hryvinskyi\Csp\Model\PolicyCollectionMerger"/>
-    <preference for="Hryvinskyi\Csp\Api\BlockedUriValueExtractorInterface" type="Hryvinskyi\Csp\Model\BlockedUriValueExtractor"/>
-    <preference for="Hryvinskyi\Csp\Api\CspReportParserInterface" type="Hryvinskyi\Csp\Model\CspReportParser"/>
+    <preference for="Hryvinskyi\Csp\Api\ReportCleanupInterface" type="Hryvinskyi\Csp\Model\Report\Cleanup"/>
+    <preference for="Hryvinskyi\Csp\Model\Policy\DocumentSchemeInterface" type="Hryvinskyi\Csp\Model\Response\RequestDocumentScheme"/>
+    <preference for="Hryvinskyi\Csp\Model\Store\StoreHostsProviderInterface" type="Hryvinskyi\Csp\Model\Store\StoreHostsProvider"/>
+    <preference for="Hryvinskyi\Csp\Model\Report\RateLimiter\ReportRateLimiterInterface" type="Hryvinskyi\Csp\Model\Report\RateLimiter\CacheReportRateLimiter"/>
+    <preference for="Hryvinskyi\Csp\Model\Report\ViolationRecorderInterface" type="Hryvinskyi\Csp\Model\Report\ViolationRecorder"/>
 
-    <!-- Cache-aware CSP System -->
-    <preference for="Hryvinskyi\Csp\Api\Cache\CspPolicyCacheStrategyInterface" type="Hryvinskyi\Csp\Model\Cache\CspPolicyCacheStrategy"/>
-    <preference for="Hryvinskyi\Csp\Api\Serializer\CspPolicySerializerInterface" type="Hryvinskyi\Csp\Model\Serializer\CspPolicySerializer"/>
-    <preference for="Hryvinskyi\Csp\Api\CachedCspManagerInterface" type="Hryvinskyi\Csp\Model\CachedCspManager"/>
-
-    <!-- Block-level CSP Cache System -->
-    <preference for="Hryvinskyi\Csp\Api\Block\BlockCacheDetectorInterface" type="Hryvinskyi\Csp\Model\Block\BlockCacheDetector"/>
-    <preference for="Hryvinskyi\Csp\Api\Block\CspPolicyTrackerInterface" type="Hryvinskyi\Csp\Model\Block\CspPolicyTracker"/>
-    <preference for="Hryvinskyi\Csp\Api\Cache\BlockCspPolicyCacheInterface" type="Hryvinskyi\Csp\Model\Cache\BlockCspPolicyCache"/>
-    <preference for="Hryvinskyi\Csp\Api\Block\BlockCspPolicyHandlerInterface" type="Hryvinskyi\Csp\Model\Block\BlockCspPolicyHandler"/>
-
-    <type name="Hryvinskyi\Csp\Controller\Adminhtml\Whitelist\Import">
+    <!-- Header optimisation steps, applied in sort order -->
+    <type name="Hryvinskyi\Csp\Model\Policy\PolicyOptimizer">
         <arguments>
-            <argument name="filesystem" xsi:type="object">Magento\Framework\Filesystem</argument>
-            <argument name="csvProcessor" xsi:type="object">Magento\Framework\File\Csv</argument>
+            <argument name="steps" xsi:type="array">
+                <item name="remove_duplicate_sources" xsi:type="object" sortOrder="10">Hryvinskyi\Csp\Model\Policy\Optimization\RemoveDuplicateSources</item>
+                <item name="strip_host_schemes" xsi:type="object" sortOrder="20">Hryvinskyi\Csp\Model\Policy\Optimization\StripHostSchemes</item>
+                <item name="remove_covered_hosts" xsi:type="object" sortOrder="30">Hryvinskyi\Csp\Model\Policy\Optimization\RemoveCoveredHosts</item>
+                <item name="consolidate_trusted_subdomains" xsi:type="object" sortOrder="40">Hryvinskyi\Csp\Model\Policy\Optimization\ConsolidateTrustedSubdomains</item>
+                <item name="remove_redundant_directives" xsi:type="object" sortOrder="50">Hryvinskyi\Csp\Model\Policy\Optimization\RemoveRedundantDirectives</item>
+            </argument>
         </arguments>
     </type>
 
+    <!-- Violation report parsers -->
+    <type name="Hryvinskyi\Csp\Model\Report\Parser\ParserPool">
+        <arguments>
+            <argument name="parsers" xsi:type="array">
+                <item name="legacy" xsi:type="object">Hryvinskyi\Csp\Model\Report\Parser\LegacyReportParser</item>
+                <item name="reporting_api" xsi:type="object">Hryvinskyi\Csp\Model\Report\Parser\ReportingApiParser</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <!-- Report cleanup modes -->
+    <type name="Hryvinskyi\Csp\Model\Report\Cleanup">
+        <arguments>
+            <argument name="strategies" xsi:type="array">
+                <item name="date" xsi:type="object">Hryvinskyi\Csp\Model\Report\Cleanup\ByAgeStrategy</item>
+                <item name="count" xsi:type="object">Hryvinskyi\Csp\Model\Report\Cleanup\ByCountStrategy</item>
+            </argument>
+            <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
+        </arguments>
+    </type>
+
+    <!-- Whitelist import formats -->
+    <type name="Hryvinskyi\Csp\Model\Import\RowReaderPool">
+        <arguments>
+            <argument name="readers" xsi:type="array">
+                <item name="csv" xsi:type="object">Hryvinskyi\Csp\Model\Import\CsvRowReader</item>
+                <item name="xml" xsi:type="object">Hryvinskyi\Csp\Model\Import\XmlRowReader</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <!-- Content scanned for inline scripts -->
+    <type name="Hryvinskyi\Csp\Model\ScriptHash\StoreContentScanner">
+        <arguments>
+            <argument name="sources" xsi:type="array">
+                <item name="page" xsi:type="object">Hryvinskyi\Csp\Model\ScriptHash\CmsPageSource</item>
+                <item name="block" xsi:type="object">Hryvinskyi\Csp\Model\ScriptHash\CmsBlockSource</item>
+                <item name="config" xsi:type="object">Hryvinskyi\Csp\Model\ScriptHash\ConfigValueSource</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <!-- Admin grids -->
     <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">
         <arguments>
             <argument name="collections" xsi:type="array">
@@ -93,74 +122,25 @@
             <argument name="resourceModel" xsi:type="string">Hryvinskyi\Csp\Model\ResourceModel\Whitelist</argument>
         </arguments>
     </type>
-
-
     <type name="Hryvinskyi\Csp\Model\Config\Source\Algorithm">
         <arguments>
             <argument name="algorithms" xsi:type="array">
-                <item name="sha256" xsi:type="string" sortOrder="1" translatable="true">sha256</item>
-                <item name="sha384" xsi:type="string" sortOrder="2" translatable="true">sha384</item>
-                <item name="sha512" xsi:type="string" sortOrder="3" translatable="true">sha512</item>
+                <item name="sha256" xsi:type="string" sortOrder="1">sha256</item>
+                <item name="sha384" xsi:type="string" sortOrder="2">sha384</item>
+                <item name="sha512" xsi:type="string" sortOrder="3">sha512</item>
             </argument>
         </arguments>
     </type>
     <type name="Hryvinskyi\Csp\Model\Config\Source\Value">
         <arguments>
             <argument name="values" xsi:type="array">
-                <item name="host" xsi:type="string" sortOrder="1" translatable="true">host</item>
-                <item name="hash" xsi:type="string" sortOrder="2" translatable="true">hash</item>
+                <item name="host" xsi:type="string" sortOrder="1">host</item>
+                <item name="hash" xsi:type="string" sortOrder="2">hash</item>
             </argument>
         </arguments>
     </type>
 
-    <!-- Caching -->
-    <virtualType name="WhitelistCollectionCacheFetchStrategy" type="Magento\Framework\Data\Collection\Db\FetchStrategy\Cache">
-        <arguments>
-            <argument name="cacheTags" xsi:type="array">
-                <item name="whitelist" xsi:type="string">whitelist_collection</item>
-            </argument>
-        </arguments>
-    </virtualType>
-    <virtualType name="WhitelistCollectionCache" type="Hryvinskyi\Csp\Model\ResourceModel\Whitelist\Collection">
-        <arguments>
-            <argument name="fetchStrategy" xsi:type="object">WhitelistCollectionCacheFetchStrategy</argument>
-        </arguments>
-    </virtualType>
-    <virtualType name="WhitelistCollectionCacheFactory" type="Hryvinskyi\Csp\Model\ResourceModel\Whitelist\CollectionFactory">
-        <arguments>
-            <argument name="instanceName" xsi:type="string">WhitelistCollectionCache</argument>
-        </arguments>
-    </virtualType>
-    <virtualType name="WhitelistGetListCache" type="Hryvinskyi\Csp\Model\Whitelist\Command\GetList">
-        <arguments>
-            <argument name="collectionFactory" xsi:type="object">WhitelistCollectionCacheFactory</argument>
-        </arguments>
-    </virtualType>
-    <virtualType name="WhitelistRepositoryCache" type="Hryvinskyi\Csp\Model\WhitelistRepository">
-        <arguments>
-            <argument name="getList" xsi:type="object">WhitelistGetListCache</argument>
-        </arguments>
-    </virtualType>
-    <virtualType name="GetAllActiveWhitelistFromCacheByStoreId" type="Hryvinskyi\Csp\Model\Whitelist\Command\GetAllActiveWhitelistByStoreId">
-        <arguments>
-            <argument name="whitelistRepository" xsi:type="object">WhitelistRepositoryCache</argument>
-        </arguments>
-    </virtualType>
-    <type name="Hryvinskyi\Csp\Model\Collector\WhitelistDbCollector">
-        <arguments>
-            <argument name="getAllActiveWhitelistByStoreId" xsi:type="object">GetAllActiveWhitelistFromCacheByStoreId</argument>
-        </arguments>
-    </type>
-    <!-- // Caching -->
-
-    <virtualType name="Hryvinskyi\Csp\Model\Collector\CspWhitelistXml\Reader" type="Magento\Csp\Model\Collector\CspWhitelistXml\Reader">
-        <arguments>
-            <argument name="converter" xsi:type="object">Hryvinskyi\Csp\Model\Collector\CspWhitelistXml\Converter</argument>
-            <argument name="schemaLocator" xsi:type="object">Magento\Csp\Model\Collector\CspWhitelistXml\SchemaLocator</argument>
-            <argument name="fileResolver" xsi:type="object">Magento\Csp\Model\Collector\CspWhitelistXml\FileResolver</argument>
-            <argument name="fileName" xsi:type="string">csp_whitelist.xml</argument>
-        </arguments>
-    </virtualType>
+    <!-- Policy sources and header processing -->
     <type name="Magento\Csp\Model\CompositePolicyCollector">
         <arguments>
             <argument name="collectors" xsi:type="array">
@@ -169,18 +149,17 @@
             </argument>
         </arguments>
     </type>
+    <type name="Magento\Csp\Api\ModeConfigManagerInterface">
+        <plugin name="hryvinskyi_csp_apply_reporting_mode" type="Hryvinskyi\Csp\Plugin\Csp\Api\ModeConfigManagerInterface\ApplyReportingMode"/>
+    </type>
+    <type name="Magento\Csp\Api\CspRendererInterface">
+        <plugin name="hryvinskyi_csp_process_headers" type="Hryvinskyi\Csp\Plugin\Csp\Api\CspRendererInterface\ProcessCspHeaders"/>
+    </type>
     <type name="Magento\Framework\App\Response\HttpInterface">
         <plugin name="fix_send_csp_report" type="Hryvinskyi\Csp\Plugin\Framework\App\Response\HttpInterface\FixSendCspReport"/>
     </type>
-    <type name="Magento\Framework\App\Config\ScopeConfigInterface">
-        <plugin name="overwrite_csp_config_values" type="Hryvinskyi\Csp\Plugin\Framework\App\Config\ScopeConfigInterface\OverwriteCspConfigValues"/>
-    </type>
-    <type name="Magento\Csp\Api\CspRendererInterface">
-        <plugin name="csp_cached_policy_loader" type="Hryvinskyi\Csp\Plugin\Csp\Api\CspRendererInterface\CachedPolicyLoader"/>
-        <plugin name="csp_header_splitter" type="Hryvinskyi\Csp\Plugin\Csp\Api\CspRendererInterface\HeaderSplitter"/>
-    </type>
 
-    <!-- Command Line -->
+    <!-- Command line -->
     <type name="Magento\Framework\Console\CommandList">
         <arguments>
             <argument name="commands" xsi:type="array">
@@ -191,14 +170,13 @@
         </arguments>
     </type>
 
-    <!-- Debugger for CSP Module -->
+    <!-- Module log: var/log/hryvinskyi/csp.log while debug mode is on -->
     <virtualType name="Hryvinskyi\Csp\Model\Handler" type="Hryvinskyi\Logger\Model\Handler">
         <arguments>
             <argument name="config" xsi:type="object">Hryvinskyi\Csp\Model\Config</argument>
             <argument name="fileName" xsi:type="string">/var/log/hryvinskyi/csp.log</argument>
         </arguments>
     </virtualType>
-
     <virtualType name="Hryvinskyi\Csp\Model\Logger" type="Hryvinskyi\Logger\Model\Logger">
         <arguments>
             <argument name="name" xsi:type="string">HryvinskyiCsp</argument>
@@ -207,99 +185,34 @@
             </argument>
         </arguments>
     </virtualType>
-
-    <!-- Inject logger to classes -->
-    <type name="Hryvinskyi\Csp\Controller\Router">
+    <type name="Hryvinskyi\Csp\Model\Response\CspHeaderProcessor">
         <arguments>
             <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
         </arguments>
     </type>
-    <type name="Hryvinskyi\Csp\Controller\Index\Index">
+    <type name="Hryvinskyi\Csp\Model\Policy\PolicySplitter">
         <arguments>
             <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
         </arguments>
     </type>
-    <type name="Hryvinskyi\Csp\Model\HeaderSplitter\DefaultHeaderSplitter">
+    <type name="Hryvinskyi\Csp\Model\Whitelist\ActiveEntries">
         <arguments>
             <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
         </arguments>
     </type>
-    <type name="Hryvinskyi\Csp\Model\HeaderSplitter\LaminasPluginRegistrar">
+    <type name="Hryvinskyi\Csp\Model\Store\StoreHostsProvider">
         <arguments>
             <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
         </arguments>
     </type>
-    <type name="Hryvinskyi\Csp\Model\HeaderSplitter\LaminasCspHeaderSplitter">
+    <type name="Hryvinskyi\Csp\Model\Report\RateLimiter\CacheReportRateLimiter">
         <arguments>
             <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
-        </arguments>
-    </type>
-    <type name="Hryvinskyi\Csp\Model\HeaderSplitter\LaminasCspHeaderProcessor">
-        <arguments>
-            <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
-            <argument name="valueOptimizer" xsi:type="object">Hryvinskyi\Csp\Api\CspValueOptimizerInterface</argument>
-        </arguments>
-    </type>
-    <type name="Hryvinskyi\Csp\Model\HeaderSplitter\DefaultCspHeaderProcessor">
-        <arguments>
-            <argument name="valueOptimizer" xsi:type="object">Hryvinskyi\Csp\Api\CspValueOptimizerInterface</argument>
-            <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
-        </arguments>
-    </type>
-    <type name="Hryvinskyi\Csp\Model\HeaderSplitter\CspValueOptimizer">
-        <arguments>
-            <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
-            <argument name="config" xsi:type="object">Hryvinskyi\Csp\Api\ConfigInterface</argument>
-            <argument name="domainMatcher" xsi:type="object">Hryvinskyi\Csp\Api\DomainMatcherInterface</argument>
         </arguments>
     </type>
     <type name="Hryvinskyi\Csp\Cron\CleanOldReports">
         <arguments>
             <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
-        </arguments>
-    </type>
-    <type name="Hryvinskyi\Csp\Model\Report\Cleanup">
-        <arguments>
-            <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
-        </arguments>
-    </type>
-    <type name="Hryvinskyi\Csp\Model\Whitelist\WhitelistManager">
-        <arguments>
-            <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
-        </arguments>
-    </type>
-    <type name="Hryvinskyi\Csp\Plugin\Csp\Api\CspRendererInterface\HeaderSplitter">
-        <arguments>
-            <argument name="cspHeaderProcessor" xsi:type="object">Hryvinskyi\Csp\Api\CspHeaderProcessorInterface</argument>
-        </arguments>
-    </type>
-    <type name="Hryvinskyi\Csp\Plugin\Csp\Api\CspRendererInterface\CachedPolicyLoader">
-        <arguments>
-            <argument name="cachedCspManager" xsi:type="object">Hryvinskyi\Csp\Api\CachedCspManagerInterface</argument>
-            <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
-        </arguments>
-    </type>
-    <type name="Hryvinskyi\Csp\Model\Serializer\CspPolicySerializer">
-        <arguments>
-            <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
-        </arguments>
-    </type>
-
-    <!-- CSP Policy Cache Strategy Configuration -->
-    <type name="Hryvinskyi\Csp\Model\Cache\CspPolicyCacheStrategy">
-        <arguments>
-            <argument name="cache" xsi:type="object">Hryvinskyi\Csp\Model\Cache\Type\CspPolicies</argument>
-            <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
-            <argument name="enabled" xsi:type="boolean">true</argument>
-            <argument name="cacheLifetime" xsi:type="number">31536000</argument> <!-- 365 days -->
-        </arguments>
-    </type>
-
-    <!-- Cached CSP Manager Configuration -->
-    <type name="Hryvinskyi\Csp\Model\CachedCspManager">
-        <arguments>
-            <argument name="cacheStrategy" xsi:type="object">Hryvinskyi\Csp\Api\Cache\CspPolicyCacheStrategyInterface</argument>
-            <argument name="dynamicCollector" xsi:type="object">Magento\Csp\Model\Collector\DynamicCollector</argument>
         </arguments>
     </type>
 </config>

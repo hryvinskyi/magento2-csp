@@ -17,7 +17,9 @@ class CleanupMode implements OptionSourceInterface
     public const MODE_COUNT = 'count';
 
     /**
-     * @inheritDoc
+     * Options.
+     *
+     * @return list<array{value: mixed, label: mixed}>
      */
     public function toOptionArray(): array
     {

@@ -6,181 +6,146 @@
  * GitHub: https://github.com/hryvinskyi
  */
 -->
-
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
     <system>
         <section id="csp">
             <group id="general" translate="label" type="text" sortOrder="0" showInDefault="1" showInWebsite="1" showInStore="1">
                 <label>General</label>
-                <field id="enabled_rules" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="0">
-                    <label>Enable rules management</label>
+                <field id="enabled_rules" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Enable whitelist</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                    <comment>
-                        <![CDATA[CSP whitelist rules are defined in System > Content Security Policy > Whitelist. These rules will be merged with those defined in csp_whitelist.xml files.]]>
-                    </comment>
+                    <comment>Adds the entries of System > Content Security Policy > Whitelist to the policy, together with the csp_whitelist.xml files of installed modules.</comment>
                 </field>
-                <field id="enabled_reports" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="0" showInStore="0" canRestore="0">
-                    <label>Enable violation reports</label>
+                <field id="enabled_reports" translate="label comment" type="select" sortOrder="20" showInDefault="1" showInWebsite="0" showInStore="0" canRestore="1">
+                    <label>Collect violation reports</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                    <comment>
-                        <![CDATA[CSP violation reports will be collected in System > Content Security Policy > Violation Reports<br/>You can convert these reports into a whitelist rule.]]>
-                    </comment>
+                    <comment>Browsers send violations to this store, where they can be reviewed and turned into whitelist entries. While this is on, it replaces the Report URI set in the Mode groups below.</comment>
                 </field>
-                <field id="enable_restrict_mode_adminhtml" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="0" showInStore="0" canRestore="0">
-                    <label>Enable restrict mode (adminhtml)</label>
+                <field id="enable_restrict_mode_adminhtml" translate="label comment" type="select" sortOrder="30" showInDefault="1" showInWebsite="0" showInStore="0" canRestore="1">
+                    <label>Enforce the policy in the admin</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                    <comment>
-                        <![CDATA[CSP rules will be enforced and external resources that are not listed in your whitelist will be blocked by your visitors' browser.<br><strong>Please ensure you have allowed reCAPTCHA's script if you have it configured, otherwise you won't be able to log in to your backoffice.</strong>]]>
-                    </comment>
+                    <comment>Browsers block everything the admin policy does not allow. Whitelist every service the admin loads, such as reCAPTCHA, before you enable this, or you may not be able to sign in.</comment>
                 </field>
-                <field id="enable_restrict_mode_frontend" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="0">
-                    <label>Enable restrict mode (frontend)</label>
+                <field id="enable_restrict_mode_frontend" translate="label comment" type="select" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Enforce the policy on the storefront</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                    <comment>
-                        <![CDATA[CSP rules will be enforced and external resources that are not listed in your whitelist will be blocked by your visitors' browser.]]>
-                    </comment>
+                    <comment>Browsers block everything the storefront policy does not allow.</comment>
                 </field>
-                <field id="add_all_storefront_urls" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="0" showInStore="0" canRestore="0">
-                    <label>Add all storefront URLs</label>
+                <field id="add_all_storefront_urls" translate="label comment" type="select" sortOrder="50" showInDefault="1" showInWebsite="0" showInStore="0" canRestore="1">
+                    <label>Allow the hosts of every store view</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                    <comment>
-                        <![CDATA[Automatically add all your storefront URLs to the whitelist.]]>
-                    </comment>
+                    <comment>Adds the link, static and media hosts of all store views to the policy, for pages that load resources from another store view.</comment>
                 </field>
-                <field id="enable_header_splitting" translate="label comment" type="select" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="0">
-                    <label>Enable CSP header splitting</label>
+                <field id="enable_header_splitting" translate="label comment" type="select" sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Split large policy headers</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                    <comment>
-                        <![CDATA[<strong style="color:#e22626">Warning: Header splitting has fundamental limitations.</strong><br>
-                        When CSP is split into multiple HTTP headers, the browser enforces <strong>all headers simultaneously</strong> (intersection).
-                        Directives present in one header but absent in another will fall back to <code>default-src</code>, which may be more restrictive
-                        than intended, causing resources to be blocked even though they are whitelisted in the correct directive.]]>
-                    </comment>
+                    <comment>Sends a policy larger than the limit below as several headers that together allow exactly what the single header allows. Related directives stay together and report-uri is repeated in every header. When that is not possible the header is sent whole, and a message appears in the admin.</comment>
                 </field>
-                <field id="max_header_size" translate="label comment" type="text" sortOrder="21" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="0">
-                    <label>Max CSP header size (bytes)</label>
-                    <validate>validate-number validate-greater-than-zero</validate>
-                    <comment>
-                        <![CDATA[Maximum allowed size for a single CSP header part. Default is 4096 bytes.<br>
-                        The <code>default-src</code> and <code>report-uri</code> directives are included in every split part to maintain correct fallback behavior.]]>
-                    </comment>
+                <field id="max_header_size" translate="label comment" type="text" sortOrder="70" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Header size limit (bytes)</label>
+                    <validate>validate-digits validate-greater-than-zero</validate>
+                    <comment>Largest value of one header. The headers of a split policy together are larger than the single header. Check the limits of your web server and proxies.</comment>
                     <depends>
                         <field id="enable_header_splitting">1</field>
                     </depends>
                 </field>
-                <field id="enable_value_optimization" translate="label comment" type="select" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="0">
-                    <label>Enable CSP value optimization</label>
+                <field id="enable_value_optimization" translate="label comment" type="select" sortOrder="80" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Optimize policy headers</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                    <comment>
-                        <![CDATA[Remove duplicate values from CSP directives (e.g., duplicate 'data:' entries).]]>
-                    </comment>
+                    <comment>Removes duplicate sources. The steps below make the header smaller without changing what it allows, except for subdomain consolidation.</comment>
                 </field>
-                <field id="enable_redundant_wildcard_removal" translate="label comment" type="select" sortOrder="31" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="0">
-                    <label>Enable redundant wildcard removal</label>
+                <field id="enable_redundant_wildcard_removal" translate="label comment" type="select" sortOrder="90" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Remove hosts covered by a wildcard</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                    <comment>
-                        <![CDATA[Remove entries that are already covered by wildcards (e.g., remove 'www.example.com' when '*.example.com' exists).]]>
-                    </comment>
+                    <comment>Removes a host such as www.example.com when *.example.com in the same directive allows every URL it allows.</comment>
                     <depends>
                         <field id="enable_value_optimization">1</field>
                     </depends>
                 </field>
-                <field id="enable_scheme_path_stripping" translate="label comment" type="select" sortOrder="32" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="0">
-                    <label>Enable scheme and path stripping</label>
+                <field id="enable_scheme_path_stripping" translate="label comment" type="select" sortOrder="100" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Remove https:// from hosts on secure pages</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                    <comment>
-                        <![CDATA[Strip <code>https://</code> prefixes and <code>/path</code> suffixes from host values. In CSP, <code>example.com</code> already matches both HTTP and HTTPS origins.
-                        Keywords, hashes, nonces, and ports are preserved. The <code>report-uri</code> directive is never modified.]]>
-                    </comment>
+                    <comment>On an HTTPS page a host without a scheme allows HTTPS only, so the prefix can be dropped. Ports and paths are kept.</comment>
                     <depends>
                         <field id="enable_value_optimization">1</field>
                     </depends>
                 </field>
-                <field id="enable_default_src_consolidation" translate="label comment" type="select" sortOrder="33" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="0">
-                    <label>Enable default-src consolidation</label>
+                <field id="enable_default_src_consolidation" translate="label comment" type="select" sortOrder="110" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Remove redundant directives</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                    <comment>
-                        <![CDATA[When a directive's values are entirely shared across all other directives, remove it so the browser falls back to <code>default-src</code>.
-                        Directives with any unique values are left untouched. <code>default-src</code> only acts as a fallback when a directive is completely absent.
-                        <code>frame-ancestors</code>, <code>base-uri</code>, and <code>form-action</code> are excluded (they do not inherit from <code>default-src</code> per the CSP spec).]]>
-                    </comment>
+                    <comment>Removes a fetch directive when the directive it falls back to allows exactly the same for every kind of request. default-src, base-uri, form-action and frame-ancestors are never removed.</comment>
                     <depends>
                         <field id="enable_value_optimization">1</field>
                     </depends>
                 </field>
-                <field id="enable_subdomain_wildcard_consolidation" translate="label comment" type="select" sortOrder="34" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="0">
-                    <label>Enable subdomain-to-wildcard consolidation</label>
+                <field id="enable_subdomain_wildcard_consolidation" translate="label comment" type="select" sortOrder="120" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Replace subdomains of trusted domains with a wildcard</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                    <comment>
-                        <![CDATA[<strong style="color:#e22626">⚠ Security trade-off:</strong> When N+ subdomains of the same parent domain exist, replace them with <code>*.parent.com</code>.
-                        This allows <strong>any</strong> subdomain, including ones not originally whitelisted. Only enable if you trust all subdomains of consolidated domains.]]>
-                    </comment>
+                    <comment>Widens the policy: when enough subdomains of a trusted domain are allowed, they are replaced with *.domain, which allows every subdomain of it.</comment>
                     <depends>
                         <field id="enable_value_optimization">1</field>
                     </depends>
                 </field>
-                <field id="subdomain_wildcard_threshold" translate="label comment" type="text" sortOrder="35" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="0">
-                    <label>Subdomain wildcard threshold</label>
-                    <validate>validate-number validate-greater-than-zero</validate>
-                    <comment>
-                        <![CDATA[Minimum number of subdomains required to trigger wildcard consolidation. Default: 3.]]>
-                    </comment>
+                <field id="subdomain_wildcard_parents" translate="label comment" type="textarea" sortOrder="130" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Trusted domains</label>
+                    <backend_model>Hryvinskyi\Csp\Model\Config\Backend\TrustedParentDomains</backend_model>
+                    <comment>One domain per line, such as example.com. Only subdomains of these domains are replaced with a wildcard.</comment>
                     <depends>
                         <field id="enable_value_optimization">1</field>
                         <field id="enable_subdomain_wildcard_consolidation">1</field>
                     </depends>
                 </field>
-                <field id="debug_mode_enabled" translate="label comment" type="select" sortOrder="9999" showInDefault="1" showInWebsite="0" showInStore="0" canRestore="0">
-                    <label>Enable debug mode</label>
+                <field id="subdomain_wildcard_threshold" translate="label comment" type="text" sortOrder="140" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Subdomains needed for a wildcard</label>
+                    <validate>validate-digits validate-digits-range digits-range-2-1000</validate>
+                    <comment>Least number of allowed subdomains of a trusted domain that are replaced with a wildcard.</comment>
+                    <depends>
+                        <field id="enable_value_optimization">1</field>
+                        <field id="enable_subdomain_wildcard_consolidation">1</field>
+                    </depends>
+                </field>
+                <field id="debug_mode_enabled" translate="label comment" type="select" sortOrder="9999" showInDefault="1" showInWebsite="0" showInStore="0" canRestore="1">
+                    <label>Debug log</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                    <comment>
-                        <![CDATA[Enable debug mode for CSP.]]>
-                    </comment>
+                    <comment>Writes the module's diagnostics to var/log/hryvinskyi/csp.log.</comment>
                 </field>
             </group>
-            <group id="report_cleanup" translate="label" type="text" sortOrder="1" showInDefault="1" showInWebsite="0" showInStore="0">
-                <label>Report Cleanup</label>
+            <group id="report_ingestion" translate="label" type="text" sortOrder="1" showInDefault="1" showInWebsite="0" showInStore="0">
+                <label>Violation Report Limits</label>
+                <field id="rate_limit" translate="label comment" type="text" sortOrder="10" showInDefault="1" showInWebsite="0" showInStore="0" canRestore="1">
+                    <label>Violations per client per minute</label>
+                    <validate>validate-digits validate-greater-than-zero</validate>
+                    <comment>Further reports of a client are ignored until the next minute. Behind a proxy or CDN, configure Magento's remote address so that clients are told apart.</comment>
+                </field>
+                <field id="max_body_bytes" translate="label comment" type="text" sortOrder="20" showInDefault="1" showInWebsite="0" showInStore="0" canRestore="1">
+                    <label>Largest report (bytes)</label>
+                    <validate>validate-digits validate-greater-than-zero</validate>
+                    <comment>Larger report requests are ignored without being read.</comment>
+                </field>
+            </group>
+            <group id="report_cleanup" translate="label" type="text" sortOrder="2" showInDefault="1" showInWebsite="0" showInStore="0">
+                <label>Violation Report Cleanup</label>
                 <field id="enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="0" showInStore="0" canRestore="1">
-                    <label>Enable automatic cleanup</label>
+                    <label>Clean up automatically</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                    <comment>
-                        <![CDATA[Automatically clean old CSP violation reports via cron (daily at 2 AM).]]>
-                    </comment>
+                    <comment>Deletes old violation reports every night, and the pending report groups left without reports.</comment>
                 </field>
                 <field id="mode" translate="label comment" type="select" sortOrder="20" showInDefault="1" showInWebsite="0" showInStore="0" canRestore="1">
                     <label>Cleanup mode</label>
                     <source_model>Hryvinskyi\Csp\Model\Config\Source\CleanupMode</source_model>
-                    <comment>
-                        <![CDATA[<strong>By Date</strong>: delete reports older than the threshold (in days).<br/><strong>By Record Count</strong>: keep only the most recent N reports.]]>
-                    </comment>
+                    <comment>By date deletes reports not seen for the threshold in days; by record count keeps the threshold number of most recently seen reports.</comment>
                     <depends>
                         <field id="enabled">1</field>
                     </depends>
                 </field>
                 <field id="threshold" translate="label comment" type="text" sortOrder="30" showInDefault="1" showInWebsite="0" showInStore="0" canRestore="1">
                     <label>Threshold</label>
-                    <validate>validate-number validate-greater-than-zero</validate>
-                    <comment>
-                        <![CDATA[Number of days (date mode) or maximum records to keep (count mode). Default: 30.]]>
-                    </comment>
+                    <validate>validate-digits validate-greater-than-zero</validate>
+                    <comment>Days for the date mode, reports to keep for the record count mode.</comment>
                     <depends>
                         <field id="enabled">1</field>
                     </depends>
                 </field>
-            </group>
-            <group id="mode">
-                <group id="admin">
-                    <field id="report_uri" type="text" showInDefault="0" showInWebsite="0" showInStore="0"/>
-                </group>
-                <group id="storefront">
-                    <field id="report_uri" type="text" showInDefault="0" showInWebsite="0" showInStore="0"/>
-                </group>
-                <group id="admin_sales_order_create_index">
-                    <field id="report_uri" type="text" showInDefault="0" showInWebsite="0" showInStore="0"/>
-                </group>
-                <group id="storefront_checkout_index_index">
-                    <field id="report_uri" type="text" showInDefault="0" showInWebsite="0" showInStore="0"/>
-                </group>
             </group>
         </section>
     </system>

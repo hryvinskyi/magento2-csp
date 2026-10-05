@@ -9,242 +9,85 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Controller\Adminhtml\Whitelist;
 
-use Hryvinskyi\Csp\Api\WhitelistRepositoryInterface;
-use Hryvinskyi\Csp\Model\ResourceModel\Whitelist as WhitelistResource;
+use Hryvinskyi\Csp\Model\Import\WhitelistImporter;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
-use Magento\Framework\App\Filesystem\DirectoryList;
-use Magento\Framework\Controller\ResultFactory;
+use Magento\Framework\App\Action\HttpPostActionInterface;
+use Magento\Framework\App\Request\Http as HttpRequest;
 use Magento\Framework\Exception\LocalizedException;
-use Magento\Framework\File\Csv;
-use Magento\Framework\Filesystem;
-use Hryvinskyi\Csp\Api\Data\WhitelistInterfaceFactory;
-use Magento\MediaStorage\Model\File\Uploader;
 
-class Import extends Action
+/**
+ * Imports whitelist entries from an uploaded CSV or XML file, read in place from PHP's upload directory.
+ */
+class Import extends Action implements HttpPostActionInterface
 {
+    public const ADMIN_RESOURCE = 'Hryvinskyi_Csp::whitelist_import';
+    public const MAX_FILE_BYTES = 2097152;
+    private const FILE_FIELD = 'import_file';
+    private const MAX_REPORTED_ERRORS = 10;
+
+    /**
+     * @param Context $context
+     * @param WhitelistImporter $importer
+     */
     public function __construct(
         Context $context,
-        private readonly Filesystem $filesystem,
-        private readonly Csv $csvProcessor,
-        private readonly WhitelistInterfaceFactory $whitelistInterfaceFactory,
-        private readonly WhitelistRepositoryInterface $whitelistRepository,
-        private readonly WhitelistResource $whitelistResource
+        private readonly WhitelistImporter $importer
     ) {
         parent::__construct($context);
     }
+
     /**
-     * @inheritDoc
+     * @inheritdoc
      */
     public function execute()
     {
-        $resultRedirect = $this->resultFactory->create(ResultFactory::TYPE_REDIRECT);
-        $resultRedirect->setPath('hryvinskyi_csp/whitelist/index');
-
         try {
-            if (!isset($_FILES['import_file']) || !$_FILES['import_file']['name']) {
-                throw new LocalizedException(__('Please select a file to import.'));
+            [$path, $extension] = $this->uploadedFile();
+            $result = $this->importer->import($path, $extension);
+            $this->messageManager->addSuccessMessage((string)__(
+                '%1 whitelist entry(ies) created, %2 updated.',
+                $result['created'],
+                $result['updated']
+            ));
+            foreach (array_slice($result['errors'], 0, self::MAX_REPORTED_ERRORS) as $error) {
+                $this->messageManager->addErrorMessage($error);
             }
-
-            $fileUploader = $this->_objectManager->create(
-                Uploader::class,
-                ['fileId' => 'import_file']
-            );
-
-            // Set allowed extensions
-            $fileUploader->setAllowedExtensions(['csv', 'xml']);
-
-            // Validate file
-            $fileUploader->validateFile();
-
-            $importPath = $this->filesystem->getDirectoryWrite(DirectoryList::VAR_DIR)->getAbsolutePath('import/');
-
-            // Create directory if it doesn't exist
-            $this->filesystem->getDirectoryWrite(DirectoryList::VAR_DIR)->create('import');
-
-            // Save uploaded file
-            $result = $fileUploader->save($importPath);
-
-            if (!$result) {
-                throw new LocalizedException(__('File was not uploaded.'));
+            if (count($result['errors']) > self::MAX_REPORTED_ERRORS) {
+                $this->messageManager->addErrorMessage((string)__(
+                    '%1 more row(s) could not be imported.',
+                    count($result['errors']) - self::MAX_REPORTED_ERRORS
+                ));
             }
-
-            $filePath = $importPath . $result['file'];
-            $extension = pathinfo($filePath, PATHINFO_EXTENSION);
-
-            if ($extension === 'csv') {
-                $this->importCsv($filePath);
-            } elseif ($extension === 'xml') {
-                $this->importXml($filePath);
-            }
-
-            $this->messageManager->addSuccessMessage(__('Data has been imported successfully.'));
-
-        } catch (\Exception $e) {
-            $this->messageManager->addErrorMessage(__('Error during import: %1', $e->getMessage()));
+        } catch (LocalizedException $exception) {
+            $this->messageManager->addErrorMessage($exception->getMessage());
         }
 
-        return $resultRedirect;
+        return $this->resultRedirectFactory->create()->setPath('*/*/');
     }
 
     /**
-     * Import data from CSV file
+     * Temporary path and extension of the uploaded file.
      *
-     * @param string $filePath
-     * @return void
-     * @throws \Exception
+     * @return array{string, string}
+     * @throws LocalizedException
      */
-    private function importCsv(string $filePath): void
+    private function uploadedFile(): array
     {
-        $data = $this->csvProcessor->getData($filePath);
-        if (!$data || !isset($data[0])) {
-            throw new LocalizedException(__('The CSV file is empty or has an invalid format.'));
+        $request = $this->getRequest();
+        $file = $request instanceof HttpRequest ? $request->getFiles(self::FILE_FIELD) : null;
+        $tmpName = is_array($file) ? ($file['tmp_name'] ?? null) : null;
+        $name = is_array($file) ? ($file['name'] ?? null) : null;
+        $size = is_array($file) ? ($file['size'] ?? null) : null;
+        if (!is_array($file) || ($file['error'] ?? null) !== UPLOAD_ERR_OK
+            || !is_string($tmpName) || !is_string($name) || !is_uploaded_file($tmpName)
+        ) {
+            throw new LocalizedException(__('Choose a file to import.'));
+        }
+        if (!is_numeric($size) || (int)$size > self::MAX_FILE_BYTES) {
+            throw new LocalizedException(__('The file is larger than %1 MB.', self::MAX_FILE_BYTES / 1048576));
         }
 
-        // Get the headers from the first row
-        $headers = $data[0];
-        unset($data[0]);
-
-        foreach ($data as $row) {
-            if (count($row) !== count($headers)) {
-                continue; // Skip invalid rows
-            }
-
-            $rowData = array_combine($headers, $row);
-            $this->saveWhitelistData($rowData);
-        }
-    }
-
-    /**
-     * Import data from XML file
-     *
-     * @param string $filePath
-     * @return void
-     * @throws \Exception
-     */
-    private function importXml(string $filePath): void
-    {
-        $xmlData = simplexml_load_string(file_get_contents($filePath));
-
-        if (!$xmlData || !isset($xmlData->whitelist)) {
-            throw new LocalizedException(__('The XML file is empty or has an invalid format.'));
-        }
-
-        foreach ($xmlData->whitelist as $whitelist) {
-            $rowData = [];
-            foreach ($whitelist as $key => $value) {
-                $rowData[(string)$key] = (string)$value;
-            }
-            $this->saveWhitelistData($rowData);
-        }
-    }
-
-    /**
-     * Save whitelist data to the database
-     *
-     * @param array $data
-     * @return void
-     * @throws \Exception
-     */
-    private function saveWhitelistData(array $data): void
-    {
-        // Create a new whitelist model and set data
-        $whitelist = $this->whitelistInterfaceFactory->create();
-        $map = [
-            'identifier' => 'Identifier',
-            'status' => 'Status',
-            'policy' => 'Policy',
-            'value_type' => 'Value Type',
-            'value_algorithm' => 'Value Algorithm',
-            'value' => 'Value',
-            'store_ids' => 'Store View',
-        ];
-        foreach ($map as $key => $value) {
-            if (isset($data[$value])) {
-                $data[$key] = $data[$value];
-            }
-        }
-
-        // Normalize value_algorithm to empty string if null/empty
-        if (empty($data['value_algorithm'])) {
-            $data['value_algorithm'] = '';
-        }
-
-        $whitelist->setData($data);
-
-        $items = $this->whitelistRepository->getWhitelistByParams(
-            $whitelist->getPolicy() ?? '',
-            $whitelist->getValueType() ?? '',
-            $whitelist->getValue() ?? '',
-            $whitelist->getValueAlgorithm() ?? ''
-        );
-
-        if ($items->getTotalCount() > 0) {
-            foreach ($items->getItems() as $item) {
-                $ruleId = $item->getData('rule_id');
-                $item->setData($whitelist->getData());
-                $item->setData('rule_id', $ruleId);
-                $this->whitelistRepository->save($item);
-            }
-        } else {
-            try {
-                $this->whitelistRepository->save($whitelist);
-            } catch (\Magento\Framework\Exception\CouldNotSaveException $e) {
-                // Handle unique constraint violation by finding and updating existing record
-                if (strpos($e->getMessage(), 'Integrity constraint violation') !== false
-                    || strpos($e->getMessage(), 'Duplicate entry') !== false
-                    || strpos($e->getMessage(), 'SQLSTATE[23000]') !== false) {
-                    $this->updateExistingRecord($whitelist);
-                } else {
-                    throw $e;
-                }
-            }
-        }
-    }
-
-    /**
-     * Find and update existing record by unique key fields
-     *
-     * @param \Hryvinskyi\Csp\Api\Data\WhitelistInterface $whitelist
-     * @return void
-     * @throws \Exception
-     */
-    private function updateExistingRecord(\Hryvinskyi\Csp\Api\Data\WhitelistInterface $whitelist): void
-    {
-        $connection = $this->whitelistResource->getConnection();
-        $tableName = $this->whitelistResource->getMainTable();
-
-        // Build WHERE clause for unique constraint fields
-        $select = $connection->select()
-            ->from($tableName, ['rule_id'])
-            ->where('policy = ?', $whitelist->getPolicy())
-            ->where('value_type = ?', $whitelist->getValueType())
-            ->where('value = ?', $whitelist->getValue());
-
-        $valueAlgorithm = $whitelist->getValueAlgorithm();
-        if (empty($valueAlgorithm)) {
-            $select->where('(value_algorithm IS NULL OR value_algorithm = ?)', '');
-        } else {
-            $select->where('value_algorithm = ?', $valueAlgorithm);
-        }
-
-        $ruleId = $connection->fetchOne($select);
-
-        if ($ruleId) {
-            $existingItem = $this->whitelistRepository->getById((int)$ruleId);
-            $existingItem->setData($whitelist->getData());
-            $existingItem->setData('rule_id', $ruleId);
-            $this->whitelistRepository->save($existingItem);
-        }
-    }
-
-    /**
-     * Check admin permissions
-     *
-     * @return bool
-     */
-    protected function _isAllowed(): bool
-    {
-        return $this->_authorization->isAllowed('Hryvinskyi_Csp::csp_whitelist');
+        return [$tmpName, strtolower(pathinfo($name, PATHINFO_EXTENSION))];
     }
 }

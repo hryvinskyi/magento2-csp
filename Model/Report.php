@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -40,8 +40,7 @@ class Report extends AbstractModel implements ReportInterface
      */
     public function getReportId(): ?int
     {
-        return $this->_getData(self::REPORT_ID) === null ? null :
-            (int)$this->_getData(self::REPORT_ID);
+        return $this->intData(self::REPORT_ID);
     }
 
     /**
@@ -59,8 +58,7 @@ class Report extends AbstractModel implements ReportInterface
      */
     public function getBlockedUri(): ?string
     {
-        return $this->_getData(self::BLOCKED_URI) === null ? null :
-            (string)$this->_getData(self::BLOCKED_URI);
+        return $this->stringData(self::BLOCKED_URI);
     }
 
     /**
@@ -78,8 +76,7 @@ class Report extends AbstractModel implements ReportInterface
      */
     public function getDisposition(): ?string
     {
-        return $this->_getData(self::DISPOSITION) === null ? null :
-            (string)$this->_getData(self::DISPOSITION);
+        return $this->stringData(self::DISPOSITION);
     }
 
     /**
@@ -97,8 +94,7 @@ class Report extends AbstractModel implements ReportInterface
      */
     public function getDocumentUri(): ?string
     {
-        return $this->_getData(self::DOCUMENT_URI) === null ? null :
-            (string)$this->_getData(self::DOCUMENT_URI);
+        return $this->stringData(self::DOCUMENT_URI);
     }
 
     /**
@@ -116,8 +112,7 @@ class Report extends AbstractModel implements ReportInterface
      */
     public function getEffectiveDirective(): ?string
     {
-        return $this->_getData(self::EFFECTIVE_DIRECTIVE) === null ? null :
-            (string)$this->_getData(self::EFFECTIVE_DIRECTIVE);
+        return $this->stringData(self::EFFECTIVE_DIRECTIVE);
     }
 
     /**
@@ -135,8 +130,7 @@ class Report extends AbstractModel implements ReportInterface
      */
     public function getOriginalPolicy(): ?string
     {
-        return $this->_getData(self::ORIGINAL_POLICY) === null ? null :
-            (string)$this->_getData(self::ORIGINAL_POLICY);
+        return $this->stringData(self::ORIGINAL_POLICY);
     }
 
     /**
@@ -154,8 +148,7 @@ class Report extends AbstractModel implements ReportInterface
      */
     public function getReferrer(): ?string
     {
-        return $this->_getData(self::REFERRER) === null ? null :
-            (string)$this->_getData(self::REFERRER);
+        return $this->stringData(self::REFERRER);
     }
 
     /**
@@ -173,8 +166,7 @@ class Report extends AbstractModel implements ReportInterface
      */
     public function getScriptSample(): ?string
     {
-        return $this->_getData(self::SCRIPT_SAMPLE) === null ? null :
-            (string)$this->_getData(self::SCRIPT_SAMPLE);
+        return $this->stringData(self::SCRIPT_SAMPLE);
     }
 
     /**
@@ -192,8 +184,7 @@ class Report extends AbstractModel implements ReportInterface
      */
     public function getStatusCode(): ?string
     {
-        return $this->_getData(self::STATUS_CODE) === null ? null :
-            (string)$this->_getData(self::STATUS_CODE);
+        return $this->stringData(self::STATUS_CODE);
     }
 
     /**
@@ -211,8 +202,7 @@ class Report extends AbstractModel implements ReportInterface
      */
     public function getViolatedDirective(): ?string
     {
-        return $this->_getData(self::VIOLATED_DIRECTIVE) === null ? null :
-            (string)$this->_getData(self::VIOLATED_DIRECTIVE);
+        return $this->stringData(self::VIOLATED_DIRECTIVE);
     }
 
     /**
@@ -230,8 +220,7 @@ class Report extends AbstractModel implements ReportInterface
      */
     public function getCreatedAt(): ?string
     {
-        return $this->_getData(self::CREATED_AT) === null ? null :
-            (string)$this->_getData(self::CREATED_AT);
+        return $this->stringData(self::CREATED_AT);
     }
 
     /**
@@ -249,8 +238,7 @@ class Report extends AbstractModel implements ReportInterface
      */
     public function getUpdatedAt(): ?string
     {
-        return $this->_getData(self::UPDATED_AT) === null ? null :
-            (string)$this->_getData(self::UPDATED_AT);
+        return $this->stringData(self::UPDATED_AT);
     }
 
     /**
@@ -268,8 +256,7 @@ class Report extends AbstractModel implements ReportInterface
      */
     public function getSourceFile(): ?string
     {
-        return $this->_getData(self::SOURCE_FILE) === null ? null :
-            (string)$this->_getData(self::SOURCE_FILE);
+        return $this->stringData(self::SOURCE_FILE);
     }
 
     /**
@@ -287,8 +274,7 @@ class Report extends AbstractModel implements ReportInterface
      */
     public function getLineNumber(): ?int
     {
-        return $this->_getData(self::LINE_NUMBER) === null ? null :
-            (int)$this->_getData(self::LINE_NUMBER);
+        return $this->intData(self::LINE_NUMBER);
     }
 
     /**
@@ -306,8 +292,7 @@ class Report extends AbstractModel implements ReportInterface
      */
     public function getCount(): ?int
     {
-        return $this->_getData(self::COUNT) === null ? null :
-            (int)$this->_getData(self::COUNT);
+        return $this->intData(self::COUNT);
     }
 
     /**
@@ -318,5 +303,39 @@ class Report extends AbstractModel implements ReportInterface
         $this->setData(self::COUNT, $count);
 
         return $this;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getGroupId(): ?int
+    {
+        return $this->intData(self::GROUP_ID);
+    }
+
+    /**
+     * Data value as a string, null when absent or not scalar.
+     *
+     * @param string $key
+     * @return string|null
+     */
+    private function stringData(string $key): ?string
+    {
+        $value = $this->_getData($key);
+
+        return is_scalar($value) ? (string)$value : null;
+    }
+
+    /**
+     * Data value as an integer, null when absent or not numeric.
+     *
+     * @param string $key
+     * @return int|null
+     */
+    private function intData(string $key): ?int
+    {
+        $value = $this->_getData($key);
+
+        return is_numeric($value) ? (int)$value : null;
     }
 }

@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!--
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -13,13 +13,13 @@
         <add id="Hryvinskyi_Csp::csp" title="Content Security Policy" translate="title" module="Hryvinskyi_Csp"
              sortOrder="900" resource="Hryvinskyi_Csp::csp" parent="Magento_Backend::system"/>
         <add id="Hryvinskyi_Csp::whitelist" title="Whitelist" translate="title" module="Hryvinskyi_Csp"
-             sortOrder="10" resource="Hryvinskyi_Csp::csp" parent="Hryvinskyi_Csp::csp"
+             sortOrder="10" resource="Hryvinskyi_Csp::whitelist" parent="Hryvinskyi_Csp::csp"
              action="hryvinskyi_csp/whitelist/index"/>
-        <add id="Hryvinskyi_Csp::violation_report" title="Violation Report" module="Hryvinskyi_Csp"
-             sortOrder="20" resource="Hryvinskyi_Csp::csp" parent="Hryvinskyi_Csp::csp"
+        <add id="Hryvinskyi_Csp::violation_report" title="Violation Reports" translate="title" module="Hryvinskyi_Csp"
+             sortOrder="20" resource="Hryvinskyi_Csp::reports" parent="Hryvinskyi_Csp::csp"
              action="hryvinskyi_csp/reportgroup/index"/>
         <add id="Hryvinskyi_Csp::config" title="Configuration" translate="title" module="Hryvinskyi_Csp"
-             sortOrder="30" resource="Hryvinskyi_Csp::csp" parent="Hryvinskyi_Csp::csp"
+             sortOrder="30" resource="Magento_Csp::config" parent="Hryvinskyi_Csp::csp"
              action="adminhtml/system_config/edit/section/csp"/>
     </menu>
 </config>

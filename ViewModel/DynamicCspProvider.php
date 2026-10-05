@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -9,162 +9,173 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\ViewModel;
 
-use Hryvinskyi\Csp\Api\CachedCspManagerInterface;
+use Hryvinskyi\Csp\Api\DynamicPolicyRegistryInterface;
 use Magento\Framework\View\Element\Block\ArgumentInterface;
 
+/**
+ * Lets templates allow sources for the page they render.
+ *
+ * Hosts and hashes added here are cached with the block's HTML by Magento's block cache. A `'self'` flag or a scheme
+ * added here is not restored from that cache, so keep those in configuration. With Magento's built-in full-page
+ * cache, a page served from that cache carries only configured and whitelisted sources; Varnish keeps the header
+ * with the page.
+ *
+ * The `$key` argument of every method is ignored: in 1.x it named an entry of a global policy cache that leaked one
+ * page's sources into every page. It stays so 1.x templates keep working, and will be removed in 3.0.0.
+ */
 class DynamicCspProvider implements ArgumentInterface
 {
     /**
-     * @param CachedCspManagerInterface $cachedCspManager
+     * @param DynamicPolicyRegistryInterface $registry
      */
-    public function __construct(private readonly CachedCspManagerInterface $cachedCspManager)
+    public function __construct(private readonly DynamicPolicyRegistryInterface $registry)
     {
     }
 
     /**
-     * Add a fetch policy for scripts
+     * Allow script hosts.
      *
-     * @param array $hosts
+     * @param list<string> $hosts
      * @param bool $self
-     * @param string|null $key
+     * @param string|null $key Ignored, kept for 1.x callers
      * @return void
      */
     public function addScriptSrc(array $hosts, bool $self = false, ?string $key = null): void
     {
-        $this->cachedCspManager->addScriptSrc($hosts, $self, $key);
+        $this->registry->allow('script-src', $hosts, [], $self);
     }
 
     /**
-     * Add a fetch policy for styles
+     * Allow stylesheet hosts.
      *
-     * @param array $hosts
+     * @param list<string> $hosts
      * @param bool $self
-     * @param string|null $key
+     * @param string|null $key Ignored, kept for 1.x callers
      * @return void
      */
     public function addStyleSrc(array $hosts, bool $self = false, ?string $key = null): void
     {
-        $this->cachedCspManager->addStyleSrc($hosts, $self, $key);
+        $this->registry->allow('style-src', $hosts, [], $self);
     }
 
     /**
-     * Add a fetch policy for images
+     * Allow image hosts.
      *
-     * @param array $hosts
+     * @param list<string> $hosts
      * @param bool $self
-     * @param string|null $key
+     * @param string|null $key Ignored, kept for 1.x callers
      * @return void
      */
     public function addImgSrc(array $hosts, bool $self = false, ?string $key = null): void
     {
-        $this->cachedCspManager->addImgSrc($hosts, $self, $key);
+        $this->registry->allow('img-src', $hosts, [], $self);
     }
 
     /**
-     * Add a fetch policy for fonts
+     * Allow font hosts.
      *
-     * @param array $hosts
+     * @param list<string> $hosts
      * @param bool $self
-     * @param string|null $key
+     * @param string|null $key Ignored, kept for 1.x callers
      * @return void
      */
     public function addFontSrc(array $hosts, bool $self = false, ?string $key = null): void
     {
-        $this->cachedCspManager->addFontSrc($hosts, $self, $key);
+        $this->registry->allow('font-src', $hosts, [], $self);
     }
 
     /**
-     * Add a fetch policy for connect sources
+     * Allow hosts for fetch, XHR and websockets.
      *
-     * @param array $hosts
+     * @param list<string> $hosts
      * @param bool $self
-     * @param string|null $key
+     * @param string|null $key Ignored, kept for 1.x callers
      * @return void
      */
     public function addConnectSrc(array $hosts, bool $self = false, ?string $key = null): void
     {
-        $this->cachedCspManager->addConnectSrc($hosts, $self, $key);
+        $this->registry->allow('connect-src', $hosts, [], $self);
     }
 
     /**
-     * Add a fetch policy for frames
+     * Allow frame hosts.
      *
-     * @param array $hosts
+     * @param list<string> $hosts
      * @param bool $self
-     * @param string|null $key
+     * @param string|null $key Ignored, kept for 1.x callers
      * @return void
      */
     public function addFrameSrc(array $hosts, bool $self = false, ?string $key = null): void
     {
-        $this->cachedCspManager->addFrameSrc($hosts, $self, $key);
+        $this->registry->allow('frame-src', $hosts, [], $self);
     }
 
     /**
-     * Add a custom fetch policy
+     * Allow hosts for any fetch directive.
      *
-     * @param string $policyType
-     * @param array $hosts
+     * @param string $policyType Fetch directive, e.g. "media-src"
+     * @param list<string> $hosts
      * @param bool $self
-     * @param string|null $key
+     * @param string|null $key Ignored, kept for 1.x callers
      * @return void
      */
     public function addCustomPolicy(string $policyType, array $hosts, bool $self = false, ?string $key = null): void
     {
-        $this->cachedCspManager->addCustomPolicy($policyType, $hosts, $self, $key);
+        $this->registry->allow($policyType, $hosts, [], $self);
     }
 
     /**
-     * Add script-src policy with hash values
+     * Allow inline scripts by their base64 sha256 digests.
      *
-     * @param array<string> $hashes
+     * @param list<string> $hashes
      * @param bool $self
-     * @param string|null $key
+     * @param string|null $key Ignored, kept for 1.x callers
      * @return void
      */
     public function addScriptSrcHash(array $hashes, bool $self = false, ?string $key = null): void
     {
-        $this->cachedCspManager->addScriptSrcHash($hashes, $self, $key);
+        $this->registry->allow('script-src', [], $hashes, $self);
     }
 
     /**
-     * Add style-src policy with hash values
+     * Allow inline styles by their base64 sha256 digests.
      *
-     * @param array<string> $hashes
+     * @param list<string> $hashes
      * @param bool $self
-     * @param string|null $key
+     * @param string|null $key Ignored, kept for 1.x callers
      * @return void
      */
     public function addStyleSrcHash(array $hashes, bool $self = false, ?string $key = null): void
     {
-        $this->cachedCspManager->addStyleSrcHash($hashes, $self, $key);
+        $this->registry->allow('style-src', [], $hashes, $self);
     }
 
     /**
-     * Add custom policy with hash values
+     * Allow digests for any fetch directive.
      *
      * @param string $policyType
-     * @param array<string> $hashes
+     * @param list<string> $hashes
      * @param bool $self
-     * @param string|null $key
+     * @param string|null $key Ignored, kept for 1.x callers
      * @return void
      */
     public function addCustomPolicyHash(string $policyType, array $hashes, bool $self = false, ?string $key = null): void
     {
-        $this->cachedCspManager->addCustomPolicyHash($policyType, $hashes, $self, $key);
+        $this->registry->allow($policyType, [], $hashes, $self);
     }
 
     /**
-     * Add mixed policy with both hosts and hashes
+     * Allow hosts and digests for any fetch directive.
      *
      * @param string $policyType
-     * @param array<string> $hosts
-     * @param array<string> $hashes
+     * @param list<string> $hosts
+     * @param list<string> $hashes
      * @param bool $self
-     * @param string|null $key
+     * @param string|null $key Ignored, kept for 1.x callers
      * @return void
      */
     public function addMixedPolicy(string $policyType, array $hosts, array $hashes, bool $self = false, ?string $key = null): void
     {
-        $this->cachedCspManager->addMixedPolicy($policyType, $hosts, $hashes, $self, $key);
+        $this->registry->allow($policyType, $hosts, $hashes, $self);
     }
 }

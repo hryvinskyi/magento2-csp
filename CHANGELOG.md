@@ -2,6 +2,96 @@
 
 All notable changes to the Hryvinskyi_Csp module will be documented in this file.
 
+## [2.0.0] - 2026-10-05
+
+A major release: header optimisation and splitting no longer change what the policy allows (verified against an
+independent CSP3 evaluator in the test suite), the admin is protected by ACL and POST-only actions, and violation
+reports are accepted only from the store's own pages.
+
+### Security
+- Admin actions require their own ACL resources (1.x defined none, so every admin user could use every action);
+  every state change is a POST; grid confirmation texts are escaped.
+- Whitelist entries are validated on every save and import: no keywords, `*`, whitespace, quotes, commas, semicolons
+  or control characters can reach a header; internationalised hosts are stored in punycode.
+- Report conversion refuses inline code, eval, `*`, `https:` and `data:`/`blob:`/`filesystem:` in directives that
+  load code.
+- Violation reports: POST only, size-limited, rate-limited per client, accepted only for pages of the receiving store
+  view or of the admin, query strings and fragments removed, extension-injected resources ignored.
+- XML import never resolves external entities.
+
+### Fixed
+- Header splitting put `default-src` into every part, which made each part restrict what the others allowed. Parts now
+  keep related directives together and together allow exactly what the single header allows; when that is impossible
+  the header is sent whole and the admin is told.
+- Default-src consolidation and scheme/path stripping could widen the policy (e.g. move `'unsafe-eval'` into
+  `default-src`, or allow `http://` on HTTP pages). They are replaced by steps that never change what the policy allows.
+- `*` no longer counts as covering `wss:`, `data:` or other non-web schemes; a wildcard no longer covers hosts with a
+  different port or outside its path.
+- Policies added from templates were written into a global cache and leaked into every page. They now apply to the
+  page that rendered them (core keeps them with cached block HTML).
+- Store-scoped settings were read in the default scope.
+- Report URIs were forced to the default store for every store view and for the admin.
+- Two store views on one host recorded reports under the first one's group.
+- The script hash command hashed CMS content without rendering it, so the hashes did not match the page, and scoped
+  all-store-view entities to the first store view.
+- Mass conversion of report groups used the wrong collection; conversion deleted reports even when it failed.
+- Whitelist store scope is stored in a link table instead of a comma-separated column matched with `LIKE`.
+
+### Added
+- Whitelist entries have an area: storefront, admin or both.
+- Reporting API (`application/reports+json`) reports.
+- Trusted parent domains for subdomain consolidation; report rate limit and size limit settings.
+- System message when a header had to be sent unsplit above the limit.
+- `--yes` for `hryvinskyi:csp:generate-script-hashes`.
+- Extension points: `PolicyOptimizationStepInterface`, `ViolationReportParserInterface`,
+  `ReportCleanupStrategyInterface`, `DynamicPolicyRegistryInterface`.
+
+### Changed
+- Report cleanup is on by default (30 days) and deletes by last report time in batches, then pending groups left
+  without reports.
+- Report groups are keyed by governing directive (`script-src-attr` → `script-src`, `worker-src` → `child-src`, …),
+  store view and area.
+- The module no longer overrides core policies in `config.xml` (storefront `script-src`, `frame-ancestors`) or adds a
+  policy for a third-party checkout page.
+- Core's Report URI fields are no longer hidden.
+
+### Removed (backward-incompatible)
+- `Api\ConfigInterface` (split into `Api\Config\RulesConfigInterface`, `OptimizationConfigInterface`,
+  `HeaderSplittingConfigInterface`, `ReportingConfigInterface`, `ReportCleanupConfigInterface`).
+- `CachedCspManagerInterface`, `Api\Block\*`, `Api\Cache\*`, `Api\Serializer\*`, the `hryvinskyi_csp_policies` cache
+  type, block observers.
+- `CspHeaderProcessorInterface`, `CspHeaderSplitterInterface`, `CspValueOptimizerInterface`,
+  `LaminasPluginRegistrarInterface`, `CspReportParserInterface`, `BlockedUriValueExtractorInterface`,
+  `DomainMatcherInterface`, `PolicyCollectionMergerInterface`, `SearchCriteriaFilterInterface`,
+  `Whitelist\SearchCriteria\*`.
+- `ReportRepositoryInterface::saveFromCspReport()`, `deleteByDomainAndPolicy()`;
+  `ReportGroupRepositoryInterface::saveFromCspReport()`, `deleteByValueAndPolicy()`;
+  `WhitelistRepositoryInterface::getWhitelistByParams()` (use `findByNaturalKey()`).
+- `WhitelistInterface::getStoreIds()`/`setStoreIds()` now take and return `int[]` (data key `store_id`);
+  the `STORE_IDS` constant is gone.
+- `ReportGroupInterface::STATUS_CODE_*` and `Status::fromCode()`/`getStatusCode()` (use the `Status` enum).
+- `ReportCleanupInterface` methods `cleanByDate()`, `cleanByCount()`, `countByDate()`, `countByCount()`,
+  `getTotalCount()` (use `clean($mode, $threshold)` and `countAffected($mode, $threshold)`).
+- `hryvinskyi:csp:cache:flush` does nothing and will be removed in 3.0.0.
+- `DynamicCspProvider` keeps every 1.x method; the trailing `$key` argument is ignored.
+
+### Upgrade
+1. Back up the database, then run `bin/magento setup:upgrade` (preferably on a copy of production data first). It
+   adds the `area` columns, creates the whitelist store table, moves `store_ids` into it (ids of deleted stores are
+   dropped), and moves report groups recorded before 2.0.0 to all store views and both areas under their governing
+   directive, merging groups that collide.
+2. Run `bin/magento cache:flush` once: entries of the removed cache type were stored for a year and `cache:clean`
+   no longer reaches them.
+3. Grant the new ACL resources to the admin roles that manage the policy; other roles lose access.
+4. Behind a proxy or CDN, configure `Magento\Framework\HTTP\PhpEnvironment\RemoteAddress` (see README) so the report
+   rate limit tells clients apart.
+5. If you used subdomain consolidation, list your trusted domains: nothing is consolidated until you do.
+6. If you used header splitting, compare the response header size before and after the upgrade against your web
+   server and proxy limits: correct splitting repeats directives and may send a large header whole.
+7. With the built-in full-page cache, sources added from templates are missing on cached pages (see README); whitelist
+   them in the admin.
+8. The first cron run after the upgrade deletes reports not seen for 30 days.
+
 ## [1.3.0] - 2026-04-10
 ### Fixed
 - **[CRITICAL] Header splitting now preserves `default-src`**: Previously, `default-src` was dropped during header splitting, causing directives not present in a split part to fall back to "unrestricted" instead of the intended `default-src` policy. `default-src` and `report-uri` are now included in every split header part.

@@ -21,6 +21,9 @@
                     <item name="storageConfig" xsi:type="array">
                         <item name="indexField" xsi:type="string">report_id</item>
                     </item>
+                    <item name="filter_url_params" xsi:type="array">
+                        <item name="group_id" xsi:type="string">*</item>
+                    </item>
                 </item>
             </argument>
         </argument>
@@ -64,9 +67,7 @@
                         <item name="url" xsi:type="url" path="hryvinskyi_csp/report/massDelete"/>
                         <item name="confirm" xsi:type="array">
                             <item name="title" xsi:type="string" translate="true">Delete items</item>
-                            <item name="message" xsi:type="string" translate="true">Are you sure you wan't to delete
-                                selected items?
-                            </item>
+                            <item name="message" xsi:type="string" translate="true">Are you sure you want to delete the selected reports?</item>
                         </item>
                     </item>
                 </argument>
@@ -79,9 +80,7 @@
                         <item name="url" xsi:type="url" path="hryvinskyi_csp/report/massConvert"/>
                         <item name="confirm" xsi:type="array">
                             <item name="title" xsi:type="string" translate="true">Convert items</item>
-                            <item name="message" xsi:type="string" translate="true">Are you sure you wan't to convert
-                                selected items?
-                            </item>
+                            <item name="message" xsi:type="string" translate="true">Convert the report groups of the selected reports to whitelist entries? Inline code, eval and unsafe sources are refused.</item>
                         </item>
                     </item>
                 </argument>

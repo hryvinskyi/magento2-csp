@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -9,31 +9,31 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Controller\Adminhtml\Report;
 
-use Magento\Backend\App\Action\Context;
-use Magento\Backend\Model\Session;
-use Magento\Framework\Controller\ResultInterface;
+use Magento\Backend\App\Action;
+use Magento\Backend\Model\View\Result\Page;
+use Magento\Framework\App\Action\HttpGetActionInterface;
+use Magento\Framework\Controller\ResultFactory;
 
 /**
- * Index controller for listing reports
+ * Report grid; `group_id` in the URL limits it to one report group.
  */
-class Index extends AbstractReport
+class Index extends Action implements HttpGetActionInterface
 {
-    public function __construct(Context $context, private readonly Session $session)
-    {
-        parent::__construct($context);
-    }
+    public const ADMIN_RESOURCE = 'Hryvinskyi_Csp::reports';
 
     /**
      * @inheritdoc
      */
-    public function execute(): ResultInterface
+    public function execute()
     {
-        $groupId = $this->getRequest()->getParam('id');
-
-        if ($groupId !== null) {
-            $this->session->setGroupId($groupId);
+        $page = $this->resultFactory->create(ResultFactory::TYPE_PAGE);
+        if ($page instanceof Page) {
+            $page->setActiveMenu('Hryvinskyi_Csp::violation_report');
+            $page->addBreadcrumb((string)__('Content Security Policy'), (string)__('Content Security Policy'));
+            $page->addBreadcrumb((string)__('Violation Reports'), (string)__('Violation Reports'));
+            $page->getConfig()->getTitle()->prepend((string)__('Content Security Policy - Violation Reports'));
         }
 
-        return $this->createPageResult();
+        return $page;
     }
 }

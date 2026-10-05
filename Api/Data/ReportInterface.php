@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -15,6 +15,7 @@ interface ReportInterface
      * Constants for keys of data array.
      */
     public const REPORT_ID = 'report_id';
+    public const GROUP_ID = 'group_id';
     public const BLOCKED_URI = 'blocked_uri';
     public const DISPOSITION = 'disposition';
     public const DOCUMENT_URI = 'document_uri';
@@ -47,6 +48,13 @@ interface ReportInterface
      * @return $this
      */
     public function setReportId(int $reportId): ReportInterface;
+
+    /**
+     * Id of the report group the report belongs to.
+     *
+     * @return int|null
+     */
+    public function getGroupId(): ?int;
 
     /**
      * Get BlockedUri value

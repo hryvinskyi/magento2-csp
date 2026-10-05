@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -25,8 +25,6 @@ use Magento\Framework\Model\ResourceModel\Db\Collection\AbstractCollection;
  * @method ReportGroupModel getItemById($idValue)
  * @method ReportGroupModel getNewEmptyItem()
  * @method ReportGroupModel fetchItem()
- * @property ReportGroupModel[] _items
- * @property ReportGroupResource _resource
  */
 class Collection extends AbstractCollection
 {

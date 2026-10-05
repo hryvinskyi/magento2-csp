@@ -31,8 +31,8 @@ class HashValidationCalculator implements HashValidationCalculatorInterface
      */
     public function calculateForItems(array $items): array
     {
-        foreach ($items as &$item) {
-            $item['hash_validation'] = $this->calculateItemStatus($item);
+        foreach ($items as $key => $item) {
+            $items[$key]['hash_validation'] = $this->calculateItemStatus($item);
         }
 
         return $items;
@@ -56,7 +56,7 @@ class HashValidationCalculator implements HashValidationCalculatorInterface
         $scriptContent = $item['script_content'] ?? '';
         $storedHash = $item['value'] ?? '';
 
-        if ($scriptContent === '' || $storedHash === '') {
+        if (!is_string($scriptContent) || !is_string($storedHash) || $scriptContent === '' || $storedHash === '') {
             return HashValidationOptions::NOT_VERIFIED;
         }
 

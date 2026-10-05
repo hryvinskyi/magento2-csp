@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Model;
 
+use Hryvinskyi\Csp\Api\Data\Area;
 use Hryvinskyi\Csp\Api\Data\WhitelistInterface;
 use Hryvinskyi\Csp\Model\ResourceModel\Whitelist as WhitelistResource;
 use Magento\Framework\Model\AbstractModel;
@@ -40,8 +41,7 @@ class Whitelist extends AbstractModel implements WhitelistInterface
      */
     public function getRuleId(): ?int
     {
-        return $this->_getData(self::RULE_ID) === null ? null :
-            (int)$this->_getData(self::RULE_ID);
+        return $this->intData(self::RULE_ID);
     }
 
     /**
@@ -59,8 +59,7 @@ class Whitelist extends AbstractModel implements WhitelistInterface
      */
     public function getIdentifier(): ?string
     {
-        return $this->_getData(self::IDENTIFIER) === null ? null :
-            (string)$this->_getData(self::IDENTIFIER);
+        return $this->stringData(self::IDENTIFIER);
     }
 
     /**
@@ -78,8 +77,7 @@ class Whitelist extends AbstractModel implements WhitelistInterface
      */
     public function getPolicy(): ?string
     {
-        return $this->_getData(self::POLICY) === null ? null :
-            (string)$this->_getData(self::POLICY);
+        return $this->stringData(self::POLICY);
     }
 
     /**
@@ -97,8 +95,7 @@ class Whitelist extends AbstractModel implements WhitelistInterface
      */
     public function getValueType(): ?string
     {
-        return $this->_getData(self::VALUE_TYPE) === null ? null :
-            (string)$this->_getData(self::VALUE_TYPE);
+        return $this->stringData(self::VALUE_TYPE);
     }
 
     /**
@@ -116,8 +113,7 @@ class Whitelist extends AbstractModel implements WhitelistInterface
      */
     public function getValueAlgorithm(): ?string
     {
-        return $this->_getData(self::VALUE_ALGORITHM) === null ? null :
-            (string)$this->_getData(self::VALUE_ALGORITHM);
+        return $this->stringData(self::VALUE_ALGORITHM);
     }
 
     /**
@@ -135,8 +131,7 @@ class Whitelist extends AbstractModel implements WhitelistInterface
      */
     public function getValue(): ?string
     {
-        return $this->_getData(self::VALUE) === null ? null :
-            (string)$this->_getData(self::VALUE);
+        return $this->stringData(self::VALUE);
     }
 
     /**
@@ -152,18 +147,45 @@ class Whitelist extends AbstractModel implements WhitelistInterface
     /**
      * @inheritdoc
      */
-    public function getStoreIds(): ?string
+    public function getStoreIds(): array
     {
-        return $this->_getData(self::STORE_IDS) === null ? null :
-            (string)$this->_getData(self::STORE_IDS);
+        $storeIds = $this->_getData(self::STORE_ID);
+        if (!is_array($storeIds)) {
+            return [];
+        }
+
+        return array_values(array_map(
+            static fn (mixed $id): int => (int)$id,
+            array_filter($storeIds, static fn (mixed $id): bool => is_numeric($id))
+        ));
     }
 
     /**
      * @inheritdoc
      */
-    public function setStoreIds(string $storeIds): WhitelistInterface
+    public function setStoreIds(array $storeIds): WhitelistInterface
     {
-        $this->setData(self::STORE_IDS, $storeIds);
+        $this->setData(self::STORE_ID, array_values(array_map('intval', $storeIds)));
+
+        return $this;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getArea(): string
+    {
+        $area = $this->_getData(self::AREA);
+
+        return is_string($area) && $area !== '' ? $area : Area::ALL->value;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function setArea(string $area): WhitelistInterface
+    {
+        $this->setData(self::AREA, $area);
 
         return $this;
     }
@@ -173,8 +195,7 @@ class Whitelist extends AbstractModel implements WhitelistInterface
      */
     public function getCreatedAt(): ?string
     {
-        return $this->_getData(self::CREATED_AT) === null ? null :
-            (string)$this->_getData(self::CREATED_AT);
+        return $this->stringData(self::CREATED_AT);
     }
 
     /**
@@ -192,8 +213,7 @@ class Whitelist extends AbstractModel implements WhitelistInterface
      */
     public function getUpdatedAt(): ?string
     {
-        return $this->_getData(self::UPDATED_AT) === null ? null :
-            (string)$this->_getData(self::UPDATED_AT);
+        return $this->stringData(self::UPDATED_AT);
     }
 
     /**
@@ -211,8 +231,7 @@ class Whitelist extends AbstractModel implements WhitelistInterface
      */
     public function getStatus(): ?int
     {
-        return $this->_getData(self::STATUS) === null ? null :
-            (int)$this->_getData(self::STATUS);
+        return $this->intData(self::STATUS);
     }
 
     /**
@@ -230,8 +249,7 @@ class Whitelist extends AbstractModel implements WhitelistInterface
      */
     public function getScriptContent(): ?string
     {
-        return $this->_getData(self::SCRIPT_CONTENT) === null ? null :
-            (string)$this->_getData(self::SCRIPT_CONTENT);
+        return $this->stringData(self::SCRIPT_CONTENT);
     }
 
     /**
@@ -242,5 +260,31 @@ class Whitelist extends AbstractModel implements WhitelistInterface
         $this->setData(self::SCRIPT_CONTENT, $content);
 
         return $this;
+    }
+
+    /**
+     * Data value as a string, null when absent or not scalar.
+     *
+     * @param string $key
+     * @return string|null
+     */
+    private function stringData(string $key): ?string
+    {
+        $value = $this->_getData($key);
+
+        return is_scalar($value) ? (string)$value : null;
+    }
+
+    /**
+     * Data value as an integer, null when absent or not numeric.
+     *
+     * @param string $key
+     * @return int|null
+     */
+    private function intData(string $key): ?int
+    {
+        $value = $this->_getData($key);
+
+        return is_numeric($value) ? (int)$value : null;
     }
 }

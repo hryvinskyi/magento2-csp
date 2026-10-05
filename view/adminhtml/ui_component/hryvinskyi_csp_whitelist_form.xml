@@ -283,7 +283,7 @@
                 </validation>
             </settings>
         </field>
-        <field name="store_ids" formElement="multiselect" class="Magento\Store\Ui\Component\Form\Field\StoreView" sortOrder="70">
+        <field name="store_id" formElement="multiselect" class="Magento\Store\Ui\Component\Form\Field\StoreView" sortOrder="70">
             <argument name="data" xsi:type="array">
                 <item name="config" xsi:type="array">
                     <item name="source" xsi:type="string">whitelist</item>
@@ -295,19 +295,39 @@
                     <rule name="required-entry" xsi:type="boolean">true</rule>
                 </validation>
                 <dataType>int</dataType>
-                <tooltip>
-                    <link>https://docs.magento.com/user-guide/configuration/scope.html</link>
-                    <description>What is this?</description>
-                </tooltip>
                 <label translate="true">Store View</label>
-                <dataScope>store_ids</dataScope>
+                <dataScope>store_id</dataScope>
             </settings>
             <formElements>
                 <multiselect>
                     <settings>
-                        <options class="Magento\Cms\Ui\Component\Listing\Column\Cms\Options"/>
+                        <options class="Hryvinskyi\Csp\Model\Config\Source\StoreViews"/>
                     </settings>
                 </multiselect>
+            </formElements>
+        </field>
+        <field name="area" formElement="select" sortOrder="75">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">whitelist</item>
+                    <item name="default" xsi:type="string">all</item>
+                </item>
+            </argument>
+            <settings>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                </validation>
+                <dataType>text</dataType>
+                <label translate="true">Area</label>
+                <notice translate="true">Where the entry is added to the policy: the storefront, the admin, or both.</notice>
+                <dataScope>area</dataScope>
+            </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="Hryvinskyi\Csp\Model\Config\Source\Area"/>
+                    </settings>
+                </select>
             </formElements>
         </field>
         <field name="script_content" formElement="textarea" sortOrder="80">

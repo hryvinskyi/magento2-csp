@@ -1,25 +1,35 @@
 <?php
 /**
- * Copyright (c) 2025. MageCloud.  All rights reserved.
- * @author: Volodymyr Hryvinskyi <mailto:volodymyr@hryvinskyi.com>
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
+ * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
+ * GitHub: https://github.com/hryvinskyi
  */
 
 declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Model\UiComponent\Listing\Column;
 
-use Hryvinskyi\Csp\Api\CspHashGeneratorInterface;
 use Hryvinskyi\Csp\Model\Config\Source\HashValidationOptions;
 use Magento\Framework\View\Element\UiComponent\ContextInterface;
 use Magento\Framework\View\Element\UiComponentFactory;
 use Magento\Ui\Component\Listing\Columns\Column;
 
+/**
+ * Hash validation result of a whitelist row as an icon.
+ */
 class HashValidation extends Column
 {
+    use MapsRowValues;
+
+    /**
+     * @param ContextInterface $context
+     * @param UiComponentFactory $uiComponentFactory
+     * @param array<mixed> $components
+     * @param array<mixed> $data
+     */
     public function __construct(
         ContextInterface $context,
         UiComponentFactory $uiComponentFactory,
-        private readonly CspHashGeneratorInterface $cspHashGenerator,
         array $components = [],
         array $data = []
     ) {
@@ -27,31 +37,19 @@ class HashValidation extends Column
     }
 
     /**
-     * Prepare Data Source
+     * Replace the validation code with its icon.
      *
-     * @param array $dataSource
-     * @return array
+     * @param array<mixed> $dataSource
+     * @return array<mixed>
      */
     public function prepareDataSource(array $dataSource): array
     {
-        if (isset($dataSource['data']['items'])) {
-            foreach ($dataSource['data']['items'] as & $item) {
-                if (isset($item[$this->getData('name')])) {
-                    $status = (int)$item[$this->getData('name')];
-                    if ($status === HashValidationOptions::INVALID) {
-                        $item[$this->getData('name')] = $this->getInvalidSvg();
-                    } elseif ($status === HashValidationOptions::VALID) {
-                        $item[$this->getData('name')] = $this->getValidSvg();
-                    } elseif ($status === HashValidationOptions::NOT_VERIFIED) {
-                        $item[$this->getData('name')] = $this->getNotVerifiedSvg();
-                    } elseif ($status === HashValidationOptions::NOT_APPLICABLE) {
-                        $item[$this->getData('name')] = $this->getNotApplicableSvg();
-                    }
-                }
-            }
-        }
-
-        return $dataSource;
+        return $this->mapRowValues($dataSource, $this->getName(), fn (int $status): string => match ($status) {
+            HashValidationOptions::INVALID => $this->getInvalidSvg(),
+            HashValidationOptions::VALID => $this->getValidSvg(),
+            HashValidationOptions::NOT_VERIFIED => $this->getNotVerifiedSvg(),
+            default => $this->getNotApplicableSvg(),
+        });
     }
 
     /**

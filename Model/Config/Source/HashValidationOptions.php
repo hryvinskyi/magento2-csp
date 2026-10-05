@@ -19,7 +19,9 @@ class HashValidationOptions implements OptionSourceInterface
     public const INVALID = 3;
 
     /**
-     * @inheritDoc
+     * Options.
+     *
+     * @return list<array{value: mixed, label: mixed}>
      */
     public function toOptionArray(): array
     {

@@ -6,7 +6,6 @@
  * GitHub: https://github.com/hryvinskyi
  */
 -->
-
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
     <default>
@@ -21,39 +20,18 @@
                 <enable_default_src_consolidation>0</enable_default_src_consolidation>
                 <enable_subdomain_wildcard_consolidation>0</enable_subdomain_wildcard_consolidation>
                 <subdomain_wildcard_threshold>3</subdomain_wildcard_threshold>
+                <subdomain_wildcard_parents/>
                 <enable_scheme_path_stripping>0</enable_scheme_path_stripping>
             </general>
+            <report_ingestion>
+                <rate_limit>120</rate_limit>
+                <max_body_bytes>65536</max_body_bytes>
+            </report_ingestion>
             <report_cleanup>
-                <enabled>0</enabled>
+                <enabled>1</enabled>
                 <mode>date</mode>
                 <threshold>30</threshold>
             </report_cleanup>
-            <policies>
-                <storefront_hyva_checkout_index_index>
-                    <scripts>
-                        <policy_id>script-src</policy_id>
-                        <inline>0</inline>
-                        <event_handlers>1</event_handlers>
-                    </scripts>
-                </storefront_hyva_checkout_index_index>
-                <storefront>
-                    <scripts>
-                        <policy_id>script-src</policy_id>
-                        <self>1</self>
-                        <inline>1</inline>
-                        <eval>1</eval>
-                        <dynamic>0</dynamic>
-                    </scripts>
-                    <frame-ancestors>
-                        <inline>0</inline>
-                    </frame-ancestors>
-                </storefront>
-                <admin>
-                    <frame-ancestors>
-                        <inline>0</inline>
-                    </frame-ancestors>
-                </admin>
-            </policies>
         </csp>
     </default>
 </config>

@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -9,30 +9,37 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Controller\Adminhtml\Whitelist;
 
-use Hryvinskyi\Csp\Api\Data\WhitelistInterface;
 use Hryvinskyi\Csp\Api\Data\WhitelistInterfaceFactory;
 use Hryvinskyi\Csp\Api\WhitelistRepositoryInterface;
+use Hryvinskyi\Csp\Model\Whitelist\EntryDataMapper;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
-use Magento\Framework\Api\DataObjectHelper;
-use Magento\Framework\App\Cache\Type\Collection;
+use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\App\Request\DataPersistorInterface;
-use Magento\PageCache\Model\Cache\Type;
+use Magento\Framework\App\Request\Http as HttpRequest;
+use Magento\Framework\Exception\LocalizedException;
 
 /**
- * @method \Magento\Framework\App\Request\Http getRequest()
- * @method \Magento\Framework\App\Response\Http getResponse()
+ * Saves a whitelist entry from the form.
  */
-class Save extends Action
+class Save extends Action implements HttpPostActionInterface
 {
+    public const ADMIN_RESOURCE = 'Hryvinskyi_Csp::whitelist_save';
+    private const PERSISTOR_KEY = 'hryvinskyi_csp_whitelist';
+
+    /**
+     * @param Context $context
+     * @param DataPersistorInterface $dataPersistor
+     * @param WhitelistRepositoryInterface $entityRepository
+     * @param WhitelistInterfaceFactory $entityFactory
+     * @param EntryDataMapper $entryDataMapper
+     */
     public function __construct(
         Context $context,
         private readonly DataPersistorInterface $dataPersistor,
         private readonly WhitelistRepositoryInterface $entityRepository,
         private readonly WhitelistInterfaceFactory $entityFactory,
-        private readonly DataObjectHelper $dataObjectHelper,
-        private readonly Collection $cacheTypeCollection,
-        private readonly Type $cacheType
+        private readonly EntryDataMapper $entryDataMapper
     ) {
         parent::__construct($context);
     }
@@ -42,49 +49,32 @@ class Save extends Action
      */
     public function execute()
     {
-        /** @var \Magento\Backend\Model\View\Result\Redirect $resultRedirect */
         $resultRedirect = $this->resultRedirectFactory->create();
-        $data = $this->getRequest()->getPostValue();
-
-        if (!$data) {
+        $request = $this->getRequest();
+        $data = $request instanceof HttpRequest ? $request->getPostValue() : null;
+        if (!is_array($data) || $data === []) {
             return $resultRedirect->setPath('*/*/');
         }
-
-        $id = $this->getRequest()->getParam('id');
+        $id = $this->getRequest()->getParam('id', $data['rule_id'] ?? null);
 
         try {
-            if ($id === null) {
-                $entity = $this->entityFactory->create();
-            } else {
-                $entity = $this->entityRepository->getById($id);
-            }
-
-            if (isset($data[WhitelistInterface::STORE_IDS]) && is_array($data[WhitelistInterface::STORE_IDS])) {
-                $data[WhitelistInterface::STORE_IDS] = implode(',', $data[WhitelistInterface::STORE_IDS]);
-            }
-
-            $this->dataObjectHelper->populateWithArray($entity, $data, WhitelistInterface::class);
+            $entity = is_numeric($id) ? $this->entityRepository->getById((int)$id) : $this->entityFactory->create();
+            $this->entryDataMapper->apply($entity, $data);
             $this->entityRepository->save($entity);
-            $this->cacheTypeCollection->clean();
-            $this->cacheType->clean();
+            $this->messageManager->addSuccessMessage((string)__('The whitelist entry has been saved.'));
+            $this->dataPersistor->clear(self::PERSISTOR_KEY);
 
-            $this->messageManager->addSuccessMessage(__('You saved the entity.'));
-            $this->dataPersistor->clear('hryvinskyi_csp_whitelist');
-
-            if ($this->getRequest()->getParam('back')) {
-                return $resultRedirect->setPath('*/*/edit', ['id' => $entity->getId()]);
-            }
-
-            return $resultRedirect->setPath('*/*/');
-
-        } catch (\Magento\Framework\Exception\LocalizedException $e) {
-            $this->messageManager->addErrorMessage($e->getMessage());
-        } catch (\Exception $e) {
-            $this->messageManager->addExceptionMessage($e, __('Something went wrong while saving the entity.'));
+            return $this->getRequest()->getParam('back')
+                ? $resultRedirect->setPath('*/*/edit', ['id' => $entity->getRuleId()])
+                : $resultRedirect->setPath('*/*/');
+        } catch (LocalizedException $exception) {
+            $this->messageManager->addErrorMessage($exception->getMessage());
         }
 
-        $this->dataPersistor->set('hryvinskyi_csp_whitelist', $data);
+        $this->dataPersistor->set(self::PERSISTOR_KEY, $data);
 
-        return $resultRedirect->setPath('*/*/edit', ['id' => $this->getRequest()->getParam('id')]);
+        return is_numeric($id)
+            ? $resultRedirect->setPath('*/*/edit', ['id' => (int)$id])
+            : $resultRedirect->setPath('*/*/new');
     }
 }

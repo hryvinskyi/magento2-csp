@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -9,33 +9,36 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Controller\Adminhtml\Report;
 
+use Hryvinskyi\Csp\Api\ReportGroupRepositoryInterface;
 use Hryvinskyi\Csp\Api\ReportRepositoryInterface;
-use Hryvinskyi\Csp\Api\WhitelistRepositoryInterface;
-use Hryvinskyi\Csp\Model\Report\Command\CspReportConverterInterface;
-use Hryvinskyi\Csp\Model\Cache\CacheCleanerInterface;
-use Hryvinskyi\Csp\Model\Whitelist\WhitelistManagerInterface;
+use Hryvinskyi\Csp\Controller\Adminhtml\ConvertsToWhitelist;
+use Hryvinskyi\Csp\Model\Conversion\ConversionMessages;
+use Hryvinskyi\Csp\Model\Conversion\ReportGroupConverter;
+use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
-use Magento\Framework\Controller\ResultInterface;
+use Magento\Framework\App\Action\HttpPostActionInterface;
+use Magento\Framework\Exception\LocalizedException;
 
 /**
- * Convert to whitelist controller for converting a report to whitelist
+ * Turns the report group of one report into a whitelist allowance.
  */
-class ConvertToWhitelist extends AbstractReport
+class ConvertToWhitelist extends Action implements HttpPostActionInterface
 {
+    use ConvertsToWhitelist;
+
     /**
      * @param Context $context
      * @param ReportRepositoryInterface $reportRepository
-     * @param WhitelistRepositoryInterface $whitelistRepository
-     * @param CspReportConverterInterface $cspReportConverter
-     * @param CacheCleanerInterface $cacheCleaner
-     * @param WhitelistManagerInterface $whitelistManager
+     * @param ReportGroupRepositoryInterface $reportGroupRepository
+     * @param ReportGroupConverter $converter
+     * @param ConversionMessages $conversionMessages
      */
     public function __construct(
         Context $context,
         private readonly ReportRepositoryInterface $reportRepository,
-        private readonly CspReportConverterInterface $cspReportConverter,
-        private readonly CacheCleanerInterface $cacheCleaner,
-        private readonly WhitelistManagerInterface $whitelistManager
+        private readonly ReportGroupRepositoryInterface $reportGroupRepository,
+        private readonly ReportGroupConverter $converter,
+        private readonly ConversionMessages $conversionMessages
     ) {
         parent::__construct($context);
     }
@@ -43,40 +46,22 @@ class ConvertToWhitelist extends AbstractReport
     /**
      * @inheritdoc
      */
-    public function execute(): ResultInterface
+    public function execute()
     {
-        $resultRedirect = $this->createRedirectResult('*/*/');
         $id = $this->getRequest()->getParam('id');
+        if (!is_numeric($id)) {
+            $this->messageManager->addErrorMessage((string)__('Choose a report to convert.'));
 
-        if ($id === null) {
-            $this->messageManager->addErrorMessage(__('We can\'t find a report to convert.'));
-            return $resultRedirect;
+            return $this->resultRedirectFactory->create()->setPath('*/*/');
         }
-
         try {
-            $entity = $this->reportRepository->getById((int)$id);
-            $newWhitelist = $this->cspReportConverter->convert($entity);
-
-            $result = $this->whitelistManager->processNewWhitelist($newWhitelist, $entity);
-
-            $this->cacheCleaner->cleanCaches();
-
-            if ($result === WhitelistManagerInterface::RESULT_EXISTS) {
-                $this->messageManager->addSuccessMessage(__('Whitelist already exists.'));
-                return $this->createRedirectResult('hryvinskyi_csp/whitelist/index');
-            }
-
-            if ($result === WhitelistManagerInterface::RESULT_NOT_SAVED) {
-                $this->messageManager->addWarningMessage(__('Whitelist not converted. Already exists.'));
-                return $this->createRedirectResult('hryvinskyi_csp/whitelist/index');
-            }
-
-            $this->messageManager->addSuccessMessage(__('Report has been converted to Whitelist.'));
-            return $this->createRedirectResult('hryvinskyi_csp/whitelist/index');
-
-        } catch (\Exception $e) {
-            $this->messageManager->addErrorMessage($e->getMessage());
-            return $resultRedirect;
+            $groupId = (int)$this->reportRepository->getById((int)$id)->getGroupId();
+            $result = $this->converter->convert($this->reportGroupRepository->getById($groupId));
+            $this->conversionMessages->add($this->messageManager, [$result]);
+        } catch (LocalizedException $exception) {
+            $this->messageManager->addErrorMessage($exception->getMessage());
         }
+
+        return $this->resultRedirectFactory->create()->setPath('*/*/');
     }
 }
