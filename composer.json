@@ -1,6 +1,6 @@
 {
   "name": "hryvinskyi/magento2-csp",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Content Security Policy management for Magento 2: admin whitelist per store and area, violation reports with conversion, semantics-preserving header optimisation and splitting, script hashes for CMS content",
   "type": "magento2-module",
   "require": {
