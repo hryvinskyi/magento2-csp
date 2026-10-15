@@ -35,8 +35,9 @@ Upgrading from 1.x? Read the [2.0.0 upgrade notes](CHANGELOG.md#200---2026-10-16
 
 ## Requirements
 
-- Magento 2.4.6 or later (developed against 2.4.6-p13 and later patch releases)
-- PHP 8.1 – 8.4 with the `dom`, `intl`, `json`, `libxml` and `mbstring` extensions
+- Magento Open Source or Adobe Commerce 2.4.6 – 2.4.9
+- PHP 8.1 – 8.5, as far as the Magento version allows (2.4.9 runs on 8.3 – 8.5), with the `dom`, `intl`, `json`,
+  `libxml` and `mbstring` extensions
 
 ## Installation
 
