@@ -2,6 +2,16 @@
 
 All notable changes to the Hryvinskyi_Csp module will be documented in this file.
 
+## [2.0.1] - 2026-10-16
+
+### Added
+- Magento 2.4.9 and PHP 8.5 support: `php` allows 8.5 and `symfony/console` allows 7.x, which 2.4.9 requires
+  ([#8](https://github.com/hryvinskyi/magento2-csp/issues/8)).
+
+### Changed
+- Admin messages and the report status label are escaped through `escapeHtmlAttr($text, false)`, the same
+  `htmlspecialchars()` call as `escapeHtml()` for a string, typed `string` on every Magento version.
+
 ## [2.0.0] - 2026-10-16
 
 A major release: header optimisation and splitting no longer change what the policy allows (verified against an
@@ -52,8 +62,6 @@ reports are accepted only from the store's own pages.
 - Whitelist store scope is stored in a link table instead of a comma-separated column matched with `LIKE`.
 
 ### Added
-- Magento 2.4.9 and PHP 8.5 support (`symfony/console` 7.x allowed)
-  ([#8](https://github.com/hryvinskyi/magento2-csp/issues/8)).
 - Whitelist entries have an area: storefront, admin or both.
 - Reporting API (`application/reports+json`) reports.
 - Trusted parent domains for subdomain consolidation; report rate limit and size limit settings.
