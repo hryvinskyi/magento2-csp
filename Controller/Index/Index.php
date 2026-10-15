@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -9,39 +9,35 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Controller\Index;
 
-use Hryvinskyi\Csp\Api\ReportGroupRepositoryInterface;
-use Hryvinskyi\Csp\Api\ReportRepositoryInterface;
+use Hryvinskyi\Csp\Api\Data\Area;
+use Hryvinskyi\Csp\Model\Report\ReportRequestHandler;
 use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\App\CsrfAwareActionInterface;
 use Magento\Framework\App\Request\InvalidRequestException;
 use Magento\Framework\App\RequestInterface;
-use Psr\Log\LoggerInterface;
+use Magento\Framework\Controller\ResultInterface;
 
 /**
- * Controller for the 'csp_report_watch/index/index' URL route.
+ * Receives violation reports of storefront pages (`/csp_report_watch`).
  */
 class Index implements HttpPostActionInterface, CsrfAwareActionInterface
 {
+    /**
+     * @param RequestInterface $request
+     * @param ReportRequestHandler $handler
+     */
     public function __construct(
         private readonly RequestInterface $request,
-        private readonly ReportRepositoryInterface $reportRepository,
-        private readonly ReportGroupRepositoryInterface $reportGroupRepository,
-        private readonly LoggerInterface $logger
+        private readonly ReportRequestHandler $handler
     ) {
     }
 
-    public function execute(): void
+    /**
+     * @inheritDoc
+     */
+    public function execute(): ResultInterface
     {
-        $json = $this->request->getContent();
-        try {
-            $group = $this->reportGroupRepository->saveFromCspReport($json);
-            if ($group->getGroupId() === null) {
-                exit;
-            }
-            $this->reportRepository->saveFromCspReport($group->getGroupId(), $json);
-        } catch (\Throwable $e) {
-            $this->logger->error($e->getMessage());
-        }
+        return $this->handler->handle($this->request, Area::FRONTEND);
     }
 
     /**
@@ -53,7 +49,10 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
     }
 
     /**
-     * @inheritDoc
+     * Browsers send reports without a form key.
+     *
+     * @param RequestInterface $request
+     * @return bool|null
      */
     public function validateForCsrf(RequestInterface $request): ?bool
     {

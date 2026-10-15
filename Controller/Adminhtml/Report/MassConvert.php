@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -9,34 +9,44 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Controller\Adminhtml\Report;
 
-use Hryvinskyi\Csp\Model\Report\Command\CspReportConverterInterface;
-use Hryvinskyi\Csp\Model\ResourceModel\Report\CollectionFactory;
-use Hryvinskyi\Csp\Model\Cache\CacheCleanerInterface;
-use Hryvinskyi\Csp\Model\Whitelist\MassConvertManagerInterface;
+use Hryvinskyi\Csp\Api\Data\ReportInterface;
+use Hryvinskyi\Csp\Api\ReportGroupRepositoryInterface;
+use Hryvinskyi\Csp\Controller\Adminhtml\ConvertsToWhitelist;
+use Hryvinskyi\Csp\Model\Admin\EscapedMessages;
+use Hryvinskyi\Csp\Model\Conversion\ConversionMessages;
+use Hryvinskyi\Csp\Model\Conversion\ReportGroupConverter;
+use Hryvinskyi\Csp\Model\UiComponent\Listing\ReportGroupScope;
+use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
-use Magento\Framework\Controller\ResultInterface;
+use Magento\Framework\App\Action\HttpPostActionInterface;
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Ui\Component\MassAction\Filter;
 
 /**
- * Mass convert controller for converting multiple reports to whitelist
+ * Turns the report groups of the reports selected in the grid into whitelist allowances, each group once, within the
+ * report group the grid shows.
  */
-class MassConvert extends AbstractReport
+class MassConvert extends Action implements HttpPostActionInterface
 {
+    use ConvertsToWhitelist;
+
     /**
      * @param Context $context
      * @param Filter $filter
-     * @param CollectionFactory $collectionFactory
-     * @param CspReportConverterInterface $cspReportConverter
-     * @param CacheCleanerInterface $cacheCleaner
-     * @param MassConvertManagerInterface $massConvertManager
+     * @param ReportGroupScope $scope
+     * @param ReportGroupRepositoryInterface $reportGroupRepository
+     * @param ReportGroupConverter $converter
+     * @param ConversionMessages $conversionMessages
+     * @param EscapedMessages $messages
      */
     public function __construct(
         Context $context,
         private readonly Filter $filter,
-        private readonly CollectionFactory $collectionFactory,
-        private readonly CspReportConverterInterface $cspReportConverter,
-        private readonly CacheCleanerInterface $cacheCleaner,
-        private readonly MassConvertManagerInterface $massConvertManager
+        private readonly ReportGroupScope $scope,
+        private readonly ReportGroupRepositoryInterface $reportGroupRepository,
+        private readonly ReportGroupConverter $converter,
+        private readonly ConversionMessages $conversionMessages,
+        private readonly EscapedMessages $messages
     ) {
         parent::__construct($context);
     }
@@ -44,21 +54,28 @@ class MassConvert extends AbstractReport
     /**
      * @inheritdoc
      */
-    public function execute(): ResultInterface
+    public function execute()
     {
-        $collection = $this->filter->getCollection($this->collectionFactory->create());
-        ['count' => $count, 'messages' => $messages] = $this->massConvertManager->convertReports($collection, $this->cspReportConverter);
-        if (!empty($messages)) {
-            $this->messageManager->addErrorMessage($messages);
+        $results = [];
+        try {
+            $groupIds = [];
+            $scopeGroupId = $this->scope->requestedGroupId($this->getRequest());
+            foreach ($this->filter->getCollection($this->scope->reports($scopeGroupId)) as $report) {
+                if ($report instanceof ReportInterface && $report->getGroupId() !== null) {
+                    $groupIds[$report->getGroupId()] = true;
+                }
+            }
+            foreach (array_keys($groupIds) as $groupId) {
+                $group = $this->reportGroupRepository->findById($groupId);
+                if ($group !== null) {
+                    $results[] = $this->converter->convert($group);
+                }
+            }
+        } catch (LocalizedException $exception) {
+            $this->messages->failure($exception);
         }
+        $this->conversionMessages->add($results);
 
-        if ($count > 0) {
-            $this->messageManager->addSuccessMessage(__('A total of %1 record(s) have been converted.', $count));
-        } else {
-            $this->messageManager->addErrorMessage(__('No records have been converted.'));
-        }
-
-        $this->cacheCleaner->cleanCaches();
-        return $this->createRedirectResult('*/*/');
+        return $this->resultRedirectFactory->create()->setPath('*/*/');
     }
 }

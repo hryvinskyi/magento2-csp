@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -11,10 +11,15 @@ namespace Hryvinskyi\Csp\Api;
 
 use Magento\Framework\App\Response\HttpInterface as HttpResponse;
 
+/**
+ * Rewrites the CSP headers Magento rendered into a response: optimised and, above the size limit, split.
+ *
+ * @api
+ */
 interface CspHeaderProcessorInterface
 {
     /**
-     * Process CSP headers in response
+     * Process the CSP headers of the response.
      *
      * @param HttpResponse $response
      * @return void

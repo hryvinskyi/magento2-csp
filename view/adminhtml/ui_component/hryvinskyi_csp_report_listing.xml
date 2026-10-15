@@ -21,6 +21,10 @@
                     <item name="storageConfig" xsi:type="array">
                         <item name="indexField" xsi:type="string">report_id</item>
                     </item>
+                    <item name="filter_url_params" xsi:type="array">
+                        <item name="group_id" xsi:type="string">*</item>
+                    </item>
+                    <item name="aclResource" xsi:type="string">Hryvinskyi_Csp::reports</item>
                 </item>
             </argument>
         </argument>
@@ -56,32 +60,28 @@
             </argument>
         </filters>
         <massaction name="listing_massaction">
-            <action name="delete">
+            <action name="delete" class="Hryvinskyi\Csp\Model\UiComponent\Listing\ReportGroupScopedAction">
                 <argument name="data" xsi:type="array">
                     <item name="config" xsi:type="array">
                         <item name="type" xsi:type="string">delete</item>
                         <item name="label" xsi:type="string" translate="true">Delete</item>
-                        <item name="url" xsi:type="url" path="hryvinskyi_csp/report/massDelete"/>
+                        <item name="urlPath" xsi:type="string">hryvinskyi_csp/report/massDelete</item>
                         <item name="confirm" xsi:type="array">
                             <item name="title" xsi:type="string" translate="true">Delete items</item>
-                            <item name="message" xsi:type="string" translate="true">Are you sure you wan't to delete
-                                selected items?
-                            </item>
+                            <item name="message" xsi:type="string" translate="true">Are you sure you want to delete the selected reports?</item>
                         </item>
                     </item>
                 </argument>
             </action>
-            <action name="convert">
+            <action name="convert" class="Hryvinskyi\Csp\Model\UiComponent\Listing\ReportGroupScopedAction">
                 <argument name="data" xsi:type="array">
                     <item name="config" xsi:type="array">
                         <item name="type" xsi:type="string">convert</item>
                         <item name="label" xsi:type="string" translate="true">Convert</item>
-                        <item name="url" xsi:type="url" path="hryvinskyi_csp/report/massConvert"/>
+                        <item name="urlPath" xsi:type="string">hryvinskyi_csp/report/massConvert</item>
                         <item name="confirm" xsi:type="array">
                             <item name="title" xsi:type="string" translate="true">Convert items</item>
-                            <item name="message" xsi:type="string" translate="true">Are you sure you wan't to convert
-                                selected items?
-                            </item>
+                            <item name="message" xsi:type="string" translate="true">Convert the report groups of the selected reports to whitelist entries? Inline code, eval and unsafe sources are refused.</item>
                         </item>
                     </item>
                 </argument>

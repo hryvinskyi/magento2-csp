@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2026. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -9,28 +9,31 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Model\Whitelist;
 
-use Hryvinskyi\Csp\Api\DomainMatcherInterface;
+use Hryvinskyi\Csp\Api\Data\Area;
+use Hryvinskyi\Csp\Api\Data\ValueType;
+use Hryvinskyi\Csp\Api\Data\WhitelistInterface;
 use Hryvinskyi\Csp\Api\RedundancyCalculatorInterface;
 use Hryvinskyi\Csp\Model\Config\Source\RedundancyStatusOptions;
 use Hryvinskyi\Csp\Model\ResourceModel\Whitelist\CollectionFactory;
 
 /**
- * Calculates redundancy status for CSP whitelist entries
+ * Adds the redundancy status of each host entry to whitelist grid rows, comparing it with the enabled host entries
+ * of its directive in its stores and area.
  */
 class RedundancyCalculator implements RedundancyCalculatorInterface
 {
     /**
-     * @var array<string, array<int, array<string, mixed>>>|null
+     * @var array<string, list<array{rule_id: int, value: string, stores: list<int>, area: string}>>|null
      */
-    private ?array $allEntriesGroupedByPolicy = null;
+    private ?array $enabledHostsByPolicy = null;
 
     /**
      * @param CollectionFactory $collectionFactory
-     * @param DomainMatcherInterface $domainMatcher
+     * @param RedundancyRules $redundancyRules
      */
     public function __construct(
         private readonly CollectionFactory $collectionFactory,
-        private readonly DomainMatcherInterface $domainMatcher
+        private readonly RedundancyRules $redundancyRules
     ) {
     }
 
@@ -39,160 +42,82 @@ class RedundancyCalculator implements RedundancyCalculatorInterface
      */
     public function calculateForItems(array $items): array
     {
-        $this->loadAllEntries();
-
-        foreach ($items as &$item) {
-            $item['redundancy_status'] = $this->calculateItemStatus($item);
+        foreach ($items as $key => $item) {
+            $items[$key]['redundancy_status'] = $this->statusOf($item);
         }
 
         return $items;
     }
 
     /**
-     * Calculate redundancy status for a single item
+     * Redundancy status of one grid row.
      *
      * @param array<string, mixed> $item
      * @return int
      */
-    private function calculateItemStatus(array $item): int
+    private function statusOf(array $item): int
     {
-        $valueType = $item['value_type'] ?? '';
-
-        if ($valueType !== 'host') {
+        $value = $item[WhitelistInterface::VALUE] ?? null;
+        $policy = $item[WhitelistInterface::POLICY] ?? null;
+        if (($item[WhitelistInterface::VALUE_TYPE] ?? null) !== ValueType::HOST->value
+            || !is_string($value) || $value === ''
+            || !is_string($policy) || $policy === ''
+        ) {
             return RedundancyStatusOptions::NOT_APPLICABLE;
         }
+        $area = $item[WhitelistInterface::AREA] ?? null;
+        $ruleId = $item[WhitelistInterface::RULE_ID] ?? null;
+        $entry = [
+            'rule_id' => is_numeric($ruleId) ? (int)$ruleId : 0,
+            'value' => $value,
+            'stores' => $this->storeIds($item[WhitelistInterface::STORE_ID] ?? []),
+            'area' => is_string($area) && $area !== '' ? $area : Area::ALL->value,
+        ];
 
-        $policy = $item['policy'] ?? '';
-        $value = strtolower(trim($item['value'] ?? ''));
-        $ruleId = (int)($item['rule_id'] ?? 0);
-
-        if ($value === '' || $policy === '') {
-            return RedundancyStatusOptions::NOT_APPLICABLE;
-        }
-
-        $policyEntries = $this->allEntriesGroupedByPolicy[$policy] ?? [];
-
-        if ($this->isDuplicate($ruleId, $value, $policyEntries)) {
-            return RedundancyStatusOptions::DUPLICATE;
-        }
-
-        if ($this->isRedundant($ruleId, $value, $policyEntries)) {
-            return RedundancyStatusOptions::REDUNDANT;
-        }
-
-        return RedundancyStatusOptions::UNIQUE;
+        return $this->redundancyRules->status($entry, $this->enabledHosts()[$policy] ?? []);
     }
 
     /**
-     * Load all whitelist entries grouped by policy
+     * Enabled host entries grouped by directive.
      *
-     * @return void
+     * @return array<string, list<array{rule_id: int, value: string, stores: list<int>, area: string}>>
      */
-    private function loadAllEntries(): void
+    private function enabledHosts(): array
     {
-        if ($this->allEntriesGroupedByPolicy !== null) {
-            return;
+        if ($this->enabledHostsByPolicy !== null) {
+            return $this->enabledHostsByPolicy;
         }
-
-        $this->allEntriesGroupedByPolicy = [];
-
-        $collection = $this->collectionFactory->create();
-        $collection->addFieldToFilter('value_type', 'host');
-
-        foreach ($collection as $item) {
-            $policy = $item->getPolicy();
-            if (!isset($this->allEntriesGroupedByPolicy[$policy])) {
-                $this->allEntriesGroupedByPolicy[$policy] = [];
-            }
-            $this->allEntriesGroupedByPolicy[$policy][] = [
+        $collection = $this->collectionFactory->create()
+            ->addActiveFilter()
+            ->addFieldToFilter(WhitelistInterface::VALUE_TYPE, ['eq' => ValueType::HOST->value]);
+        $entries = [];
+        foreach ($collection->getItems() as $item) {
+            $entries[(string)$item->getPolicy()][] = [
                 'rule_id' => (int)$item->getRuleId(),
-                'value' => strtolower(trim($item->getValue())),
+                'value' => (string)$item->getValue(),
+                'stores' => array_values($item->getStoreIds()),
+                'area' => $item->getArea(),
             ];
         }
+
+        return $this->enabledHostsByPolicy = $entries;
     }
 
     /**
-     * Check if an entry is a duplicate (exact same policy and value exists in another entry)
+     * Store ids of a grid row.
      *
-     * @param int $ruleId
-     * @param string $value
-     * @param array<int, array<string, mixed>> $policyEntries
-     * @return bool
+     * @param mixed $storeIds
+     * @return list<int>
      */
-    private function isDuplicate(int $ruleId, string $value, array $policyEntries): bool
+    private function storeIds(mixed $storeIds): array
     {
-        foreach ($policyEntries as $entry) {
-            if ($entry['rule_id'] !== $ruleId && $entry['value'] === $value) {
-                // Mark as duplicate only for the higher rule_id to avoid marking both
-                if ($entry['rule_id'] < $ruleId) {
-                    return true;
-                }
-            }
+        if (!is_array($storeIds)) {
+            return [];
         }
 
-        return false;
-    }
-
-    /**
-     * Check if an entry is redundant (covered by a wildcard in any other entry)
-     *
-     * @param int $ruleId
-     * @param string $value
-     * @param array<int, array<string, mixed>> $policyEntries
-     * @return bool
-     */
-    private function isRedundant(int $ruleId, string $value, array $policyEntries): bool
-    {
-        if ($this->domainMatcher->isWildcard($value)) {
-            return $this->isWildcardCoveredByBroaderWildcard($ruleId, $value, $policyEntries);
-        }
-
-        return $this->isHostCoveredByWildcard($ruleId, $value, $policyEntries);
-    }
-
-    /**
-     * Check if a host is covered by any wildcard entry regardless of rule_id order
-     *
-     * @param int $ruleId
-     * @param string $host
-     * @param array<int, array<string, mixed>> $policyEntries
-     * @return bool
-     */
-    private function isHostCoveredByWildcard(int $ruleId, string $host, array $policyEntries): bool
-    {
-        foreach ($policyEntries as $entry) {
-            if ($entry['rule_id'] === $ruleId || !$this->domainMatcher->isWildcard($entry['value'])) {
-                continue;
-            }
-
-            if ($this->domainMatcher->domainMatchesWildcard($host, $entry['value'])) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Check if a wildcard is covered by a broader wildcard entry regardless of rule_id order
-     *
-     * @param int $ruleId
-     * @param string $wildcard
-     * @param array<int, array<string, mixed>> $policyEntries
-     * @return bool
-     */
-    private function isWildcardCoveredByBroaderWildcard(int $ruleId, string $wildcard, array $policyEntries): bool
-    {
-        foreach ($policyEntries as $entry) {
-            if ($entry['rule_id'] === $ruleId || !$this->domainMatcher->isWildcard($entry['value'])) {
-                continue;
-            }
-
-            if ($this->domainMatcher->isWildcardCoveredByBroader($wildcard, $entry['value'])) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_values(array_map(
+            static fn (mixed $id): int => (int)$id,
+            array_filter($storeIds, static fn (mixed $id): bool => is_numeric($id))
+        ));
     }
 }

@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -13,10 +13,17 @@ use Magento\Framework\Api\SearchCriteriaInterface;
 use Hryvinskyi\Csp\Api\Data\WhitelistInterface;
 use Hryvinskyi\Csp\Api\Data\WhitelistSearchResultsInterface;
 
+/**
+ * Whitelist entries. Saving normalizes and validates an entry and refreshes the cached policy sources.
+ *
+ * @api
+ */
 interface WhitelistRepositoryInterface
 {
     /**
-     * Save Whitelist
+     * Save an entry after bringing it into canonical form.
+     *
+     * Fails when the entry breaks a whitelist rule, or when another entry has the same natural key.
      *
      * @param \Hryvinskyi\Csp\Api\Data\WhitelistInterface $whitelist
      *
@@ -55,22 +62,23 @@ interface WhitelistRepositoryInterface
     public function getList(SearchCriteriaInterface $searchCriteria): WhitelistSearchResultsInterface;
 
     /**
-     * Retrieve Whitelist by params.
+     * Entry with the given natural key: directive, value type, algorithm, value and area.
      *
      * @param string $policy
      * @param string $valueType
-     * @param string $value
      * @param string $valueAlgorithm
+     * @param string $value
+     * @param string $area
      *
-     * @return \Hryvinskyi\Csp\Api\Data\WhitelistSearchResultsInterface
+     * @return \Hryvinskyi\Csp\Api\Data\WhitelistInterface|null
      */
-    public function getWhitelistByParams(
+    public function findByNaturalKey(
         string $policy,
         string $valueType,
+        string $valueAlgorithm,
         string $value,
-        string $valueAlgorithm = ''
-    ): WhitelistSearchResultsInterface;
-
+        string $area
+    ): ?WhitelistInterface;
 
     /**
      * Delete Whitelist

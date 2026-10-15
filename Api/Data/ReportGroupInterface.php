@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -9,15 +9,13 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Api\Data;
 
+/**
+ * Violations of one governing directive and blocked value, in one store and area.
+ *
+ * @api
+ */
 interface ReportGroupInterface
 {
-    /**
-     * Status codes for report
-     */
-    public const STATUS_CODE_PENDING = 0;
-    public const STATUS_CODE_DENIED = 1;
-    public const STATUS_CODE_SKIP = 2;
-
     /**#@+
      * Constants for keys of data array.
      */
@@ -27,6 +25,8 @@ interface ReportGroupInterface
     public const STORE_ID = 'store_id';
     public const STATUS = 'status';
     public const COUNT = 'count';
+    public const AREA = 'area';
+    public const UPDATED_AT = 'updated_at';
     /**#@-*/
 
 
@@ -125,4 +125,27 @@ interface ReportGroupInterface
      * @return $this
      */
     public function setCount(int $count): ReportGroupInterface;
+
+    /**
+     * Area the violations happened in: `frontend`, `adminhtml`, or `all` for groups recorded before 2.0.0.
+     *
+     * @return string
+     */
+    public function getArea(): string;
+
+    /**
+     * Set the area the violations happened in.
+     *
+     * @param string $area
+     *
+     * @return $this
+     */
+    public function setArea(string $area): ReportGroupInterface;
+
+    /**
+     * When the last violation of the group was recorded.
+     *
+     * @return string|null
+     */
+    public function getUpdatedAt(): ?string;
 }

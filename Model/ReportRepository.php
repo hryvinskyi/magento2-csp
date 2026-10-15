@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -9,36 +9,38 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Model;
 
-use Hryvinskyi\Csp\Model\Report\Command\SaveFromCspReportInterface;
-use Magento\Framework\Api\FilterFactory;
-use Magento\Framework\Api\Search\FilterGroupFactory;
-use Magento\Framework\Api\Search\SearchCriteriaBuilder;
-use Magento\Framework\Api\SearchCriteria\CollectionProcessorInterface;
-use Magento\Framework\Api\SearchCriteriaInterface;
-use Magento\Framework\Exception\LocalizedException;
-use Magento\Framework\Exception\NoSuchEntityException;
-use Magento\Framework\Exception\CouldNotDeleteException;
-use Magento\Framework\Exception\CouldNotSaveException;
-use Hryvinskyi\Csp\Api\ReportRepositoryInterface;
 use Hryvinskyi\Csp\Api\Data\ReportInterface;
 use Hryvinskyi\Csp\Api\Data\ReportInterfaceFactory;
 use Hryvinskyi\Csp\Api\Data\ReportSearchResultsInterface;
 use Hryvinskyi\Csp\Api\Data\ReportSearchResultsInterfaceFactory;
+use Hryvinskyi\Csp\Api\ReportRepositoryInterface;
 use Hryvinskyi\Csp\Model\ResourceModel\Report as ReportResource;
 use Hryvinskyi\Csp\Model\ResourceModel\Report\CollectionFactory;
+use Magento\Framework\Api\SearchCriteria\CollectionProcessorInterface;
+use Magento\Framework\Api\SearchCriteriaInterface;
+use Magento\Framework\Exception\CouldNotDeleteException;
+use Magento\Framework\Exception\CouldNotSaveException;
+use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\Model\AbstractModel;
 
+/**
+ * @inheritDoc
+ */
 class ReportRepository implements ReportRepositoryInterface
 {
+    /**
+     * @param ReportResource $resource
+     * @param ReportInterfaceFactory $entityFactory
+     * @param CollectionFactory $collectionFactory
+     * @param ReportSearchResultsInterfaceFactory $searchResultFactory
+     * @param CollectionProcessorInterface $collectionProcessor
+     */
     public function __construct(
         private readonly ReportResource $resource,
-        private readonly ReportInterfaceFactory $reportFactory,
+        private readonly ReportInterfaceFactory $entityFactory,
         private readonly CollectionFactory $collectionFactory,
         private readonly ReportSearchResultsInterfaceFactory $searchResultFactory,
-        private readonly CollectionProcessorInterface $collectionProcessor,
-        private readonly SaveFromCspReportInterface $saveFromCspReport,
-        private readonly SearchCriteriaBuilder $searchCriteriaBuilder,
-        private readonly FilterGroupFactory $filterGroupFactory,
-        private readonly FilterFactory $filterFactory
+        private readonly CollectionProcessorInterface $collectionProcessor
     ) {
     }
 
@@ -48,25 +50,12 @@ class ReportRepository implements ReportRepositoryInterface
     public function save(ReportInterface $report): ReportInterface
     {
         try {
-            $this->resource->save($report);
+            $this->resource->save($this->model($report));
         } catch (\Exception $exception) {
-            throw new CouldNotSaveException(__($exception->getMessage()));
+            throw new CouldNotSaveException(__('%1', $exception->getMessage()), $exception);
         }
 
         return $report;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function saveFromCspReport(int $groupId, string $json): bool
-    {
-        try {
-            $this->saveFromCspReport->execute($groupId, $json);
-            return true;
-        } catch (LocalizedException $e) {
-            return false;
-        }
     }
 
     /**
@@ -74,13 +63,12 @@ class ReportRepository implements ReportRepositoryInterface
      */
     public function getById(int $reportId): ReportInterface
     {
-        $report = $this->reportFactory->create();
-        $this->resource->load($report, $reportId);
-        if (!$report->getId()) {
-            throw new NoSuchEntityException(__('Report with id "%1" does not exist.', $reportId));
+        $entity = $this->findById($reportId);
+        if ($entity === null) {
+            throw new NoSuchEntityException(__('Record %1 does not exist.', $reportId));
         }
 
-        return $report;
+        return $entity;
     }
 
     /**
@@ -88,14 +76,11 @@ class ReportRepository implements ReportRepositoryInterface
      */
     public function findById(int $reportId): ?ReportInterface
     {
-        $report = $this->reportFactory->create();
-        $this->resource->load($report, $reportId);
+        $entity = $this->entityFactory->create();
+        $model = $this->model($entity);
+        $this->resource->load($model, $reportId);
 
-        if (!$report->getId()) {
-            return null;
-        }
-
-        return $report;
+        return $model->getId() === null ? null : $entity;
     }
 
     /**
@@ -105,12 +90,12 @@ class ReportRepository implements ReportRepositoryInterface
     {
         $collection = $this->collectionFactory->create();
         $this->collectionProcessor->process($searchCriteria, $collection);
+        $results = $this->searchResultFactory->create();
+        $results->setSearchCriteria($searchCriteria);
+        $results->setItems(array_values($collection->getItems()));
+        $results->setTotalCount($collection->getSize());
 
-        return $this->searchResultFactory
-            ->create()
-            ->setSearchCriteria($searchCriteria)
-            ->setItems($collection->getItems())
-            ->setTotalCount($collection->getSize());
+        return $results;
     }
 
     /**
@@ -119,49 +104,9 @@ class ReportRepository implements ReportRepositoryInterface
     public function delete(ReportInterface $report): bool
     {
         try {
-            $this->resource->delete($report);
+            $this->resource->delete($this->model($report));
         } catch (\Exception $exception) {
-            throw new CouldNotDeleteException(__($exception->getMessage()));
-        }
-
-        return true;
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public function deleteByDomainAndPolicy(string $domain, string $policy): bool
-    {
-        $filterHttpsDomain = $this->filterFactory->create()
-            ->setField(ReportInterface::BLOCKED_URI)
-            ->setConditionType('like')
-            ->setValue('https://' . $domain . '%');
-
-        $filterHttpDomain = $this->filterFactory->create()
-            ->setField(ReportInterface::BLOCKED_URI)
-            ->setConditionType('like')
-            ->setValue('http://' . $domain . '%');
-
-        $filterWssDomain = $this->filterFactory->create()
-            ->setField(ReportInterface::BLOCKED_URI)
-            ->setConditionType('like')
-            ->setValue('wss://' . $domain . '%');
-
-        $filterPolicy = $this->filterFactory->create()
-            ->setField(ReportInterface::EFFECTIVE_DIRECTIVE)
-            ->setConditionType('eq')
-            ->setValue($policy);
-
-        $searchCriteria = $this->searchCriteriaBuilder->create()
-            ->setFilterGroups([
-                $this->filterGroupFactory->create()
-                    ->setFilters([$filterHttpsDomain, $filterHttpDomain, $filterWssDomain]),
-                $this->filterGroupFactory->create()
-                    ->setFilters([$filterPolicy])
-            ]);
-
-        foreach ($this->getList($searchCriteria)->getItems() as $report) {
-            $this->delete($report);
+            throw new CouldNotDeleteException(__('%1', $exception->getMessage()), $exception);
         }
 
         return true;
@@ -173,5 +118,21 @@ class ReportRepository implements ReportRepositoryInterface
     public function deleteById(int $reportId): bool
     {
         return $this->delete($this->getById($reportId));
+    }
+
+    /**
+     * The entity as the model the resource model persists.
+     *
+     * @param ReportInterface $entity
+     * @return AbstractModel
+     * @throws \InvalidArgumentException
+     */
+    private function model(ReportInterface $entity): AbstractModel
+    {
+        if (!$entity instanceof AbstractModel) {
+            throw new \InvalidArgumentException(sprintf('%s cannot be persisted by this repository.', $entity::class));
+        }
+
+        return $entity;
     }
 }

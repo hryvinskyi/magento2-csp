@@ -1,24 +1,38 @@
 <?php
 /**
- * Copyright (c) 2025. MageCloud.  All rights reserved.
- * @author: Volodymyr Hryvinskyi <mailto:volodymyr@hryvinskyi.com>
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
+ * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
+ * GitHub: https://github.com/hryvinskyi
  */
 
 declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Controller\Adminhtml\ReportGroup;
 
+use Hryvinskyi\Csp\Api\Data\Status;
 use Hryvinskyi\Csp\Api\ReportGroupRepositoryInterface;
-use Hryvinskyi\Csp\Controller\Adminhtml\Report\AbstractReport;
+use Hryvinskyi\Csp\Model\Admin\EscapedMessages;
+use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
-use Magento\Framework\Controller\ResultInterface;
-use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\App\Action\HttpPostActionInterface;
+use Magento\Framework\Exception\LocalizedException;
 
-class ChangeStatus extends AbstractReport
+/**
+ * Sets the status of one report group.
+ */
+class ChangeStatus extends Action implements HttpPostActionInterface
 {
+    public const ADMIN_RESOURCE = 'Hryvinskyi_Csp::reports_manage';
+
+    /**
+     * @param Context $context
+     * @param ReportGroupRepositoryInterface $reportGroupRepository
+     * @param EscapedMessages $messages
+     */
     public function __construct(
         Context $context,
         private readonly ReportGroupRepositoryInterface $reportGroupRepository,
+        private readonly EscapedMessages $messages
     ) {
         parent::__construct($context);
     }
@@ -26,27 +40,25 @@ class ChangeStatus extends AbstractReport
     /**
      * @inheritdoc
      */
-    public function execute(): ResultInterface
+    public function execute()
     {
-        $reportGroupId = (int)$this->getRequest()->getParam('id');
-        $status = $this->getRequest()->getParam('status');
+        $id = $this->getRequest()->getParam('id');
+        $statusCode = $this->getRequest()->getParam('status');
+        $status = is_numeric($statusCode) ? Status::tryFrom((int)$statusCode) : null;
+        if (!is_numeric($id) || $status === null) {
+            $this->messages->error(__('Choose a report group and a valid status.'));
 
-        if (!$reportGroupId || !$status) {
-            $this->messageManager->addErrorMessage(__('Missing required parameters'));
-            return $this->createRedirectResult('*/*/');
+            return $this->resultRedirectFactory->create()->setPath('*/*/');
         }
-
         try {
-            $reportGroup = $this->reportGroupRepository->getById($reportGroupId);
-            $reportGroup->setStatus((int)$status);
-            $this->reportGroupRepository->save($reportGroup);
-            $this->messageManager->addSuccessMessage(__('Report Group status has been updated.'));
-        } catch (NoSuchEntityException) {
-            $this->messageManager->addErrorMessage(__('Report Group with ID %1 does not exist.', $reportGroupId));
-        } catch (\Exception $e) {
-            $this->messageManager->addErrorMessage(__('Could not change status: %1', $e->getMessage()));
+            $group = $this->reportGroupRepository->getById((int)$id);
+            $group->setStatus($status->value);
+            $this->reportGroupRepository->save($group);
+            $this->messages->success(__('The report group status has been updated.'));
+        } catch (LocalizedException $exception) {
+            $this->messages->failure($exception);
         }
 
-        return $this->createRedirectResult('*/*/');
+        return $this->resultRedirectFactory->create()->setPath('*/*/');
     }
 }

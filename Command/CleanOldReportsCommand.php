@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2026. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -9,16 +9,15 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Command;
 
-use Hryvinskyi\Csp\Api\ConfigInterface;
+use Hryvinskyi\Csp\Api\Config\ReportCleanupConfigInterface;
 use Hryvinskyi\Csp\Api\ReportCleanupInterface;
-use Hryvinskyi\Csp\Model\Config\Source\CleanupMode;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
- * Console command to clean old CSP violation reports
+ * Deletes old violation reports now, with the configured or the given mode and threshold.
  */
 class CleanOldReportsCommand extends Command
 {
@@ -26,8 +25,12 @@ class CleanOldReportsCommand extends Command
     private const OPTION_THRESHOLD = 'threshold';
     private const OPTION_DRY_RUN = 'dry-run';
 
+    /**
+     * @param ReportCleanupConfigInterface $config
+     * @param ReportCleanupInterface $reportCleanup
+     */
     public function __construct(
-        private readonly ConfigInterface $config,
+        private readonly ReportCleanupConfigInterface $config,
         private readonly ReportCleanupInterface $reportCleanup
     ) {
         parent::__construct();
@@ -39,25 +42,20 @@ class CleanOldReportsCommand extends Command
     protected function configure(): void
     {
         $this->setName('hryvinskyi:csp:report:clean')
-            ->setDescription('Clean old CSP violation reports')
+            ->setDescription('Delete old CSP violation reports')
             ->addOption(
                 self::OPTION_MODE,
                 'm',
-                InputOption::VALUE_OPTIONAL,
-                'Cleanup mode: "date" (delete by age) or "count" (keep N newest records). Defaults to config value.'
+                InputOption::VALUE_REQUIRED,
+                sprintf('Cleanup mode (%s); the configured mode by default', implode(', ', $this->reportCleanup->modes()))
             )
             ->addOption(
                 self::OPTION_THRESHOLD,
                 't',
-                InputOption::VALUE_OPTIONAL,
-                'Threshold value: days for date mode, max records for count mode. Defaults to config value.'
+                InputOption::VALUE_REQUIRED,
+                'Days for the date mode, reports to keep for the count mode; the configured threshold by default'
             )
-            ->addOption(
-                self::OPTION_DRY_RUN,
-                null,
-                InputOption::VALUE_NONE,
-                'Show how many records would be deleted without actually deleting them.'
-            );
+            ->addOption(self::OPTION_DRY_RUN, null, InputOption::VALUE_NONE, 'Only show how many reports would be deleted');
     }
 
     /**
@@ -65,92 +63,34 @@ class CleanOldReportsCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $mode = $input->getOption(self::OPTION_MODE) ?? $this->config->getReportCleanupMode();
-        $threshold = $input->getOption(self::OPTION_THRESHOLD)
-            ? (int)$input->getOption(self::OPTION_THRESHOLD)
-            : $this->config->getReportCleanupThreshold();
-        $dryRun = (bool)$input->getOption(self::OPTION_DRY_RUN);
+        $mode = $input->getOption(self::OPTION_MODE);
+        $mode = is_string($mode) && $mode !== '' ? $mode : $this->config->getReportCleanupMode();
+        $threshold = $input->getOption(self::OPTION_THRESHOLD);
+        $threshold = is_numeric($threshold) ? (int)$threshold : $this->config->getReportCleanupThreshold();
 
-        if (!in_array($mode, [CleanupMode::MODE_DATE, CleanupMode::MODE_COUNT], true)) {
-            $output->writeln(sprintf('<error>Invalid mode "%s". Use "date" or "count".</error>', $mode));
+        try {
+            if ($input->getOption(self::OPTION_DRY_RUN)) {
+                $output->writeln(sprintf(
+                    '<comment>%d report(s) would be deleted (mode %s, threshold %d).</comment>',
+                    $this->reportCleanup->countAffected($mode, $threshold),
+                    $mode,
+                    $threshold
+                ));
+
+                return Command::SUCCESS;
+            }
+            $output->writeln(sprintf(
+                '<info>%d report(s) deleted (mode %s, threshold %d).</info>',
+                $this->reportCleanup->clean($mode, $threshold),
+                $mode,
+                $threshold
+            ));
+        } catch (\InvalidArgumentException $exception) {
+            $output->writeln(sprintf('<error>%s</error>', $exception->getMessage()));
+
             return Command::FAILURE;
         }
-
-        if ($threshold <= 0) {
-            $output->writeln('<error>Threshold must be a positive integer.</error>');
-            return Command::FAILURE;
-        }
-
-        $totalCount = $this->reportCleanup->getTotalCount();
-        $output->writeln(sprintf('<info>Total violation reports: %d</info>', $totalCount));
-
-        if ($dryRun) {
-            return $this->executeDryRun($output, $mode, $threshold);
-        }
-
-        return $this->executeCleanup($output, $mode, $threshold);
-    }
-
-    /**
-     * Execute dry-run showing how many records would be deleted
-     *
-     * @param OutputInterface $output
-     * @param string $mode
-     * @param int $threshold
-     *
-     * @return int
-     */
-    private function executeDryRun(OutputInterface $output, string $mode, int $threshold): int
-    {
-        $wouldDelete = match ($mode) {
-            CleanupMode::MODE_COUNT => $this->reportCleanup->countByCount($threshold),
-            default => $this->reportCleanup->countByDate($threshold),
-        };
-
-        $modeLabel = $mode === CleanupMode::MODE_DATE
-            ? sprintf('older than %d days', $threshold)
-            : sprintf('exceeding %d records limit', $threshold);
-
-        $output->writeln(sprintf(
-            '<comment>[DRY RUN] Would delete %d records (%s).</comment>',
-            $wouldDelete,
-            $modeLabel
-        ));
 
         return Command::SUCCESS;
-    }
-
-    /**
-     * Execute actual cleanup
-     *
-     * @param OutputInterface $output
-     * @param string $mode
-     * @param int $threshold
-     *
-     * @return int
-     */
-    private function executeCleanup(OutputInterface $output, string $mode, int $threshold): int
-    {
-        try {
-            $deleted = match ($mode) {
-                CleanupMode::MODE_COUNT => $this->reportCleanup->cleanByCount($threshold),
-                default => $this->reportCleanup->cleanByDate($threshold),
-            };
-
-            $modeLabel = $mode === CleanupMode::MODE_DATE
-                ? sprintf('older than %d days', $threshold)
-                : sprintf('keeping %d newest records', $threshold);
-
-            $output->writeln(sprintf(
-                '<info>Deleted %d records (%s).</info>',
-                $deleted,
-                $modeLabel
-            ));
-
-            return Command::SUCCESS;
-        } catch (\Exception $e) {
-            $output->writeln(sprintf('<error>Cleanup failed: %s</error>', $e->getMessage()));
-            return Command::FAILURE;
-        }
     }
 }

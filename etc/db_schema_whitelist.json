@@ -44,7 +44,8 @@
             "created_at": true,
             "updated_at": true,
             "status": true,
-            "script_content": true
+            "script_content": true,
+            "area": true
         },
         "index": {
             "HRYVINSKYI_CSP_WHITELIST_RULE_ID": true,
@@ -53,11 +54,13 @@
             "HRYVINSKYI_CSP_WHITELIST_VALUE": true,
             "HRYVINSKYI_CSP_WHITELIST_STORE_IDS": true,
             "HRYVINSKYI_CSP_WHITELIST_FULLTEXT": true,
-            "FTI_6826D0CB96EC7C3E36D1FDF70C9FF80C": true
+            "FTI_6826D0CB96EC7C3E36D1FDF70C9FF80C": true,
+            "FTI_0EFF88A244BAC2342FCB81F111E4C491": true
         },
         "constraint": {
             "PRIMARY": true,
-            "HRYVINSKYI_CSP_WHITELIST_POLICY_VALUE_TYPE_VALUE_ALGORITHM_VALUE": true
+            "HRYVINSKYI_CSP_WHITELIST_POLICY_VALUE_TYPE_VALUE_ALGORITHM_VALUE": true,
+            "HRYVINSKYI_CSP_WHITELIST_POLICY_VAL_TYPE_VAL_ALGORITHM_VAL_AREA": true
         }
     },
     "hryvinskyi_csp_violation_report_group": {
@@ -67,16 +70,20 @@
             "value": true,
             "store_id": true,
             "status": true,
-            "count": true
+            "count": true,
+            "area": true,
+            "updated_at": true
         },
         "index": {
             "HRYVINSKYI_CSP_VIOLATION_REPORT_GROUP_POLICY_VALUE": true,
-            "HRYVINSKYI_CSP_VIOLATION_REPORT_GROUP_GROUP_ID": true
+            "HRYVINSKYI_CSP_VIOLATION_REPORT_GROUP_GROUP_ID": true,
+            "HRYVINSKYI_CSP_VIOLATION_REPORT_GROUP_STATUS": true
         },
         "constraint": {
             "PRIMARY": true,
             "HRYVINSKYI_CSP_VIOLATION_REPORT_GROUP_POLICY_VALUE_STORE_ID": true,
-            "HRYVINSKYI_CSP_VIOLATION_REPORT_GROUP_STORE_ID_STORE_STORE_ID": true
+            "HRYVINSKYI_CSP_VIOLATION_REPORT_GROUP_STORE_ID_STORE_STORE_ID": true,
+            "HRYVINSKYI_CSP_VIOLATION_REPORT_GROUP_POLICY_VALUE_STORE_ID_AREA": true
         }
     },
     "hryvinskyi_csp_violation_report": {
@@ -102,12 +109,29 @@
             "HRYVINSKYI_CSP_VIOLATION_REPORT_REPORT_ID": true,
             "HRYVINSKYI_CSP_VIOLATION_REPORT_DISPOSITION": true,
             "HRYVINSKYI_CSP_VIOLATION_REPORT_REFERRER": true,
-            "FTI_43C4152165D007F9E97DBBB87406E508": true
+            "FTI_43C4152165D007F9E97DBBB87406E508": true,
+            "HRYVINSKYI_CSP_VIOLATION_REPORT_UPDATED_AT": true,
+            "FTI_250504F695F89703B507E7DCEF54A5B3": true
         },
         "constraint": {
             "PRIMARY": true,
             "UNQ_8BE05D2295DF9BBF59001B9B5B781835": true,
-            "FK_34E6298A38EDA7918F42B3A29A0176B8": true
+            "FK_34E6298A38EDA7918F42B3A29A0176B8": true,
+            "UNQ_56D2EB1CC09FDA08D8DA5A9A7E5B7312": true
+        }
+    },
+    "hryvinskyi_csp_whitelist_store": {
+        "column": {
+            "rule_id": true,
+            "store_id": true
+        },
+        "index": {
+            "HRYVINSKYI_CSP_WHITELIST_STORE_STORE_ID": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "FK_4BCC118113D5D3FC3B304284D28E0D22": true,
+            "HRYVINSKYI_CSP_WHITELIST_STORE_STORE_ID_STORE_STORE_ID": true
         }
     }
 }

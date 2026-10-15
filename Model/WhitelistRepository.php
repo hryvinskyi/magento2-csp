@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -9,29 +9,42 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Model;
 
-use Hryvinskyi\Csp\Model\Whitelist\Command\GetListInterface;
-use Magento\Framework\Api\FilterFactory;
-use Magento\Framework\Api\Search\FilterGroupFactory;
-use Magento\Framework\Api\SearchCriteriaBuilder;
-use Magento\Framework\Api\SearchCriteriaInterface;
-use Magento\Framework\Exception\NoSuchEntityException;
-use Magento\Framework\Exception\CouldNotDeleteException;
-use Magento\Framework\Exception\CouldNotSaveException;
-use Hryvinskyi\Csp\Api\WhitelistRepositoryInterface;
 use Hryvinskyi\Csp\Api\Data\WhitelistInterface;
 use Hryvinskyi\Csp\Api\Data\WhitelistInterfaceFactory;
 use Hryvinskyi\Csp\Api\Data\WhitelistSearchResultsInterface;
+use Hryvinskyi\Csp\Api\WhitelistRepositoryInterface;
 use Hryvinskyi\Csp\Model\ResourceModel\Whitelist as WhitelistResource;
+use Hryvinskyi\Csp\Model\Whitelist\Command\GetListInterface;
+use Hryvinskyi\Csp\Model\Whitelist\EntryNormalizer;
+use Hryvinskyi\Csp\Model\Whitelist\EntryValidator;
+use Hryvinskyi\Csp\Model\Whitelist\WhitelistCacheInvalidator;
+use Magento\Framework\Api\SearchCriteriaInterface;
+use Magento\Framework\Exception\CouldNotDeleteException;
+use Magento\Framework\Exception\CouldNotSaveException;
+use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\Model\AbstractModel;
+use Magento\Framework\Phrase;
 
+/**
+ * @inheritDoc
+ */
 class WhitelistRepository implements WhitelistRepositoryInterface
 {
+    /**
+     * @param WhitelistResource $resource
+     * @param WhitelistInterfaceFactory $whitelistFactory
+     * @param GetListInterface $getList
+     * @param EntryNormalizer $normalizer
+     * @param EntryValidator $validator
+     * @param WhitelistCacheInvalidator $cacheInvalidator
+     */
     public function __construct(
         private readonly WhitelistResource $resource,
         private readonly WhitelistInterfaceFactory $whitelistFactory,
         private readonly GetListInterface $getList,
-        private readonly SearchCriteriaBuilder $searchCriteriaBuilder,
-        private readonly FilterGroupFactory $filterGroupFactory,
-        private readonly FilterFactory $filterFactory
+        private readonly EntryNormalizer $normalizer,
+        private readonly EntryValidator $validator,
+        private readonly WhitelistCacheInvalidator $cacheInvalidator
     ) {
     }
 
@@ -40,11 +53,36 @@ class WhitelistRepository implements WhitelistRepositoryInterface
      */
     public function save(WhitelistInterface $whitelist): WhitelistInterface
     {
-        try {
-            $this->resource->save($whitelist);
-        } catch (\Exception $exception) {
-            throw new CouldNotSaveException(__($exception->getMessage()));
+        $model = $this->model($whitelist);
+        $this->normalizer->normalize($whitelist);
+        $errors = $this->validator->validate($whitelist);
+        if ($errors !== []) {
+            throw new CouldNotSaveException(
+                __('%1', implode(' ', array_map(static fn (Phrase $error): string => (string)$error, $errors)))
+            );
         }
+        $existingId = $this->resource->findIdByNaturalKey(
+            (string)$whitelist->getPolicy(),
+            (string)$whitelist->getValueType(),
+            (string)$whitelist->getValueAlgorithm(),
+            (string)$whitelist->getValue(),
+            $whitelist->getArea()
+        );
+        if ($existingId !== null && $existingId !== $whitelist->getRuleId()) {
+            throw new CouldNotSaveException(__(
+                'Entry %1 already allows %2 for %3 in this area.',
+                $existingId,
+                (string)$whitelist->getValue(),
+                (string)$whitelist->getPolicy()
+            ));
+        }
+
+        try {
+            $this->resource->save($model);
+        } catch (\Exception $exception) {
+            throw new CouldNotSaveException(__('The whitelist entry could not be saved: %1', $exception->getMessage()), $exception);
+        }
+        $this->cacheInvalidator->invalidate();
 
         return $whitelist;
     }
@@ -54,10 +92,9 @@ class WhitelistRepository implements WhitelistRepositoryInterface
      */
     public function getById(int $whitelistId): WhitelistInterface
     {
-        $whitelist = $this->whitelistFactory->create();
-        $this->resource->load($whitelist, $whitelistId);
-        if (!$whitelist->getId()) {
-            throw new NoSuchEntityException(__('Whitelist with id "%1" does not exist.', $whitelistId));
+        $whitelist = $this->findById($whitelistId);
+        if ($whitelist === null) {
+            throw new NoSuchEntityException(__('Whitelist entry %1 does not exist.', $whitelistId));
         }
 
         return $whitelist;
@@ -69,13 +106,24 @@ class WhitelistRepository implements WhitelistRepositoryInterface
     public function findById(int $whitelistId): ?WhitelistInterface
     {
         $whitelist = $this->whitelistFactory->create();
-        $this->resource->load($whitelist, $whitelistId);
+        $this->resource->load($this->model($whitelist), $whitelistId);
 
-        if (!$whitelist->getId()) {
-            return null;
-        }
+        return $whitelist->getRuleId() === null ? null : $whitelist;
+    }
 
-        return $whitelist;
+    /**
+     * @inheritdoc
+     */
+    public function findByNaturalKey(
+        string $policy,
+        string $valueType,
+        string $valueAlgorithm,
+        string $value,
+        string $area
+    ): ?WhitelistInterface {
+        $id = $this->resource->findIdByNaturalKey($policy, $valueType, $valueAlgorithm, $value, $area);
+
+        return $id === null ? null : $this->findById($id);
     }
 
     /**
@@ -89,92 +137,17 @@ class WhitelistRepository implements WhitelistRepositoryInterface
     /**
      * @inheritdoc
      */
-    public function getWhitelistByParams(
-        string $policy,
-        string $valueType,
-        string $value,
-        string $valueAlgorithm = ''
-    ): WhitelistSearchResultsInterface {
-        $searchCriteria = $this->searchCriteriaBuilder->create();
-
-        $filterGroupPolicy = $this->filterGroupFactory->create();
-        $filterGroupPolicy->setFilters(
-            [
-                $this->filterFactory->create()
-                    ->setField('policy')
-                    ->setValue($policy)
-                    ->setConditionType('eq')
-            ]
-        );
-
-        $filterGroupValueType = $this->filterGroupFactory->create();
-        $filterGroupValueType->setFilters(
-            [
-                $this->filterFactory->create()
-                    ->setField('value_type')
-                    ->setValue($valueType)
-                    ->setConditionType('eq')
-            ]
-        );
-
-        $filterGroupValue = $this->filterGroupFactory->create();
-        $filterGroupValue->setFilters(
-            [
-                $this->filterFactory->create()
-                    ->setField('value')
-                    ->setValue($value)
-                    ->setConditionType('eq')
-            ]
-        );
-
-        $filterGroupValueAlgorithm = $this->filterGroupFactory->create();
-
-        if ($valueAlgorithm === '') {
-            $filterGroupValueAlgorithm->setFilters(
-                [
-                    $this->filterFactory->create()
-                        ->setField('value_algorithm')
-                        ->setValue($valueAlgorithm)
-                        ->setConditionType('null'),
-                    $this->filterFactory->create()
-                        ->setField('value_algorithm')
-                        ->setValue($valueAlgorithm)
-                        ->setConditionType('eq')
-                ]
-            );
-        } else {
-            $filterGroupValueAlgorithm->setFilters(
-                [
-                    $this->filterFactory->create()
-                        ->setField('value_algorithm')
-                        ->setValue($valueAlgorithm)
-                        ->setConditionType('eq')
-                ]
-            );
-        }
-
-        $searchCriteria->setFilterGroups(
-            [
-                $filterGroupPolicy,
-                $filterGroupValueType,
-                $filterGroupValue,
-                $filterGroupValueAlgorithm
-            ]
-        );
-
-        return $this->getList->execute($searchCriteria);
-    }
-
-    /**
-     * @inheritdoc
-     */
     public function delete(WhitelistInterface $whitelist): bool
     {
         try {
-            $this->resource->delete($whitelist);
+            $this->resource->delete($this->model($whitelist));
         } catch (\Exception $exception) {
-            throw new CouldNotDeleteException(__($exception->getMessage()));
+            throw new CouldNotDeleteException(
+                __('The whitelist entry could not be deleted: %1', $exception->getMessage()),
+                $exception
+            );
         }
+        $this->cacheInvalidator->invalidate();
 
         return true;
     }
@@ -185,5 +158,21 @@ class WhitelistRepository implements WhitelistRepositoryInterface
     public function deleteById(int $whitelistId): bool
     {
         return $this->delete($this->getById($whitelistId));
+    }
+
+    /**
+     * The entry as the model the resource model persists.
+     *
+     * @param WhitelistInterface $whitelist
+     * @return AbstractModel
+     * @throws \InvalidArgumentException
+     */
+    private function model(WhitelistInterface $whitelist): AbstractModel
+    {
+        if (!$whitelist instanceof AbstractModel) {
+            throw new \InvalidArgumentException(sprintf('%s cannot be persisted by this repository.', $whitelist::class));
+        }
+
+        return $whitelist;
     }
 }

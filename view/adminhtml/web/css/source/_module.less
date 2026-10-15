@@ -1,0 +1,46 @@
+// /**
+//  * Copyright (c) 2026. Volodymyr Hryvinskyi. All rights reserved.
+//  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
+//  * GitHub: https://github.com/hryvinskyi
+//  */
+
+& when (@media-common = true) {
+    .hryvinskyi-csp-import-action {
+        .admin__action-dropdown {
+            padding: .7rem 1.5rem .8rem;
+
+            &:after {
+                display: none;
+            }
+
+            &:before {
+                content: '\e636';
+            }
+        }
+    }
+
+    .hryvinskyi-csp-import-modal {
+        .modal-inner-wrap {
+            max-width: 60rem;
+        }
+    }
+
+    .hryvinskyi-csp-import__fields {
+        border-collapse: collapse;
+        font-size: 1.2rem;
+        margin-top: 1.5rem;
+        width: 100%;
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: .5rem;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            background: #f5f5f5;
+        }
+    }
+}

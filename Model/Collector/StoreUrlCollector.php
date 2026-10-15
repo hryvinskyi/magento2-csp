@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -9,20 +9,20 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Model\Collector;
 
-use Hryvinskyi\Csp\Api\ConfigInterface;
-use Hryvinskyi\Csp\Api\PolicyCollectionMergerInterface;
+use Hryvinskyi\Csp\Api\Config\RulesConfigInterface;
+use Hryvinskyi\Csp\Model\Store\StoreHostsProviderInterface;
 use Magento\Csp\Api\PolicyCollectorInterface;
-use Magento\Csp\Model\Policy\FetchPolicy;
-use Magento\Framework\Url\ScopeResolverInterface;
-use Magento\Framework\UrlInterface;
+use Magento\Csp\Model\Policy\FetchPolicyFactory;
 
+/**
+ * Allows the hosts of every store view in the directives a page uses to load resources from another store view.
+ */
 class StoreUrlCollector implements PolicyCollectorInterface
 {
     /**
-     * Directives that actually need store URLs.
-     * Store URLs are not relevant for base-uri, form-action, frame-ancestors, or object-src.
+     * Directives a page needs store hosts in; never base-uri, form-action, frame-ancestors or object-src.
      */
-    private const STORE_URL_DIRECTIVES = [
+    private const DIRECTIVES = [
         'default-src',
         'script-src',
         'style-src',
@@ -33,130 +33,38 @@ class StoreUrlCollector implements PolicyCollectorInterface
     ];
 
     /**
-     * @var array<int, string>
-     */
-    private array $storeUrls;
-
-    /**
-     * @param ScopeResolverInterface $scopeResolver
-     * @param ConfigInterface $config
-     * @param PolicyCollectionMergerInterface $policyCollectionMerger
+     * @param RulesConfigInterface $config
+     * @param StoreHostsProviderInterface $storeHostsProvider
+     * @param FetchPolicyFactory $fetchPolicyFactory
      */
     public function __construct(
-        private readonly ScopeResolverInterface $scopeResolver,
-        private readonly ConfigInterface $config,
-        private readonly PolicyCollectionMergerInterface $policyCollectionMerger
+        private readonly RulesConfigInterface $config,
+        private readonly StoreHostsProviderInterface $storeHostsProvider,
+        private readonly FetchPolicyFactory $fetchPolicyFactory
     ) {
     }
 
     /**
-     * Collect policies
-     *
-     * @param array $defaultPolicies
-     * @return array
+     * @inheritDoc
      */
     public function collect(array $defaultPolicies = []): array
     {
-        if ($this->config->isAddAllStorefrontUrls() === false) {
+        if (!$this->config->isAddAllStorefrontUrls()) {
+            return $defaultPolicies;
+        }
+        $hosts = $this->storeHostsProvider->storefrontHosts();
+        if ($hosts === []) {
             return $defaultPolicies;
         }
 
-        $policies = $defaultPolicies;
-        $storeUrls = $this->getStoreUrls();
-
-        foreach (self::STORE_URL_DIRECTIVES as $directive) {
-            $policy = $this->createFetchPolicy($directive, $storeUrls);
-            $policies = $this->policyCollectionMerger->mergeOrAdd($policies, $directive, $policy);
+        foreach (self::DIRECTIVES as $directive) {
+            $defaultPolicies[] = $this->fetchPolicyFactory->create([
+                'id' => $directive,
+                'noneAllowed' => false,
+                'hostSources' => $hosts,
+            ]);
         }
 
-        return $policies;
-    }
-
-    /**
-     * Store URLs
-     *
-     * @return array
-     */
-    public function getStoreUrls(): array
-    {
-        if (!empty($this->storeUrls)) {
-            return $this->storeUrls;
-        }
-
-        $this->storeUrls = $this->fetchAndProcessStoreUrls();
-        return $this->storeUrls;
-    }
-
-    /**
-     * Create fetch policy
-     *
-     * @param string $policyId
-     * @param array $hosts
-     * @return FetchPolicy
-     */
-    private function createFetchPolicy(string $policyId, array $hosts): FetchPolicy
-    {
-        return new FetchPolicy(
-            id: $policyId,
-            noneAllowed: false,
-            hostSources: $hosts
-        );
-    }
-
-    /**
-     * Fetch and process store URLs
-     *
-     * @return array
-     */
-    private function fetchAndProcessStoreUrls(): array
-    {
-        try {
-            $baseUrls = $this->collectBaseUrls();
-            $domains = $this->extractDomains($baseUrls);
-            return array_unique($domains);
-        } catch (\Exception) {
-            return [];
-        }
-    }
-
-    /**
-     * Collect base URLs from all scopes
-     *
-     * @return array
-     */
-    private function collectBaseUrls(): array
-    {
-        $baseUrls = [];
-        $urlTypes = [
-            UrlInterface::URL_TYPE_LINK => true,
-            UrlInterface::URL_TYPE_MEDIA => true,
-            UrlInterface::URL_TYPE_STATIC => true
-        ];
-
-        foreach ($this->scopeResolver->getScopes() as $scope) {
-            $baseUrls[] = $scope->getBaseUrl();
-            foreach ($urlTypes as $type => $secure) {
-                $baseUrls[] = $scope->getBaseUrl($type, $secure);
-            }
-        }
-
-        return $baseUrls;
-    }
-
-    /**
-     * Extract domains from URLs
-     *
-     * @param array $urls
-     * @return array
-     */
-    private function extractDomains(array $urls): array
-    {
-        $domains = [];
-        foreach ($urls as $url) {
-            if (preg_match('#//([^/]*)/#', (string) $url, $matches)) {
-                $domains[] = $matches[1];
-            }
-        }
-        return $domains;
+        return $defaultPolicies;
     }
 }

@@ -1,48 +1,48 @@
 <?xml version="1.0"?>
 <!--
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
 -->
-
 <schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
-    <table name="hryvinskyi_csp_violation_report_group" resource="default" engine="innodb" comment="Violation report group records of CSP problems from the frontend">
+    <table name="hryvinskyi_csp_violation_report_group" resource="default" engine="innodb"
+           comment="CSP violations grouped by directive, blocked value, store and area">
         <column xsi:type="int" name="group_id" padding="11" unsigned="true" nullable="false" identity="true" comment="Group ID"/>
-        <column xsi:type="varchar" name="policy" nullable="false" length="255" comment="Policy"/>
+        <column xsi:type="varchar" name="policy" nullable="false" length="255" comment="Governing Directive"/>
         <column xsi:type="varchar" name="value" nullable="false" length="255" comment="Value"/>
-        <column xsi:type="smallint" name="store_id" unsigned="true" nullable="false" identity="false"
-                comment="Store ID"/>
+        <column xsi:type="smallint" name="store_id" unsigned="true" nullable="false" identity="false" comment="Store ID"/>
+        <column xsi:type="varchar" name="area" nullable="false" length="16" default="frontend" comment="Area"/>
         <column xsi:type="smallint" name="status" nullable="false" default="0" comment="Status"/>
         <column xsi:type="bigint" name="count" nullable="false" default="1" comment="Number of occurrences"/>
+        <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP" comment="Updated At"/>
 
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="group_id"/>
         </constraint>
-
-        <constraint xsi:type="unique" referenceId="HRYVINSKYI_CSP_GROUP_POLICY_VALUE_STORE_ID">
+        <constraint xsi:type="unique" referenceId="HRYVINSKYI_CSP_VIOLATION_REPORT_GROUP_POLICY_VALUE_STORE_ID_AREA">
             <column name="policy"/>
             <column name="value"/>
             <column name="store_id"/>
+            <column name="area"/>
         </constraint>
+        <constraint xsi:type="foreign" referenceId="HRYVINSKYI_CSP_VIOLATION_REPORT_GROUP_STORE_ID_STORE_STORE_ID"
+                    table="hryvinskyi_csp_violation_report_group" column="store_id"
+                    referenceTable="store" referenceColumn="store_id" onDelete="CASCADE"/>
 
-        <index referenceId="HRYVINSKYI_CSP_REPORT_FULLTEXT" indexType="fulltext">
+        <index referenceId="HRYVINSKYI_CSP_VIOLATION_REPORT_GROUP_STATUS" indexType="btree">
+            <column name="status"/>
+        </index>
+        <index referenceId="HRYVINSKYI_CSP_VIOLATION_REPORT_GROUP_POLICY_VALUE" indexType="fulltext">
             <column name="policy"/>
             <column name="value"/>
         </index>
-
-        <index referenceId="HRYVINSKYI_CSP_GROUP_GROUP_ID" indexType="btree">
-            <column name="group_id"/>
-        </index>
-        <constraint xsi:type="foreign" referenceId="FK_HRYVINSKYI_CSP_REPORT_GROUP_STORE_ID"
-                    table="hryvinskyi_csp_violation_report_group"
-                    column="store_id" referenceTable="store" referenceColumn="store_id" onDelete="CASCADE"/>
     </table>
-    
+
     <table name="hryvinskyi_csp_violation_report" resource="default" engine="innodb"
-           comment="Violation report records of CSP problems from the frontend">
+           comment="CSP violation reports received from browsers">
         <column xsi:type="int" name="report_id" padding="11" unsigned="true" nullable="false" identity="true" comment="Report ID"/>
         <column xsi:type="int" name="group_id" padding="11" unsigned="true" nullable="false" identity="false" comment="Group ID"/>
         <column xsi:type="varchar" name="blocked_uri" nullable="false" default="" length="255" comment="Blocked Uri"/>
@@ -63,49 +63,37 @@
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="report_id"/>
         </constraint>
-
-        <constraint xsi:type="unique" referenceId="HRYVINSKYI_CSP_REPORT_BLOCKED_URI_DOCUMENT_URI_EFFECTIVE_DIRECTIVE">
+        <constraint xsi:type="unique" referenceId="HRYVINSKYI_CSP_REPORT_GROUP_ID_BLOCKED_URI_DOCUMENT_URI_EFFECTIVE_DIRECTIVE">
+            <column name="group_id"/>
             <column name="blocked_uri"/>
             <column name="document_uri"/>
             <column name="effective_directive"/>
         </constraint>
+        <constraint xsi:type="foreign" referenceId="FK_HRYVINSKYI_CSP_REPORT_GROUP_ID"
+                    table="hryvinskyi_csp_violation_report" column="group_id"
+                    referenceTable="hryvinskyi_csp_violation_report_group" referenceColumn="group_id" onDelete="CASCADE"/>
 
-        <index referenceId="HRYVINSKYI_CSP_REPORT_REPORT_ID" indexType="btree">
-            <column name="report_id"/>
+        <index referenceId="HRYVINSKYI_CSP_VIOLATION_REPORT_UPDATED_AT" indexType="btree">
+            <column name="updated_at"/>
         </index>
-        <index referenceId="HRYVINSKYI_CSP_REPORT_DISPOSITION" indexType="btree">
-            <column name="disposition"/>
-        </index>
-        <index referenceId="HRYVINSKYI_CSP_REPORT_REFERRER" indexType="btree">
-            <column name="referrer"/>
-        </index>
-
         <index referenceId="HRYVINSKYI_CSP_REPORT_FULLTEXT" indexType="fulltext">
             <column name="blocked_uri"/>
-            <column name="disposition"/>
             <column name="document_uri"/>
             <column name="effective_directive"/>
-            <column name="original_policy"/>
-            <column name="referrer"/>
-            <column name="script_sample"/>
-            <column name="status_code"/>
-            <column name="violated_directive"/>
             <column name="source_file"/>
         </index>
-
-        <constraint xsi:type="foreign" referenceId="FK_HRYVINSKYI_CSP_REPORT_GROUP_ID" table="hryvinskyi_csp_violation_report"
-                    column="group_id" referenceTable="hryvinskyi_csp_violation_report_group"
-                    referenceColumn="group_id" onDelete="CASCADE"/>
     </table>
 
-    <table name="hryvinskyi_csp_whitelist" resource="default" engine="innodb" comment="Csp Whitelist">
+    <table name="hryvinskyi_csp_whitelist" resource="default" engine="innodb" comment="CSP whitelist">
         <column xsi:type="int" name="rule_id" padding="10" unsigned="true" nullable="false" identity="true" comment="Rule ID"/>
         <column xsi:type="varchar" name="identifier" nullable="false" length="255" comment="Identifier"/>
         <column xsi:type="varchar" name="policy" nullable="false" length="50" comment="Policy"/>
         <column xsi:type="varchar" name="value_type" nullable="false" length="50" comment="Value Type"/>
         <column xsi:type="varchar" name="value_algorithm" nullable="false" default="" length="50" comment="Value Algorithm"/>
         <column xsi:type="varchar" name="value" nullable="false" length="255" comment="Value"/>
-        <column xsi:type="varchar" name="store_ids" nullable="false" default="0" length="255" comment="Store IDs"/>
+        <column xsi:type="varchar" name="store_ids" nullable="false" default="0" length="255"
+                comment="Deprecated: store scope before 2.0.0, replaced by hryvinskyi_csp_whitelist_store"/>
+        <column xsi:type="varchar" name="area" nullable="false" length="16" default="all" comment="Area"/>
         <column xsi:type="smallint" name="status" nullable="false" default="0" comment="Status"/>
         <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Created At"/>
         <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP" comment="Updated At"/>
@@ -114,35 +102,47 @@
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="rule_id"/>
         </constraint>
-
-        <constraint xsi:type="unique" referenceId="HRYVINSKYI_CSP_WHITELIST_POLICY_VALUE_TYPE_VALUE_ALGORITHM_VALUE">
+        <constraint xsi:type="unique" referenceId="HRYVINSKYI_CSP_WHITELIST_POLICY_VAL_TYPE_VAL_ALGORITHM_VAL_AREA">
             <column name="policy"/>
             <column name="value_type"/>
             <column name="value_algorithm"/>
             <column name="value"/>
+            <column name="area"/>
         </constraint>
 
-        <index referenceId="HRYVINSKYI_CSP_WHITELIST_RULE_ID" indexType="btree">
-            <column name="rule_id"/>
-        </index>
         <index referenceId="HRYVINSKYI_CSP_WHITELIST_IDENTIFIER" indexType="btree">
             <column name="identifier"/>
         </index>
         <index referenceId="HRYVINSKYI_CSP_WHITELIST_VALUE" indexType="btree">
             <column name="value"/>
         </index>
-        <index referenceId="HRYVINSKYI_CSP_WHITELIST_STORE_IDS" indexType="btree">
-            <column name="store_ids"/>
-        </index>
-
         <index referenceId="HRYVINSKYI_CSP_WHITELIST_FULLTEXT" indexType="fulltext">
             <column name="identifier"/>
             <column name="policy"/>
             <column name="value_type"/>
             <column name="value_algorithm"/>
             <column name="value"/>
-            <column name="store_ids"/>
             <column name="script_content"/>
+        </index>
+    </table>
+
+    <table name="hryvinskyi_csp_whitelist_store" resource="default" engine="innodb" comment="CSP whitelist store scope">
+        <column xsi:type="int" name="rule_id" padding="10" unsigned="true" nullable="false" identity="false" comment="Rule ID"/>
+        <column xsi:type="smallint" name="store_id" padding="5" unsigned="true" nullable="false" identity="false" comment="Store ID"/>
+
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="rule_id"/>
+            <column name="store_id"/>
+        </constraint>
+        <constraint xsi:type="foreign" referenceId="HRYVINSKYI_CSP_WHITELIST_STORE_RULE_ID_HRYVINSKYI_CSP_WHITELIST_RULE_ID"
+                    table="hryvinskyi_csp_whitelist_store" column="rule_id"
+                    referenceTable="hryvinskyi_csp_whitelist" referenceColumn="rule_id" onDelete="CASCADE"/>
+        <constraint xsi:type="foreign" referenceId="HRYVINSKYI_CSP_WHITELIST_STORE_STORE_ID_STORE_STORE_ID"
+                    table="hryvinskyi_csp_whitelist_store" column="store_id"
+                    referenceTable="store" referenceColumn="store_id" onDelete="CASCADE"/>
+
+        <index referenceId="HRYVINSKYI_CSP_WHITELIST_STORE_STORE_ID" indexType="btree">
+            <column name="store_id"/>
         </index>
     </table>
 </schema>

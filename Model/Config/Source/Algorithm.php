@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -13,6 +13,9 @@ use Magento\Framework\Data\OptionSourceInterface;
 
 class Algorithm implements OptionSourceInterface
 {
+    /**
+     * @param array<string, string> $algorithms Value => label
+     */
     public function __construct(private readonly array $algorithms)
     {
     }
@@ -20,7 +23,7 @@ class Algorithm implements OptionSourceInterface
     /**
      * Options getter
      *
-     * @return array
+     * @return list<array{value: string, label: mixed}>
      */
     public function toOptionArray(): array
     {

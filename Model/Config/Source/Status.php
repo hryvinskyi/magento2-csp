@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -11,32 +11,38 @@ namespace Hryvinskyi\Csp\Model\Config\Source;
 
 use Hryvinskyi\Csp\Api\Data\Status as StatusEnum;
 use Magento\Framework\Data\OptionSourceInterface;
+use Magento\Framework\Phrase;
 
+/**
+ * Report group statuses with their labels.
+ */
 class Status implements OptionSourceInterface
 {
     /**
-     * @return array
+     * Status options.
+     *
+     * @return list<array{value: int, label: Phrase}>
      */
     public function toOptionArray(): array
     {
-        return [
-            ['value' => StatusEnum::PENDING->getStatusCode(), 'label' => __('Pending')],
-            ['value' => StatusEnum::DENIED->getStatusCode(), 'label' => __('Denied')],
-            ['value' => StatusEnum::SKIP->getStatusCode(), 'label' => __('Skip')]
-        ];
+        return array_map(
+            fn (StatusEnum $status): array => ['value' => $status->value, 'label' => $this->label($status)],
+            StatusEnum::cases()
+        );
     }
 
     /**
-     * Get options in "key-value" format
+     * Label of a status.
      *
-     * @return array
+     * @param StatusEnum $status
+     * @return Phrase
      */
-    public function toArray(): array
+    public function label(StatusEnum $status): Phrase
     {
-        return [
-            StatusEnum::PENDING->getStatusCode() => __('Pending'),
-            StatusEnum::DENIED->getStatusCode() => __('Denied'),
-            StatusEnum::SKIP->getStatusCode() => __('Skip')
-        ];
+        return match ($status) {
+            StatusEnum::PENDING => __('Pending'),
+            StatusEnum::DENIED => __('Denied'),
+            StatusEnum::SKIP => __('Skipped'),
+        };
     }
 }

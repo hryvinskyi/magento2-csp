@@ -1,0 +1,67 @@
+<!--
+  ~ Copyright (c) 2026. Volodymyr Hryvinskyi. All rights reserved.
+  ~ Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
+  ~ GitHub: https://github.com/hryvinskyi
+  -->
+<div class="hryvinskyi-csp-import">
+    <form enctype="multipart/form-data" method="post" action="<%- data.url %>">
+        <input name="form_key" type="hidden" value="<%- data.formKey %>"/>
+        <div class="admin__field _required">
+            <label class="admin__field-label" for="hryvinskyi-csp-import-file">
+                <span><%- $t('File to Import') %></span>
+            </label>
+            <div class="admin__field-control">
+                <input id="hryvinskyi-csp-import-file" name="import_file" type="file" accept=".csv,.xml"
+                       class="admin__control-file" required/>
+                <div class="admin__field-note">
+                    <span><%- $t('CSV or XML, at most %1 MB.').replace('%1', data.maxFileMegabytes) %></span>
+                </div>
+            </div>
+        </div>
+        <table class="hryvinskyi-csp-import__fields">
+            <thead>
+            <tr>
+                <th><%- $t('Field') %></th>
+                <th><%- $t('Values') %></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>identifier</td>
+                <td><%- $t('Name of the entry') %></td>
+            </tr>
+            <tr>
+                <td>policy</td>
+                <td><%- data.directives %></td>
+            </tr>
+            <tr>
+                <td>value_type</td>
+                <td>host, hash</td>
+            </tr>
+            <tr>
+                <td>value</td>
+                <td><%- $t('Host or scheme source, or the base64 digest of a hash') %></td>
+            </tr>
+            <tr>
+                <td>value_algorithm</td>
+                <td><%- $t('sha256, sha384 or sha512 for hashes; empty for hosts') %></td>
+            </tr>
+            <tr>
+                <td>store_ids</td>
+                <td><%- $t('Store ids separated by commas; 0 or empty for every store') %></td>
+            </tr>
+            <tr>
+                <td>area</td>
+                <td><%- $t('all, frontend or adminhtml; empty for all') %></td>
+            </tr>
+            <tr>
+                <td>status</td>
+                <td><%- $t('1 enabled, 0 disabled; empty for enabled') %></td>
+            </tr>
+            </tbody>
+        </table>
+        <div class="admin__field-note">
+            <span><%- $t('A row with the same policy, value and area as an existing entry updates that entry and adds its stores.') %></span>
+        </div>
+    </form>
+</div>

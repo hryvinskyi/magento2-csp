@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -24,17 +24,6 @@ interface ReportRepositoryInterface
      * @throws \Magento\Framework\Exception\CouldNotSaveException
      */
     public function save(ReportInterface $report): ReportInterface;
-
-    /**
-     * Save from CSP Report
-     *
-     * @param int $groupId
-     * @param string $json
-     * @return bool
-     *
-     * @throws \Magento\Framework\Exception\CouldNotSaveException
-     */
-    public function saveFromCspReport(int $groupId, string $json): bool;
 
     /**
      * Get Report by id.
@@ -74,17 +63,6 @@ interface ReportRepositoryInterface
      * @throws \Magento\Framework\Exception\CouldNotDeleteException
      */
     public function delete(ReportInterface $report): bool;
-
-    /**
-     * Delete Report by domain and policy.
-     *
-     * @param string $domain
-     * @param string $policy
-     *
-     * @return bool
-     * @throws \Magento\Framework\Exception\CouldNotDeleteException
-     */
-    public function deleteByDomainAndPolicy(string $domain, string $policy): bool;
 
     /**
      * Delete Report by ID.

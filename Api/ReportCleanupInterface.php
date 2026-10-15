@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (c) 2026. Volodymyr Hryvinskyi. All rights reserved.
+ * Copyright (c) 2025-2026. Volodymyr Hryvinskyi. All rights reserved.
  * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
  * GitHub: https://github.com/hryvinskyi
  */
@@ -9,48 +9,37 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Api;
 
+/**
+ * Deletes old violation reports with the strategy a mode names, then the pending groups left without reports.
+ *
+ * @api
+ */
 interface ReportCleanupInterface
 {
     /**
-     * Delete violation reports older than the specified number of days
+     * Codes of the available modes.
      *
-     * @param int $days Number of days to keep
-     *
-     * @return int Number of deleted records
+     * @return list<string>
      */
-    public function cleanByDate(int $days): int;
+    public function modes(): array;
 
     /**
-     * Delete oldest violation reports, keeping only the specified number of most recent records
+     * Delete old reports; returns how many reports were deleted.
      *
-     * @param int $maxRecords Maximum number of records to keep
-     *
-     * @return int Number of deleted records
-     */
-    public function cleanByCount(int $maxRecords): int;
-
-    /**
-     * Get the total number of violation report records
-     *
+     * @param string $mode
+     * @param int $threshold Positive
      * @return int
+     * @throws \InvalidArgumentException For an unknown mode or a threshold below 1
      */
-    public function getTotalCount(): int;
+    public function clean(string $mode, int $threshold): int;
 
     /**
-     * Get the number of records that would be deleted by date cleanup (dry-run)
+     * How many reports cleaning would delete.
      *
-     * @param int $days Number of days to keep
-     *
-     * @return int Number of records that would be deleted
+     * @param string $mode
+     * @param int $threshold Positive
+     * @return int
+     * @throws \InvalidArgumentException For an unknown mode or a threshold below 1
      */
-    public function countByDate(int $days): int;
-
-    /**
-     * Get the number of records that would be deleted by count cleanup (dry-run)
-     *
-     * @param int $maxRecords Maximum number of records to keep
-     *
-     * @return int Number of records that would be deleted
-     */
-    public function countByCount(int $maxRecords): int;
+    public function countAffected(string $mode, int $threshold): int;
 }
