@@ -95,8 +95,8 @@ class EscapedMessages
      */
     private function escape(Phrase|string $text): string
     {
-        $escaped = $this->escaper->escapeHtml((string)$text);
-
-        return is_string($escaped) ? $escaped : '';
+        // For a string, escapeHtmlAttr() without single-quote handling runs the same htmlspecialchars() call as
+        // escapeHtml(), and is typed string on every Magento version (escapeHtml() is string|array up to 2.4.8).
+        return $this->escaper->escapeHtmlAttr((string)$text, false);
     }
 }

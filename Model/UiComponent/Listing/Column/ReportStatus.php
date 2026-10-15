@@ -52,12 +52,13 @@ class ReportStatus extends Column
     {
         return $this->mapRowValues($dataSource, 'status', function (int $code): string {
             $status = Status::tryFrom($code) ?? Status::PENDING;
-            $label = $this->escaper->escapeHtml((string)$this->statusOptions->label($status));
+            // Same htmlspecialchars() call as escapeHtml(), typed string on every Magento version.
+            $label = $this->escaper->escapeHtmlAttr((string)$this->statusOptions->label($status), false);
 
             return sprintf(
                 '<span class="%s"><span>%s</span></span>',
                 $this->severityClass($status),
-                is_string($label) ? $label : ''
+                $label
             );
         });
     }

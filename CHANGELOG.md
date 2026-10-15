@@ -52,6 +52,8 @@ reports are accepted only from the store's own pages.
 - Whitelist store scope is stored in a link table instead of a comma-separated column matched with `LIKE`.
 
 ### Added
+- Magento 2.4.9 and PHP 8.5 support (`symfony/console` 7.x allowed)
+  ([#8](https://github.com/hryvinskyi/magento2-csp/issues/8)).
 - Whitelist entries have an area: storefront, admin or both.
 - Reporting API (`application/reports+json`) reports.
 - Trusted parent domains for subdomain consolidation; report rate limit and size limit settings.

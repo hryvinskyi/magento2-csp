@@ -283,7 +283,7 @@ class GridExportRoundTripTest extends TestCase
         $handle = fopen($this->file, 'w');
         $this->assertIsResource($handle);
         foreach ($lines as $line) {
-            fputcsv($handle, $line);
+            fputcsv($handle, $line, ',', '"', '\\');
         }
         fclose($handle);
 
