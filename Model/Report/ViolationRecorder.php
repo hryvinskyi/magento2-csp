@@ -12,12 +12,16 @@ namespace Hryvinskyi\Csp\Model\Report;
 use Hryvinskyi\Csp\Api\Data\Area;
 use Hryvinskyi\Csp\Api\Data\Status;
 use Hryvinskyi\Csp\Api\Data\ViolationInterface;
+use Hryvinskyi\Csp\Model\Whitelist\StoreIdList;
 use Magento\Framework\App\ResourceConnection;
 
 /**
  * Upserts the report group and the report in two statements, counting repeated violations.
  *
- * A report is keyed by its group, so the same page and resource seen in two stores lands in each store's group.
+ * A report is keyed by its group, so the same page and resource seen in two stores lands in each store's group. The
+ * decision that applies is the strictest of the group's own and of the groups covering it: store 0 for every store,
+ * area `all` for both areas, where the groups recorded before 2.0.0 keep the decisions made on them. A group that
+ * is still pending takes on a wider Skip, so a value skipped once does not ask for review again in every store.
  */
 class ViolationRecorder implements ViolationRecorderInterface
 {
@@ -38,25 +42,27 @@ class ViolationRecorder implements ViolationRecorderInterface
     {
         $connection = $this->resourceConnection->getConnection();
         $groupTable = $this->resourceConnection->getTableName(self::GROUP_TABLE);
-        $status = $connection->fetchOne(
+        $statuses = $connection->fetchCol(
             $connection->select()
                 ->from($groupTable, ['status'])
                 ->where('policy = ?', $policy)
                 ->where('value = ?', $value)
-                ->where('store_id = ?', $storeId)
-                ->where('area = ?', $area->value)
+                ->where('store_id IN (?)', array_values(array_unique([$storeId, StoreIdList::ALL_STORES])))
+                ->where('area IN (?)', array_values(array_unique([$area->value, Area::ALL->value])))
         );
-        if (is_numeric($status) && !(Status::tryFrom((int)$status) ?? Status::PENDING)->recordsViolations()) {
+        $decision = $this->decision($statuses);
+        if (!$decision->recordsViolations()) {
             return false;
         }
 
         $connection->query(
             sprintf(
-                'INSERT INTO %s (policy, value, store_id, area, count) VALUES (?, ?, ?, ?, 1)'
-                . ' ON DUPLICATE KEY UPDATE count = count + 1, group_id = LAST_INSERT_ID(group_id)',
+                'INSERT INTO %s (policy, value, store_id, area, status, count) VALUES (?, ?, ?, ?, ?, 1)'
+                . ' ON DUPLICATE KEY UPDATE count = count + 1, group_id = LAST_INSERT_ID(group_id),'
+                . ' status = IF(status = ?, VALUES(status), status)',
                 $connection->quoteIdentifier($groupTable)
             ),
-            [$policy, $value, $storeId, $area->value]
+            [$policy, $value, $storeId, $area->value, $decision->value, Status::PENDING->value]
         );
         $groupId = $connection->fetchOne('SELECT LAST_INSERT_ID()');
         if (!is_numeric($groupId) || (int)$groupId === 0) {
@@ -89,5 +95,23 @@ class ViolationRecorder implements ViolationRecorderInterface
         );
 
         return true;
+    }
+
+    /**
+     * Strictest of the statuses read for a violation; Pending when none applies.
+     *
+     * @param array<mixed> $statuses
+     * @return Status
+     */
+    private function decision(array $statuses): Status
+    {
+        $decision = Status::PENDING;
+        foreach ($statuses as $status) {
+            $decision = $decision->stricter(
+                is_numeric($status) ? (Status::tryFrom((int)$status) ?? Status::PENDING) : Status::PENDING
+            );
+        }
+
+        return $decision;
     }
 }

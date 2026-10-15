@@ -44,7 +44,7 @@ class OversizedHeaderNotice implements OversizedHeaderNoticeInterface
      */
     public function record(string $headerName, int $bytes, int $maxBytes): void
     {
-        if ($this->cache->load(self::THROTTLE_CACHE_ID) !== false) {
+        if ((string)$this->cache->load(self::THROTTLE_CACHE_ID) !== '') {
             return;
         }
         $this->flagManager->saveFlag(self::FLAG_CODE, [

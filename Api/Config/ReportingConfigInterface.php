@@ -51,4 +51,11 @@ interface ReportingConfigInterface
      * @return int
      */
     public function getMaxReportBodyBytes(): int;
+
+    /**
+     * Whether admins are told in System Messages about violations recorded since they last opened the reports.
+     *
+     * @return bool
+     */
+    public function isNewViolationNoticeEnabled(): bool;
 }

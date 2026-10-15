@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace Hryvinskyi\Csp\Controller\Adminhtml\Whitelist;
 
 use Hryvinskyi\Csp\Api\WhitelistRepositoryInterface;
+use Hryvinskyi\Csp\Model\Admin\EscapedMessages;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\Action\HttpGetActionInterface;
@@ -25,10 +26,12 @@ class Edit extends Action implements HttpGetActionInterface
     /**
      * @param Context $context
      * @param WhitelistRepositoryInterface $entityRepository
+     * @param EscapedMessages $messages
      */
     public function __construct(
         Context $context,
-        private readonly WhitelistRepositoryInterface $entityRepository
+        private readonly WhitelistRepositoryInterface $entityRepository,
+        private readonly EscapedMessages $messages
     ) {
         parent::__construct($context);
     }
@@ -40,7 +43,7 @@ class Edit extends Action implements HttpGetActionInterface
     {
         $id = $this->getRequest()->getParam('id');
         if (is_numeric($id) && $this->entityRepository->findById((int)$id) === null) {
-            $this->messageManager->addErrorMessage((string)__('Whitelist entry %1 does not exist.', (int)$id));
+            $this->messages->error(__('Whitelist entry %1 does not exist.', (int)$id));
 
             return $this->resultRedirectFactory->create()->setPath('*/*/');
         }

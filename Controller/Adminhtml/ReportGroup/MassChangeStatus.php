@@ -12,6 +12,7 @@ namespace Hryvinskyi\Csp\Controller\Adminhtml\ReportGroup;
 use Hryvinskyi\Csp\Api\Data\ReportGroupInterface;
 use Hryvinskyi\Csp\Api\Data\Status;
 use Hryvinskyi\Csp\Api\ReportGroupRepositoryInterface;
+use Hryvinskyi\Csp\Model\Admin\EscapedMessages;
 use Hryvinskyi\Csp\Model\ResourceModel\ReportGroup\CollectionFactory;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
@@ -31,12 +32,14 @@ class MassChangeStatus extends Action implements HttpPostActionInterface
      * @param Filter $filter
      * @param CollectionFactory $collectionFactory
      * @param ReportGroupRepositoryInterface $reportGroupRepository
+     * @param EscapedMessages $messages
      */
     public function __construct(
         Context $context,
         private readonly Filter $filter,
         private readonly CollectionFactory $collectionFactory,
-        private readonly ReportGroupRepositoryInterface $reportGroupRepository
+        private readonly ReportGroupRepositoryInterface $reportGroupRepository,
+        private readonly EscapedMessages $messages
     ) {
         parent::__construct($context);
     }
@@ -49,7 +52,7 @@ class MassChangeStatus extends Action implements HttpPostActionInterface
         $statusCode = $this->getRequest()->getParam('status');
         $status = is_numeric($statusCode) ? Status::tryFrom((int)$statusCode) : null;
         if ($status === null) {
-            $this->messageManager->addErrorMessage((string)__('Choose a valid status.'));
+            $this->messages->error(__('Choose a valid status.'));
 
             return $this->resultRedirectFactory->create()->setPath('*/*/');
         }
@@ -62,9 +65,9 @@ class MassChangeStatus extends Action implements HttpPostActionInterface
                     $updated++;
                 }
             }
-            $this->messageManager->addSuccessMessage((string)__('A total of %1 record(s) have been updated.', $updated));
+            $this->messages->success(__('A total of %1 record(s) have been updated.', $updated));
         } catch (LocalizedException $exception) {
-            $this->messageManager->addErrorMessage($exception->getMessage());
+            $this->messages->failure($exception);
         }
 
         return $this->resultRedirectFactory->create()->setPath('*/*/');

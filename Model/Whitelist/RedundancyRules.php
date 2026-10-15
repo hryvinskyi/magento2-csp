@@ -66,8 +66,8 @@ class RedundancyRules
     private function scopeCovers(array $cover, array $covered): bool
     {
         $areaCovered = $cover['area'] === Area::ALL->value || $cover['area'] === $covered['area'];
-        $coverAllStores = $cover['stores'] === [] || in_array(StoreIdList::ALL_STORES, $cover['stores'], true);
-        $coveredAllStores = $covered['stores'] === [] || in_array(StoreIdList::ALL_STORES, $covered['stores'], true);
+        $coverAllStores = in_array(StoreIdList::ALL_STORES, $cover['stores'], true);
+        $coveredAllStores = in_array(StoreIdList::ALL_STORES, $covered['stores'], true);
         $storesCovered = $coverAllStores
             || (!$coveredAllStores && array_diff($covered['stores'], $cover['stores']) === []);
 

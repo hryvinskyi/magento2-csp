@@ -83,8 +83,7 @@ class StoreHostsProvider implements StoreHostsProviderInterface
             foreach (self::URL_TYPES as $type) {
                 foreach ([false, true] as $secure) {
                     try {
-                        $url = $store->getBaseUrl($type, $secure);
-                        $host = is_string($url) ? $this->urlHost->of($url) : null;
+                        $host = $this->urlHost->of($store->getBaseUrl($type, $secure));
                     } catch (\Exception $exception) {
                         $this->logger->warning(
                             'A store base URL could not be read for the CSP store hosts.',

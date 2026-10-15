@@ -14,6 +14,7 @@ use Magento\Framework\Acl\Builder;
 use Magento\Framework\App\Request\Http as HttpRequest;
 use Magento\Framework\App\Response\Http as HttpResponse;
 use Magento\TestFramework\TestCase\AbstractBackendController;
+use Magento\User\Model\User;
 
 /**
  * Every admin action is refused when the admin lacks one of the resources it needs, and changes only accept POST.
@@ -33,7 +34,9 @@ class AclTest extends AbstractBackendController
      */
     public function testActionIsRefusedWithoutItsResource(string $uri, string $method, string $deniedResource): void
     {
-        $this->service(Builder::class)->getAcl()->deny(null, $deniedResource);
+        $user = $this->_auth->getUser();
+        $this->assertInstanceOf(User::class, $user, 'The test admin is logged in.');
+        $this->service(Builder::class)->getAcl()->deny($user->getRoles(), $deniedResource);
         $this->httpRequest()->setMethod($method);
 
         $this->dispatch($uri);
@@ -66,6 +69,10 @@ class AclTest extends AbstractBackendController
             'reports' => ['backend/hryvinskyi_csp/report/index', $get, 'Hryvinskyi_Csp::reports'],
             'report delete' => ['backend/hryvinskyi_csp/report/delete', $post, 'Hryvinskyi_Csp::reports_manage'],
             'report convert without whitelist save' => ['backend/hryvinskyi_csp/report/convertToWhitelist', $post, 'Hryvinskyi_Csp::whitelist_save'],
+            'report grid data' => ['backend/mui/index/render/namespace/hryvinskyi_csp_report_listing', $get, 'Hryvinskyi_Csp::reports'],
+            'report group grid data' => ['backend/mui/index/render/namespace/hryvinskyi_csp_reportgroup_listing', $get, 'Hryvinskyi_Csp::reports'],
+            'report grid export' => ['backend/mui/export/gridToCsv/namespace/hryvinskyi_csp_report_listing', $get, 'Hryvinskyi_Csp::reports'],
+            'report group grid export' => ['backend/mui/export/gridToCsv/namespace/hryvinskyi_csp_reportgroup_listing', $get, 'Hryvinskyi_Csp::reports'],
         ];
     }
 
@@ -79,7 +86,11 @@ class AclTest extends AbstractBackendController
 
         $this->dispatch($uri);
 
-        $this->assert404NotFound();
+        // The admin's own not-found page: the action never ran.
+        $this->assertSame('noroute', $this->httpRequest()->getControllerName());
+        $response = $this->getResponse();
+        $this->assertInstanceOf(HttpResponse::class, $response);
+        $this->assertSame(404, $response->getHttpResponseCode());
     }
 
     /**

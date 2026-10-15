@@ -45,6 +45,19 @@ class EntryValidatorTest extends TestCase
         $this->assertSame([], $this->validator()->validate($entry));
     }
 
+    public function testRefusesAnEntryLeftWithoutStoresInsteadOfWideningIt(): void
+    {
+        $entry = $this->whitelistEntry(['store_id' => []]);
+
+        $this->normalizer()->normalize($entry);
+
+        $this->assertSame([], $entry->getStoreIds());
+        $this->assertSame(
+            ['Choose the store views the entry applies to, or All Store Views.'],
+            array_map('strval', $this->validator()->validate($entry))
+        );
+    }
+
     public function testAcceptsAHashEntry(): void
     {
         $digest = base64_encode(hash('sha384', 'alert(1)', true));
@@ -80,6 +93,7 @@ class EntryValidatorTest extends TestCase
             'unknown area' => [['area' => 'cron']],
             'unknown status' => [['status' => 3]],
             'deleted store' => [['store_id' => [1, 99]]],
+            'no store' => [['store_id' => []]],
             'long value' => [['value' => str_repeat('a', 250) . '.example.com']],
         ];
     }

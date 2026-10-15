@@ -13,6 +13,7 @@ use Magento\Cms\Api\Data\BlockInterface;
 use Magento\Cms\Api\BlockRepositoryInterface;
 use Magento\Cms\Model\Template\FilterProvider;
 use Magento\Framework\Api\SearchCriteriaBuilderFactory;
+use Magento\Store\Model\Store;
 
 /**
  * Active CMS blocks of a store view, rendered.
@@ -38,15 +39,13 @@ class CmsBlockSource implements ScriptSourceInterface
      */
     public function contents(int $storeId): array
     {
+        // The repository's store filter leaves out blocks of all store views unless their store is asked for too.
         $criteria = $this->searchCriteriaBuilderFactory->create()
-            ->addFilter('store_id', $storeId)
+            ->addFilter('store_id', [Store::DEFAULT_STORE_ID, $storeId], 'in')
             ->addFilter(BlockInterface::IS_ACTIVE, 1)
             ->create();
         $contents = [];
         foreach ($this->blockRepository->getList($criteria)->getItems() as $block) {
-            if (!$block instanceof BlockInterface) {
-                continue;
-            }
             $rendered = $this->renderer->render($this->filterProvider->getBlockFilter(), (string)$block->getContent(), $storeId);
             $contents[] = [
                 'label' => sprintf('CMS block "%s" (ID %s)', (string)$block->getTitle(), (string)$block->getId()),

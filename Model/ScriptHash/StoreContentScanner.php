@@ -26,25 +26,15 @@ class StoreContentScanner
      * @param Emulation $emulation
      * @param InlineScriptExtractor $extractor
      * @param FormKey $formKey
-     * @param array<string, ScriptSourceInterface> $sources Source code => source
+     * @param ScriptSourcePool $sources
      */
     public function __construct(
         private readonly State $appState,
         private readonly Emulation $emulation,
         private readonly InlineScriptExtractor $extractor,
         private readonly FormKey $formKey,
-        private readonly array $sources = []
+        private readonly ScriptSourcePool $sources
     ) {
-    }
-
-    /**
-     * Codes of the available sources.
-     *
-     * @return list<string>
-     */
-    public function sourceCodes(): array
-    {
-        return array_keys($this->sources);
     }
 
     /**
@@ -57,11 +47,7 @@ class StoreContentScanner
      */
     public function scan(int $storeId, array $sourceCodes): array
     {
-        $sources = [];
-        foreach ($sourceCodes as $code) {
-            $sources[] = $this->sources[$code]
-                ?? throw new \InvalidArgumentException(sprintf('Unknown content type "%s". Use one of: %s.', $code, implode(', ', $this->sourceCodes())));
-        }
+        $sources = array_map(fn (string $code): ScriptSourceInterface => $this->sources->get($code), $sourceCodes);
 
         $entities = [];
         $this->appState->emulateAreaCode(Area::AREA_FRONTEND, function () use ($storeId, $sources, &$entities): void {

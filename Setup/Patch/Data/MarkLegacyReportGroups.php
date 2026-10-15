@@ -12,13 +12,15 @@ namespace Hryvinskyi\Csp\Setup\Patch\Data;
 use Hryvinskyi\Csp\Api\Data\Area;
 use Hryvinskyi\Csp\Model\Whitelist\StoreIdList;
 use Hryvinskyi\Csp\Setup\Migration\LegacyReportGroupMergePlan;
+use Magento\Framework\DB\Adapter\AdapterInterface;
 use Magento\Framework\Setup\ModuleDataSetupInterface;
 use Magento\Framework\Setup\Patch\DataPatchInterface;
 
 /**
  * Moves report groups recorded before 2.0.0 to store 0 and area `all` under their governing directive.
  *
- * Groups that end up with the same directive and value are merged, their reports moved to the remaining group.
+ * Groups that end up with the same directive and value are merged, their reports moved to the remaining group. The
+ * database groups them under the table's collation, so the merged groups never collide on its unique key.
  */
 class MarkLegacyReportGroups implements DataPatchInterface
 {
@@ -40,9 +42,25 @@ class MarkLegacyReportGroups implements DataPatchInterface
         $connection = $this->setup->getConnection();
         $groupTable = $this->setup->getTable('hryvinskyi_csp_violation_report_group');
         $reportTable = $this->setup->getTable('hryvinskyi_csp_violation_report');
-        $rows = $connection->fetchAll(
-            $connection->select()->from($groupTable, ['group_id', 'policy', 'value', 'status', 'count'])
-        );
+        $governing = $this->governingExpression($connection, $this->mergePlan->governingDirectives(array_values(array_map(
+            fn (mixed $policy): string => $this->toString($policy),
+            $connection->fetchCol(sprintf(
+                'SELECT DISTINCT CAST(%s AS BINARY) FROM %s',
+                $connection->quoteIdentifier('policy'),
+                $connection->quoteIdentifier($groupTable)
+            ))
+        ))));
+        $rows = $connection->fetchAll(sprintf(
+            'SELECT %1$s, %2$s, %3$s, %4$s, %5$s AS governing_policy,'
+            . ' MIN(%1$s) OVER (PARTITION BY %5$s, %6$s) AS merge_key FROM %7$s',
+            $connection->quoteIdentifier('group_id'),
+            $connection->quoteIdentifier('policy'),
+            $connection->quoteIdentifier('status'),
+            $connection->quoteIdentifier('count'),
+            $governing,
+            $connection->quoteIdentifier('value'),
+            $connection->quoteIdentifier($groupTable)
+        ));
         $current = [];
         foreach ($this->groups($rows) as $group) {
             $current[$group['group_id']] = $group;
@@ -84,10 +102,33 @@ class MarkLegacyReportGroups implements DataPatchInterface
     }
 
     /**
+     * SQL expression of the governing directive of a group: its directive mapped through the given directives.
+     *
+     * The mapping runs in the database, so directives the table's collation cannot tell apart map alike.
+     *
+     * @param AdapterInterface $connection
+     * @param array<string, string> $governing Recorded directive => governing directive
+     * @return string
+     */
+    private function governingExpression(AdapterInterface $connection, array $governing): string
+    {
+        $column = $connection->quoteIdentifier('policy');
+        if ($governing === []) {
+            return $column;
+        }
+        $cases = '';
+        foreach ($governing as $policy => $directive) {
+            $cases .= $connection->quoteInto(' WHEN ?', (string)$policy) . $connection->quoteInto(' THEN ?', $directive);
+        }
+
+        return sprintf('CASE %1$s%2$s ELSE %1$s END', $column, $cases);
+    }
+
+    /**
      * Typed group rows.
      *
      * @param array<mixed> $rows
-     * @return list<array{group_id: int, policy: string, value: string, status: int, count: int}>
+     * @return list<array{group_id: int, policy: string, merge_key: int, governing_policy: string, status: int, count: int}>
      */
     private function groups(array $rows): array
     {
@@ -99,7 +140,8 @@ class MarkLegacyReportGroups implements DataPatchInterface
             $groups[] = [
                 'group_id' => $this->toInt($row['group_id'] ?? null),
                 'policy' => $this->toString($row['policy'] ?? null),
-                'value' => $this->toString($row['value'] ?? null),
+                'merge_key' => $this->toInt($row['merge_key'] ?? null),
+                'governing_policy' => $this->toString($row['governing_policy'] ?? null),
                 'status' => $this->toInt($row['status'] ?? null),
                 'count' => $this->toInt($row['count'] ?? null),
             ];

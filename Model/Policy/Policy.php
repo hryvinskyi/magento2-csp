@@ -61,7 +61,7 @@ class Policy implements PolicyInterface
     public function withSources(string $name, array $sources): PolicyInterface
     {
         $copy = clone $this;
-        $copy->directives[$name] = array_values($sources);
+        $copy->directives[$name] = $sources;
 
         return $copy;
     }

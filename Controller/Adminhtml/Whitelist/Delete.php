@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace Hryvinskyi\Csp\Controller\Adminhtml\Whitelist;
 
 use Hryvinskyi\Csp\Api\WhitelistRepositoryInterface;
+use Hryvinskyi\Csp\Model\Admin\EscapedMessages;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\Action\HttpPostActionInterface;
@@ -25,10 +26,12 @@ class Delete extends Action implements HttpPostActionInterface
     /**
      * @param Context $context
      * @param WhitelistRepositoryInterface $entityRepository
+     * @param EscapedMessages $messages
      */
     public function __construct(
         Context $context,
-        private readonly WhitelistRepositoryInterface $entityRepository
+        private readonly WhitelistRepositoryInterface $entityRepository,
+        private readonly EscapedMessages $messages
     ) {
         parent::__construct($context);
     }
@@ -41,15 +44,15 @@ class Delete extends Action implements HttpPostActionInterface
         $resultRedirect = $this->resultRedirectFactory->create();
         $id = $this->getRequest()->getParam('id');
         if (!is_numeric($id)) {
-            $this->messageManager->addErrorMessage((string)__('Choose a whitelist entry to delete.'));
+            $this->messages->error(__('Choose a whitelist entry to delete.'));
 
             return $resultRedirect->setPath('*/*/');
         }
         try {
             $this->entityRepository->deleteById((int)$id);
-            $this->messageManager->addSuccessMessage((string)__('The whitelist entry has been deleted.'));
+            $this->messages->success(__('The whitelist entry has been deleted.'));
         } catch (LocalizedException $exception) {
-            $this->messageManager->addErrorMessage($exception->getMessage());
+            $this->messages->failure($exception);
         }
 
         return $resultRedirect->setPath('*/*/');

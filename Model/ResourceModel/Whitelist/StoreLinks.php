@@ -57,7 +57,7 @@ class StoreLinks
     }
 
     /**
-     * Replace the stores of an entry; no stores, or store 0 among them, means every store.
+     * Replace the stores of an entry; store 0 among them means every store, no stores means none.
      *
      * @param int $ruleId
      * @param array<int> $storeIds

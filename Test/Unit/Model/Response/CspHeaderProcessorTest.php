@@ -154,7 +154,13 @@ class CspHeaderProcessorTest extends TestCase
             new PolicyParser($this->policyFactory()),
             new PolicyOptimizer($optimizationConfig, ['duplicates' => new RemoveDuplicateSources($catalog, $parser)]),
             new VerifiedPolicySplitter(
-                new DirectiveFamilySplitter($catalog, new FallbackResolver($catalog), $this->policyFactory(), new NullLogger()),
+                new DirectiveFamilySplitter(
+                    $catalog,
+                    new FallbackResolver($catalog),
+                    $this->policyFactory(),
+                    new NullLogger(),
+                    $this->sourceListCover()
+                ),
                 $this->equivalence(),
                 new NullLogger()
             ),

@@ -10,6 +10,8 @@ declare(strict_types=1);
 namespace Hryvinskyi\Csp\Test\Unit\Model\Import;
 
 use Hryvinskyi\Csp\Api\Data\WhitelistInterfaceFactory;
+use Hryvinskyi\Csp\Model\Config\Source\Area as AreaOptions;
+use Hryvinskyi\Csp\Model\Import\AreaResolver;
 use Hryvinskyi\Csp\Model\Import\CsvRowReader;
 use Hryvinskyi\Csp\Model\Import\RowReaderPool;
 use Hryvinskyi\Csp\Model\Import\WhitelistImporter;
@@ -23,6 +25,7 @@ use Hryvinskyi\Csp\Model\Whitelist\EntryValidator;
 use Hryvinskyi\Csp\Model\Whitelist\WhitelistableDirectives;
 use Hryvinskyi\Csp\Model\Whitelist\SourceValueRules;
 use Hryvinskyi\Csp\Model\Whitelist\StoreIdList;
+use Hryvinskyi\Csp\Model\Whitelist\StoreScopeText;
 use Hryvinskyi\Csp\Test\Unit\Support\CreatesWhitelistEntries;
 use Hryvinskyi\Csp\Test\Unit\Support\InMemoryWhitelistRepository;
 use Magento\Framework\DomDocument\DomDocumentFactory;
@@ -39,6 +42,8 @@ class WhitelistImporterTest extends TestCase
 
     private InMemoryWhitelistRepository $repository;
 
+    private StoreManagerInterface $storeManager;
+
     /**
      * @var list<string>
      */
@@ -46,12 +51,20 @@ class WhitelistImporterTest extends TestCase
 
     protected function setUp(): void
     {
-        $storeManager = $this->createStub(StoreManagerInterface::class);
-        $storeManager->method('getStores')->willReturn(array_fill_keys([0, 1, 2], $this->createStub(StoreInterface::class)));
+        $stores = [];
+        foreach ([0 => ['admin', 'Admin'], 1 => ['default', 'Default Store View'], 2 => ['de', 'German']] as $id => [$code, $name]) {
+            $store = $this->createStub(StoreInterface::class);
+            $store->method('getId')->willReturn($id);
+            $store->method('getCode')->willReturn($code);
+            $store->method('getName')->willReturn($name);
+            $stores[$id] = $store;
+        }
+        $this->storeManager = $this->createStub(StoreManagerInterface::class);
+        $this->storeManager->method('getStores')->willReturn($stores);
         $this->repository = new InMemoryWhitelistRepository(new EntryValidator(
             new WhitelistableDirectives(new DirectiveCatalog()),
             new SourceValueRules(new HostSourceParser()),
-            $storeManager
+            $this->storeManager
         ));
     }
 
@@ -62,7 +75,7 @@ class WhitelistImporterTest extends TestCase
         }
     }
 
-    public function testImportsAGridExportAndMergesRowsWithTheSameKey(): void
+    public function testImportsRowsAndMergesThoseWithTheSameKey(): void
     {
         $this->repository->save($this->whitelistEntry(['rule_id' => 7, 'value' => 'cdn.example.com', 'store_id' => [1], 'area' => 'all']));
         $csv = $this->file('csv', implode("\n", [
@@ -71,22 +84,62 @@ class WhitelistImporterTest extends TestCase
             'CDN,Enabled,script-src,host,cdn.example.com,2',
             'Fonts,1,font-src,host,fonts.example.org,',
             "Bad,1,script-src,host,'unsafe-inline',0",
-            'Stores by name,1,img-src,host,img.example.org,Default Store View',
+            'Stores by name,1,img-src,host,img.example.org,german',
+            'Stores by code,Disabled,img-src,host,img2.example.org,"default, DE"',
+            'Unknown store,1,img-src,host,img3.example.org,nowhere',
         ]));
 
         $result = $this->importer()->import($csv, 'csv');
 
-        $this->assertSame([2, 1], [$result['created'], $result['updated']]);
-        $this->assertCount(2, $result['errors']);
-        $this->assertStringStartsWith('Row 4:', $result['errors'][0]);
+        $this->assertSame([3, 1], [$result['created'], $result['updated']]);
+        $this->assertSame(['Row 3:', 'Row 4:', 'Row 7:'], array_map(
+            static fn (string $error): string => substr($error, 0, 6),
+            $result['errors']
+        ));
+        $this->assertStringContainsString('Choose the store views', $result['errors'][0]);
+        $this->assertStringContainsString('"nowhere" names a store view that does not exist', $result['errors'][2]);
         $this->assertSame([1, 2], $this->repository->getById(7)->getStoreIds());
         $this->assertSame(
-            [['https://cdn.example.com', [2], 'all'], ['fonts.example.org', [0], 'all']],
+            [
+                ['https://cdn.example.com', [2], 'all', 1],
+                ['img.example.org', [2], 'all', 1],
+                ['img2.example.org', [1, 2], 'all', 0],
+            ],
+            array_values(array_map(
+                static fn (Whitelist $entry): array => [$entry->getValue(), $entry->getStoreIds(), $entry->getArea(), $entry->getStatus()],
+                array_filter($this->repository->entries, static fn ($entry): bool => $entry instanceof Whitelist && $entry->getRuleId() !== 7)
+            ))
+        );
+    }
+
+    public function testAnEntryWithoutAStoreColumnAppliesToEveryStoreAndAnEmptyCellExtendsNothing(): void
+    {
+        $this->repository->save($this->whitelistEntry(['rule_id' => 7, 'value' => 'cdn.example.com', 'store_id' => [1], 'area' => 'all']));
+        $csv = $this->file('csv', implode("\n", [
+            'identifier,policy,value_type,value,area',
+            'Fonts,font-src,host,fonts.example.org,Storefront',
+            'Admin,img-src,host,admin.example.org,ADMINHTML',
+            'Nowhere,img-src,host,x.example.org,cron',
+        ]));
+        $update = $this->file('csv', implode("\n", [
+            'identifier,policy,value_type,value,store_ids',
+            'CDN,script-src,host,cdn.example.com,',
+        ]));
+
+        $result = $this->importer()->import($csv, 'csv');
+        $updated = $this->importer()->import($update, 'csv');
+
+        $this->assertSame([2, 0], [$result['created'], $result['updated']]);
+        $this->assertStringContainsString('"cron" is not an area', $result['errors'][0] ?? '');
+        $this->assertSame(
+            [['fonts.example.org', [0], 'frontend'], ['admin.example.org', [0], 'adminhtml']],
             array_values(array_map(
                 static fn (Whitelist $entry): array => [$entry->getValue(), $entry->getStoreIds(), $entry->getArea()],
                 array_filter($this->repository->entries, static fn ($entry): bool => $entry instanceof Whitelist && $entry->getRuleId() !== 7)
             ))
         );
+        $this->assertSame([0, 1, []], [$updated['created'], $updated['updated'], $updated['errors']]);
+        $this->assertSame([1], $this->repository->getById(7)->getStoreIds());
     }
 
     public function testReadsXmlWithoutResolvingEntities(): void
@@ -131,7 +184,8 @@ class WhitelistImporterTest extends TestCase
             $this->repository,
             new EntryDataMapper(new StoreIdList()),
             new EntryNormalizer(new SourceValueRules(new HostSourceParser()), new StoreIdList()),
-            new StoreIdList()
+            new StoreScopeText($this->storeManager),
+            new AreaResolver(new AreaOptions())
         );
     }
 

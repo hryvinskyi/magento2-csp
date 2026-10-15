@@ -18,6 +18,7 @@ use Hryvinskyi\Csp\Model\Policy\Policy;
 use Hryvinskyi\Csp\Model\Policy\PolicyEquivalence;
 use Hryvinskyi\Csp\Model\Policy\PolicyParser;
 use Hryvinskyi\Csp\Model\Policy\SourceListCanonicalizer;
+use Hryvinskyi\Csp\Model\Policy\SourceListCover;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -34,17 +35,13 @@ trait ParsesPolicies
      */
     private function policyFactory(): PolicyInterfaceFactory
     {
-        return new class () extends PolicyInterfaceFactory {
-            public function __construct()
-            {
-            }
-
+        $factory = $this->createStub(PolicyInterfaceFactory::class);
+        $factory->method('create')->willReturnCallback(
             /**
              * @param array<string, mixed> $data
              * @return PolicyInterface
              */
-            public function create(array $data = []): PolicyInterface
-            {
+            static function (array $data = []): PolicyInterface {
                 $directives = [];
                 $given = $data['directives'] ?? [];
                 foreach (is_array($given) ? $given : [] as $name => $sources) {
@@ -55,7 +52,9 @@ trait ParsesPolicies
 
                 return new Policy($directives);
             }
-        };
+        );
+
+        return $factory;
     }
 
     /**
@@ -81,7 +80,18 @@ trait ParsesPolicies
         return new PolicyEquivalence(
             $catalog,
             new FallbackResolver($catalog),
-            new SourceListCanonicalizer($catalog, new HostSourceParser())
+            new SourceListCanonicalizer($catalog, new HostSourceParser()),
+            $this->sourceListCover()
         );
+    }
+
+    /**
+     * Real source-list cover service.
+     *
+     * @return SourceListCover
+     */
+    private function sourceListCover(): SourceListCover
+    {
+        return new SourceListCover(new DirectiveCatalog(), new HostSourceParser());
     }
 }

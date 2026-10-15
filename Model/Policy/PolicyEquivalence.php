@@ -14,8 +14,9 @@ use Hryvinskyi\Csp\Api\Data\PolicyInterface;
 /**
  * Decides whether two policies, or a policy and the parts it was split into, allow the same requests.
  *
- * Fetch directives are compared by the canonical sources that govern each request type; other source-list
- * directives by their canonical sources; every other directive by its exact tokens.
+ * Fetch directives are compared by the canonical sources that govern each request type, `default-src` included as
+ * the directive of prefetch and prerender requests; other source-list directives by their canonical sources; every
+ * other directive by its exact tokens.
  */
 class PolicyEquivalence
 {
@@ -23,11 +24,13 @@ class PolicyEquivalence
      * @param DirectiveCatalog $catalog
      * @param FallbackResolver $fallbackResolver
      * @param SourceListCanonicalizer $canonicalizer
+     * @param SourceListCover $cover
      */
     public function __construct(
         private readonly DirectiveCatalog $catalog,
         private readonly FallbackResolver $fallbackResolver,
-        private readonly SourceListCanonicalizer $canonicalizer
+        private readonly SourceListCanonicalizer $canonicalizer,
+        private readonly SourceListCover $cover
     ) {
     }
 
@@ -59,8 +62,9 @@ class PolicyEquivalence
      * Names of the request types and directives where the parts, enforced together, differ from the original.
      *
      * A browser enforces every part: a request passes only if each part that restricts it allows it. The parts are
-     * equivalent when every part restricting a request type allows exactly what the original allows, and a request
-     * type the original leaves unrestricted is restricted by no part.
+     * equivalent when, for every request type the original restricts, one part allows exactly what the original
+     * allows and every other part restricting it allows that much or more ({@see SourceListCover}); a request type
+     * the original leaves unrestricted is restricted by no part.
      *
      * @param PolicyInterface $original
      * @param list<PolicyInterface> $parts
@@ -75,7 +79,7 @@ class PolicyEquivalence
                 fn (PolicyInterface $part): ?array => $this->effective($part, $requestDirective),
                 $parts
             );
-            if (!$this->enforcedAlike($expected, $actual)) {
+            if (!$this->restrictedAlike($requestDirective, $expected, $actual)) {
                 $differences[] = $requestDirective;
             }
         }
@@ -126,6 +130,35 @@ class PolicyEquivalence
         return $policy->has($directive)
             ? $this->canonicalizer->canonicalize($directive, $policy->sources($directive))
             : null;
+    }
+
+    /**
+     * Whether the parts together restrict a request type as the original does: one part exactly, the others with
+     * the same sources or a cover of them.
+     *
+     * @param string $requestDirective
+     * @param list<string>|null $expected Null when the original does not restrict
+     * @param list<list<string>|null> $actual One entry per part, null when that part does not restrict
+     * @return bool
+     */
+    private function restrictedAlike(string $requestDirective, ?array $expected, array $actual): bool
+    {
+        $restricting = array_values(array_filter($actual, static fn (?array $sources): bool => $sources !== null));
+        if ($expected === null) {
+            return $restricting === [];
+        }
+        $exact = false;
+        foreach ($restricting as $sources) {
+            if ($sources === $expected) {
+                $exact = true;
+                continue;
+            }
+            if (!$this->cover->covers($requestDirective, $sources, $expected)) {
+                return false;
+            }
+        }
+
+        return $exact;
     }
 
     /**

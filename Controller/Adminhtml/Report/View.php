@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace Hryvinskyi\Csp\Controller\Adminhtml\Report;
 
 use Hryvinskyi\Csp\Api\ReportRepositoryInterface;
+use Hryvinskyi\Csp\Model\Admin\EscapedMessages;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
 use Magento\Backend\Model\View\Result\Page;
@@ -26,10 +27,12 @@ class View extends Action implements HttpGetActionInterface
     /**
      * @param Context $context
      * @param ReportRepositoryInterface $reportRepository
+     * @param EscapedMessages $messages
      */
     public function __construct(
         Context $context,
-        private readonly ReportRepositoryInterface $reportRepository
+        private readonly ReportRepositoryInterface $reportRepository,
+        private readonly EscapedMessages $messages
     ) {
         parent::__construct($context);
     }
@@ -41,7 +44,7 @@ class View extends Action implements HttpGetActionInterface
     {
         $id = $this->getRequest()->getParam('id');
         if (!is_numeric($id) || $this->reportRepository->findById((int)$id) === null) {
-            $this->messageManager->addErrorMessage((string)__('The report does not exist.'));
+            $this->messages->error(__('The report does not exist.'));
 
             return $this->resultRedirectFactory->create()->setPath('*/*/');
         }

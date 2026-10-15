@@ -133,7 +133,7 @@ class Collection extends AbstractCollection
      */
     protected function _afterLoad()
     {
-        $ruleIds = array_values(array_map('intval', array_keys($this->_items)));
+        $ruleIds = array_map('intval', array_keys($this->_items));
         $storeIds = $this->storeLinks->storeIdsByRule($ruleIds);
         foreach ($this->_items as $id => $item) {
             if ($item instanceof WhitelistInterface) {

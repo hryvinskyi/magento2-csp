@@ -20,6 +20,8 @@ use Magento\Framework\View\Element\Block\ArgumentInterface;
  * cache, a page served from that cache carries only configured and whitelisted sources; Varnish keeps the header
  * with the page.
  *
+ * A source that cannot be sent safely is logged and skipped; the template still renders.
+ *
  * The `$key` argument of every method is ignored: in 1.x it named an entry of a global policy cache that leaked one
  * page's sources into every page. It stays so 1.x templates keep working, and will be removed in 3.0.0.
  */
@@ -35,7 +37,7 @@ class DynamicCspProvider implements ArgumentInterface
     /**
      * Allow script hosts.
      *
-     * @param list<string> $hosts
+     * @param array<string> $hosts
      * @param bool $self
      * @param string|null $key Ignored, kept for 1.x callers
      * @return void
@@ -48,7 +50,7 @@ class DynamicCspProvider implements ArgumentInterface
     /**
      * Allow stylesheet hosts.
      *
-     * @param list<string> $hosts
+     * @param array<string> $hosts
      * @param bool $self
      * @param string|null $key Ignored, kept for 1.x callers
      * @return void
@@ -61,7 +63,7 @@ class DynamicCspProvider implements ArgumentInterface
     /**
      * Allow image hosts.
      *
-     * @param list<string> $hosts
+     * @param array<string> $hosts
      * @param bool $self
      * @param string|null $key Ignored, kept for 1.x callers
      * @return void
@@ -74,7 +76,7 @@ class DynamicCspProvider implements ArgumentInterface
     /**
      * Allow font hosts.
      *
-     * @param list<string> $hosts
+     * @param array<string> $hosts
      * @param bool $self
      * @param string|null $key Ignored, kept for 1.x callers
      * @return void
@@ -87,7 +89,7 @@ class DynamicCspProvider implements ArgumentInterface
     /**
      * Allow hosts for fetch, XHR and websockets.
      *
-     * @param list<string> $hosts
+     * @param array<string> $hosts
      * @param bool $self
      * @param string|null $key Ignored, kept for 1.x callers
      * @return void
@@ -100,7 +102,7 @@ class DynamicCspProvider implements ArgumentInterface
     /**
      * Allow frame hosts.
      *
-     * @param list<string> $hosts
+     * @param array<string> $hosts
      * @param bool $self
      * @param string|null $key Ignored, kept for 1.x callers
      * @return void
@@ -114,7 +116,7 @@ class DynamicCspProvider implements ArgumentInterface
      * Allow hosts for any fetch directive.
      *
      * @param string $policyType Fetch directive, e.g. "media-src"
-     * @param list<string> $hosts
+     * @param array<string> $hosts
      * @param bool $self
      * @param string|null $key Ignored, kept for 1.x callers
      * @return void
@@ -127,7 +129,7 @@ class DynamicCspProvider implements ArgumentInterface
     /**
      * Allow inline scripts by their base64 sha256 digests.
      *
-     * @param list<string> $hashes
+     * @param array<int|string, string> $hashes Digests as a list, or digest => algorithm as in 1.x
      * @param bool $self
      * @param string|null $key Ignored, kept for 1.x callers
      * @return void
@@ -140,7 +142,7 @@ class DynamicCspProvider implements ArgumentInterface
     /**
      * Allow inline styles by their base64 sha256 digests.
      *
-     * @param list<string> $hashes
+     * @param array<int|string, string> $hashes Digests as a list, or digest => algorithm as in 1.x
      * @param bool $self
      * @param string|null $key Ignored, kept for 1.x callers
      * @return void
@@ -154,7 +156,7 @@ class DynamicCspProvider implements ArgumentInterface
      * Allow digests for any fetch directive.
      *
      * @param string $policyType
-     * @param list<string> $hashes
+     * @param array<int|string, string> $hashes Digests as a list, or digest => algorithm as in 1.x
      * @param bool $self
      * @param string|null $key Ignored, kept for 1.x callers
      * @return void
@@ -168,8 +170,8 @@ class DynamicCspProvider implements ArgumentInterface
      * Allow hosts and digests for any fetch directive.
      *
      * @param string $policyType
-     * @param list<string> $hosts
-     * @param list<string> $hashes
+     * @param array<string> $hosts
+     * @param array<int|string, string> $hashes Digests as a list, or digest => algorithm as in 1.x
      * @param bool $self
      * @param string|null $key Ignored, kept for 1.x callers
      * @return void

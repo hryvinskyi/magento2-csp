@@ -20,13 +20,14 @@ class MigrateWhitelistStoreIdsTest extends TestCase
 {
     use ResolvesServices;
 
-    public function testCopiesExistingStoresAndFallsBackToAllStores(): void
+    public function testCopiesExistingStoresAndNeverWidensAnEntryOfDeletedStores(): void
     {
         $entries = [
             'all-and-one' => '0,1',
             'one-and-deleted' => '1, 999',
             'only-deleted' => '999',
             'empty' => '',
+            'no-ids' => 'abc',
         ];
         $ids = [];
         foreach ($entries as $identifier => $storeIds) {
@@ -46,9 +47,26 @@ class MigrateWhitelistStoreIdsTest extends TestCase
         $patch->apply();
 
         $this->assertSame(
-            ['all-and-one' => ['0'], 'one-and-deleted' => ['1'], 'only-deleted' => ['0'], 'empty' => ['0']],
+            ['all-and-one' => ['0'], 'one-and-deleted' => ['1'], 'only-deleted' => [], 'empty' => ['0'], 'no-ids' => ['0']],
             array_map(fn (int $ruleId): array => $this->stores($ruleId), $ids)
         );
+        $this->assertSame(
+            ['all-and-one' => '1', 'one-and-deleted' => '1', 'only-deleted' => '0', 'empty' => '1', 'no-ids' => '1'],
+            array_map(fn (int $ruleId): ?string => $this->entryStatus($ruleId), $ids)
+        );
+    }
+
+    /**
+     * @param int $ruleId
+     * @return string|null
+     */
+    private function entryStatus(int $ruleId): ?string
+    {
+        $select = $this->connection()->select()
+            ->from($this->table('hryvinskyi_csp_whitelist'), ['status'])
+            ->where('rule_id = ?', $ruleId);
+
+        return $this->rows($select)[0]['status'] ?? null;
     }
 
     /**

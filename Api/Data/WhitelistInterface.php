@@ -131,7 +131,7 @@ interface WhitelistInterface
     public function setValue(string $value): WhitelistInterface;
 
     /**
-     * Ids of the stores the entry applies to; 0 stands for every store.
+     * Ids of the stores the entry applies to; 0 stands for every store, an empty list for none.
      *
      * @return int[]
      */
@@ -139,6 +139,8 @@ interface WhitelistInterface
 
     /**
      * Set the ids of the stores the entry applies to; 0 stands for every store.
+     *
+     * An entry is saved with at least one store: an empty list is refused, never read as every store.
      *
      * @param int[] $storeIds
      *

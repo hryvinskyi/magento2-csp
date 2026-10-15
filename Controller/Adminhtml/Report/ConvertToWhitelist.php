@@ -12,6 +12,7 @@ namespace Hryvinskyi\Csp\Controller\Adminhtml\Report;
 use Hryvinskyi\Csp\Api\ReportGroupRepositoryInterface;
 use Hryvinskyi\Csp\Api\ReportRepositoryInterface;
 use Hryvinskyi\Csp\Controller\Adminhtml\ConvertsToWhitelist;
+use Hryvinskyi\Csp\Model\Admin\EscapedMessages;
 use Hryvinskyi\Csp\Model\Conversion\ConversionMessages;
 use Hryvinskyi\Csp\Model\Conversion\ReportGroupConverter;
 use Magento\Backend\App\Action;
@@ -32,13 +33,15 @@ class ConvertToWhitelist extends Action implements HttpPostActionInterface
      * @param ReportGroupRepositoryInterface $reportGroupRepository
      * @param ReportGroupConverter $converter
      * @param ConversionMessages $conversionMessages
+     * @param EscapedMessages $messages
      */
     public function __construct(
         Context $context,
         private readonly ReportRepositoryInterface $reportRepository,
         private readonly ReportGroupRepositoryInterface $reportGroupRepository,
         private readonly ReportGroupConverter $converter,
-        private readonly ConversionMessages $conversionMessages
+        private readonly ConversionMessages $conversionMessages,
+        private readonly EscapedMessages $messages
     ) {
         parent::__construct($context);
     }
@@ -50,16 +53,16 @@ class ConvertToWhitelist extends Action implements HttpPostActionInterface
     {
         $id = $this->getRequest()->getParam('id');
         if (!is_numeric($id)) {
-            $this->messageManager->addErrorMessage((string)__('Choose a report to convert.'));
+            $this->messages->error(__('Choose a report to convert.'));
 
             return $this->resultRedirectFactory->create()->setPath('*/*/');
         }
         try {
             $groupId = (int)$this->reportRepository->getById((int)$id)->getGroupId();
             $result = $this->converter->convert($this->reportGroupRepository->getById($groupId));
-            $this->conversionMessages->add($this->messageManager, [$result]);
+            $this->conversionMessages->add([$result]);
         } catch (LocalizedException $exception) {
-            $this->messageManager->addErrorMessage($exception->getMessage());
+            $this->messages->failure($exception);
         }
 
         return $this->resultRedirectFactory->create()->setPath('*/*/');

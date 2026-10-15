@@ -40,6 +40,8 @@ class CspEvaluator
         'media:url' => ['media-src', 'default-src'],
         'object:url' => ['object-src', 'default-src'],
         'manifest:url' => ['manifest-src', 'default-src'],
+        // <link rel="prefetch">/"prerender": §6.8.1 step 1 returns default-src as the effective directive
+        'prefetch:url' => ['default-src'],
     ];
 
     private const DEFAULT_PORTS = ['http' => 80, 'https' => 443, 'ws' => 80, 'wss' => 443];

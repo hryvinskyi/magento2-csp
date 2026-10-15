@@ -75,6 +75,21 @@ class CspEvaluatorTest extends TestCase
             'scheme-less host matches http on http page' => [['script-src' => ['cdn.example.com']], $script('http://cdn.example.com/lib/app.js'), true, 'http'],
             'https host does not match http on http page' => [['script-src' => ['https://cdn.example.com']], $script('http://cdn.example.com/lib/app.js'), false, 'http'],
             'strict-dynamic ignores host allowlist' => [['script-src' => ["'strict-dynamic'", 'cdn.example.com']], $script('https://cdn.example.com/lib/app.js'), false],
+            'prefetch is governed by default-src' => [
+                ['default-src' => ["'self'"]],
+                new CspRequest('prefetch', CspRequest::KIND_URL, 'https://evil.example/next'),
+                false,
+            ],
+            'prefetch ignores the other fetch directives' => [
+                ['default-src' => ["'self'"], 'connect-src' => ['*'], 'img-src' => ['*'], 'script-src' => ['*']],
+                new CspRequest('prefetch', CspRequest::KIND_URL, 'https://evil.example/next'),
+                false,
+            ],
+            'prefetch is unrestricted without default-src' => [
+                ['connect-src' => ["'self'"]],
+                new CspRequest('prefetch', CspRequest::KIND_URL, 'https://evil.example/next'),
+                true,
+            ],
             'workers fall back through child-src' => [
                 ['script-src' => ['cdn.example.com'], 'child-src' => ["'self'"]],
                 new CspRequest('worker', CspRequest::KIND_URL, 'https://cdn.example.com/lib/app.js'),

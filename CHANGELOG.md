@@ -2,7 +2,7 @@
 
 All notable changes to the Hryvinskyi_Csp module will be documented in this file.
 
-## [2.0.0] - 2026-10-05
+## [2.0.0] - 2026-10-16
 
 A major release: header optimisation and splitting no longer change what the policy allows (verified against an
 independent CSP3 evaluator in the test suite), the admin is protected by ACL and POST-only actions, and violation
@@ -15,8 +15,14 @@ reports are accepted only from the store's own pages.
   or control characters can reach a header; internationalised hosts are stored in punycode.
 - Report conversion refuses inline code, eval, `*`, `https:` and `data:`/`blob:`/`filesystem:` in directives that
   load code.
-- Violation reports: POST only, size-limited, rate-limited per client, accepted only for pages of the receiving store
-  view or of the admin, query strings and fragments removed, extension-injected resources ignored.
+- Violation reports: POST only, size-limited, rate-limited per client (IPv6 per /64 network), query strings and
+  fragments removed, extension-injected resources ignored. Reports that name a page outside the receiving store view
+  or the admin are dropped; the page address is what the client claims, so this screens out honest reports from other
+  sites, not forged ones.
+- Reports whose blocked URL has a wildcard or a character not allowed in a host name are dropped instead of grouped.
+- Admin messages that quote report values or database errors are HTML-escaped.
+- The report grids' data and CSV export require the *Violation Reports* permission, the whitelist grid's the
+  *Whitelist* permission.
 - XML import never resolves external entities.
 
 ### Fixed
@@ -35,6 +41,14 @@ reports are accepted only from the store's own pages.
 - The script hash command hashed CMS content without rendering it, so the hashes did not match the page, and scoped
   all-store-view entities to the first store view.
 - Mass conversion of report groups used the wrong collection; conversion deleted reports even when it failed.
+- Select All in the reports of one group deleted or converted every report.
+- Report groups for all store views showed an empty Store View cell.
+- The script hash command hashed default configuration values that a website or store value overrides, and missed
+  values set in `app/etc/env.php`/`config.php`.
+- Whitelist grid export failed with a TypeError; it now writes store view codes and re-imports.
+- An entry without stores is refused on save instead of becoming an all-stores entry.
+- Legacy report-group merge no longer fails on values the table collation treats as equal.
+- `report-to` stripping matched a URL path ending in `/report-to` and could merge two directives.
 - Whitelist store scope is stored in a link table instead of a comma-separated column matched with `LIKE`.
 
 ### Added
@@ -42,6 +56,9 @@ reports are accepted only from the store's own pages.
 - Reporting API (`application/reports+json`) reports.
 - Trusted parent domains for subdomain consolidation; report rate limit and size limit settings.
 - System message when a header had to be sent unsplit above the limit.
+- The violation reports system message counts only violations recorded since the admin last opened the reports and
+  disappears when they do (**Notify about new violations**, on by default). In 1.x it stayed while any report group
+  was pending.
 - `--yes` for `hryvinskyi:csp:generate-script-hashes`.
 - Extension points: `PolicyOptimizationStepInterface`, `ViolationReportParserInterface`,
   `ReportCleanupStrategyInterface`, `DynamicPolicyRegistryInterface`.
@@ -59,6 +76,13 @@ reports are accepted only from the store's own pages.
 - The module no longer overrides core policies in `config.xml` (storefront `script-src`, `frame-ancestors`) or adds a
   policy for a third-party checkout page.
 - Core's Report URI fields are no longer hidden.
+- Admin pages report to the admin URL as the backend builds it (custom admin URL, else the default-scope base URL),
+  not the default store view's URL.
+- A split header keeps `default-src` in one part, so prefetch and prerender stay restricted; that part gets a
+  permissive source list for each directive another part restricts.
+- `DynamicPolicyRegistryInterface::allow()` no longer throws: hashes may be a list or `[hash => algorithm]`
+  (sha256/384/512), and an invalid directive, host or hash is logged and skipped.
+- `DynamicCspProvider` hash methods accept the 1.x `[hash => 'sha256']` map.
 
 ### Removed (backward-incompatible)
 - `Api\ConfigInterface` (split into `Api\Config\RulesConfigInterface`, `OptimizationConfigInterface`,
@@ -84,14 +108,17 @@ reports are accepted only from the store's own pages.
 
 ### Upgrade
 1. Back up the database, then run `bin/magento setup:upgrade` (preferably on a copy of production data first). It
-   adds the `area` columns, creates the whitelist store table, moves `store_ids` into it (ids of deleted stores are
-   dropped), and moves report groups recorded before 2.0.0 to all store views and both areas under their governing
-   directive, merging groups that collide.
+   adds the `area` columns, creates the whitelist store table and moves `store_ids` into it (ids of deleted stores are
+   dropped; an entry left with no store is disabled instead of widened to all stores). It splits entries whose value
+   held several sources into one entry per source and disables entries the new rules refuse, logging each change to
+   `system.log`. Report groups recorded before 2.0.0 move to all store views and both areas under their governing
+   directive, merging groups that collide; their Deny and Skip decisions keep applying in every store view and area.
 2. Run `bin/magento cache:flush` once: entries of the removed cache type were stored for a year and `cache:clean`
    no longer reaches them.
 3. Grant the new ACL resources to the admin roles that manage the policy; other roles lose access.
-4. Behind a proxy or CDN, configure `Magento\Framework\HTTP\PhpEnvironment\RemoteAddress` (see README) so the report
-   rate limit tells clients apart.
+4. Behind a proxy or CDN, configure both `alternativeHeaders` and `trustedProxies` of
+   `Magento\Framework\HTTP\PhpEnvironment\RemoteAddress` (see README). With the header alone, clients choose their own
+   address and the report rate limit does not hold.
 5. If you used subdomain consolidation, list your trusted domains: nothing is consolidated until you do.
 6. If you used header splitting, compare the response header size before and after the upgrade against your web
    server and proxy limits: correct splitting repeats directives and may send a large header whole.

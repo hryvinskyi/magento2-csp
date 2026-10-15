@@ -15,23 +15,38 @@ use Hryvinskyi\Csp\Model\Policy\SourceKind;
 use Magento\Csp\Model\Collector\DynamicCollector;
 use Magento\Csp\Model\Policy\FetchPolicy;
 use Magento\Csp\Model\Policy\FetchPolicyFactory;
+use Psr\Log\LoggerInterface;
 
 /**
  * Adds page allowances to Magento's dynamic policy collector.
+ *
+ * Allowances come from templates while the page renders, so a source that cannot be sent safely is logged and
+ * skipped instead of failing the block: the page keeps its HTML and the browser blocks what was not allowed.
  */
 class DynamicPolicyRegistry implements DynamicPolicyRegistryInterface
 {
-    private const HASH_PATTERN = '~^[A-Za-z0-9+/]{43}=$~';
+    private const DEFAULT_ALGORITHM = 'sha256';
+
+    /**
+     * Base64 form of a digest of each hash algorithm CSP accepts.
+     */
+    private const DIGEST_PATTERNS = [
+        'sha256' => '~^[A-Za-z0-9+/]{43}=$~',
+        'sha384' => '~^[A-Za-z0-9+/]{64}$~',
+        'sha512' => '~^[A-Za-z0-9+/]{86}==$~',
+    ];
 
     /**
      * @param DynamicCollector $dynamicCollector
      * @param FetchPolicyFactory $fetchPolicyFactory
      * @param HostSourceParser $hostSourceParser
+     * @param LoggerInterface $logger
      */
     public function __construct(
         private readonly DynamicCollector $dynamicCollector,
         private readonly FetchPolicyFactory $fetchPolicyFactory,
-        private readonly HostSourceParser $hostSourceParser
+        private readonly HostSourceParser $hostSourceParser,
+        private readonly LoggerInterface $logger
     ) {
     }
 
@@ -41,29 +56,71 @@ class DynamicPolicyRegistry implements DynamicPolicyRegistryInterface
     public function allow(string $directive, array $hosts = [], array $hashes = [], bool $self = false): void
     {
         if (!in_array($directive, FetchPolicy::POLICIES, true)) {
-            throw new \InvalidArgumentException(sprintf('"%s" is not a fetch directive.', $directive));
-        }
-        foreach ($hosts as $host) {
-            if (SourceKind::of($host) !== SourceKind::Scheme && !$this->hostSourceParser->isHostSource($host)) {
-                throw new \InvalidArgumentException(sprintf('"%s" is not a host or scheme source.', $host));
-            }
-        }
-        foreach ($hashes as $hash) {
-            if (preg_match(self::HASH_PATTERN, $hash) !== 1) {
-                throw new \InvalidArgumentException(sprintf('"%s" is not a base64 sha256 digest.', $hash));
-            }
+            $this->logger->warning(sprintf('CSP allowance skipped: "%s" is not a fetch directive.', $directive));
+
+            return;
         }
 
-        $schemes = array_values(array_filter($hosts, static fn (string $host): bool => SourceKind::of($host) === SourceKind::Scheme));
-        $hostSources = array_values(array_diff($hosts, $schemes));
+        $schemes = [];
+        $hostSources = [];
+        foreach ($hosts as $host) {
+            if (SourceKind::of($host) === SourceKind::Scheme) {
+                $schemes[] = rtrim($host, ':');
+                continue;
+            }
+            if ($this->hostSourceParser->isHostSource($host)) {
+                $hostSources[] = $host;
+                continue;
+            }
+            $this->logger->warning(
+                sprintf('CSP %s source skipped: "%s" is not a host or scheme source.', $directive, $host)
+            );
+        }
+        $hashValues = $this->hashValues($directive, $hashes);
+
+        if ($schemes === [] && $hostSources === [] && $hashValues === [] && !$self) {
+            return;
+        }
 
         $this->dynamicCollector->add($this->fetchPolicyFactory->create([
             'id' => $directive,
             'noneAllowed' => false,
             'hostSources' => $hostSources,
-            'schemeSources' => array_map(static fn (string $scheme): string => rtrim($scheme, ':'), $schemes),
+            'schemeSources' => $schemes,
             'selfAllowed' => $self,
-            'hashValues' => array_fill_keys($hashes, 'sha256'),
+            'hashValues' => $hashValues,
         ]));
+    }
+
+    /**
+     * Valid digests as Magento's fetch policy takes them: digest => algorithm.
+     *
+     * A string key is a digest and its value the algorithm (the shape Magento renders, used by 1.x callers); an
+     * integer key means the value is a sha256 digest.
+     *
+     * @param string $directive
+     * @param array<int|string, string> $hashes
+     * @return array<string, string>
+     */
+    private function hashValues(string $directive, array $hashes): array
+    {
+        $values = [];
+        foreach ($hashes as $key => $value) {
+            $digest = is_string($key) ? $key : $value;
+            $algorithm = is_string($key) ? strtolower($value) : self::DEFAULT_ALGORITHM;
+            $pattern = self::DIGEST_PATTERNS[$algorithm] ?? null;
+            if ($pattern === null || preg_match($pattern, $digest) !== 1) {
+                $this->logger->warning(sprintf(
+                    'CSP %s hash skipped: "%s" is not a base64 %s digest.',
+                    $directive,
+                    $digest,
+                    $algorithm
+                ));
+                continue;
+            }
+            $values[$digest] = $algorithm;
+        }
+
+        return $values;
     }
 }

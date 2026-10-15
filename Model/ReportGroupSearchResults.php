@@ -10,23 +10,34 @@ declare(strict_types=1);
 namespace Hryvinskyi\Csp\Model;
 
 use Magento\Framework\Api\Search\SearchResult;
+use Hryvinskyi\Csp\Api\Data\ReportGroupInterface;
 use Hryvinskyi\Csp\Api\Data\ReportGroupSearchResultsInterface;
 
 /**
- * Class ReportGroupSearchResults
+ * Search results holding report groups.
  */
 class ReportGroupSearchResults extends SearchResult implements ReportGroupSearchResultsInterface
 {
     /**
-     * @inheritdoc
+     * The report groups held, an empty list until they are set (the parent returns null then, whatever it documents).
+     *
+     * Documented here because the parent promises search documents while the interface promises report groups; any other
+     * item set is left out.
+     *
+     * @return ReportGroupInterface[]
      */
     public function getItems(): array
     {
-        return parent::getItems() ?? [];
+        $items = $this->_get(self::ITEMS);
+
+        return is_array($items) ? array_filter($items, static fn (mixed $item): bool => $item instanceof ReportGroupInterface) : [];
     }
 
     /**
-     * @inheritdoc
+     * Set the report groups held.
+     *
+     * @param ReportGroupInterface[]|null $items
+     * @return ReportGroupSearchResultsInterface
      */
     public function setItems(?array $items = null): ReportGroupSearchResultsInterface
     {

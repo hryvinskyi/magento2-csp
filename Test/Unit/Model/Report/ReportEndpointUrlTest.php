@@ -23,7 +23,7 @@ class ReportEndpointUrlTest extends TestCase
 {
     public function testStorefrontUrlUsesTheCurrentStoresSecureLinkUrl(): void
     {
-        $urls = $this->urls($this->storeManager('https://shop.example/de/', 'https://shop.example/'), $this->config(false));
+        $urls = $this->urls($this->storeManager('https://shop.example/de/', 'https://admin.shop.example/'), $this->config(false));
 
         $this->assertSame('https://shop.example/de/csp_report_watch', $urls->forStorefront());
     }
@@ -38,10 +38,21 @@ class ReportEndpointUrlTest extends TestCase
         $this->assertSame('https://admin.shop.example/csp_report_watch/admin/index', $urls->forAdmin());
     }
 
-    public function testAdminUrlFallsBackToTheDefaultStoreView(): void
+    public function testAdminUrlUsesTheAdminStoreAndNotTheStorefrontsWebsiteBaseUrl(): void
     {
-        $urls = $this->urls($this->storeManager('https://shop.example/de/', 'https://shop.example/'), $this->config(false));
+        $urls = $this->urls($this->storeManager('https://www.shop.example/', 'https://admin.shop.example/'), $this->config(false));
 
+        $this->assertSame('https://admin.shop.example/csp_report_watch/admin/index', $urls->forAdmin());
+    }
+
+    public function testAdminUrlCarriesNoStoreCode(): void
+    {
+        $urls = $this->urls(
+            $this->storeManager('https://shop.example/default/', 'https://shop.example/', 'https://shop.example/admin/'),
+            $this->config(false)
+        );
+
+        $this->assertSame('https://shop.example/default/csp_report_watch', $urls->forStorefront());
         $this->assertSame('https://shop.example/csp_report_watch/admin/index', $urls->forAdmin());
     }
 
@@ -59,17 +70,22 @@ class ReportEndpointUrlTest extends TestCase
     }
 
     /**
-     * @param string $currentUrl
-     * @param string $defaultUrl
+     * Store manager whose current store is a storefront and whose admin store answers the admin URLs.
+     *
+     * @param string $currentUrl Secure link URL of the current store
+     * @param string $adminDirectLinkUrl Secure link URL of the admin store without a store code
+     * @param string|null $adminLinkUrl Secure link URL of the admin store with the store code, when one is added
      * @return StoreManagerInterface
      */
-    private function storeManager(string $currentUrl, string $defaultUrl): StoreManagerInterface
+    private function storeManager(string $currentUrl, string $adminDirectLinkUrl, ?string $adminLinkUrl = null): StoreManagerInterface
     {
-        $current = $this->store(2, $currentUrl);
-        $default = $this->store(1, $defaultUrl);
+        $current = $this->store(2, $currentUrl, $currentUrl);
+        $admin = $this->store(0, $adminLinkUrl ?? $adminDirectLinkUrl, $adminDirectLinkUrl);
         $storeManager = $this->createStub(StoreManagerInterface::class);
-        $storeManager->method('getStore')->willReturn($current);
-        $storeManager->method('getDefaultStoreView')->willReturn($default);
+        $storeManager->method('getStore')->willReturnCallback(
+            static fn (mixed $storeId = null): Store => $storeId === Store::ADMIN_CODE ? $admin : $current
+        );
+        $storeManager->method('getDefaultStoreView')->willReturn($current);
 
         return $storeManager;
     }
@@ -77,13 +93,20 @@ class ReportEndpointUrlTest extends TestCase
     /**
      * @param int $id
      * @param string $secureLinkUrl
+     * @param string $secureDirectLinkUrl
      * @return Store
      */
-    private function store(int $id, string $secureLinkUrl): Store
+    private function store(int $id, string $secureLinkUrl, string $secureDirectLinkUrl): Store
     {
-        $store = $this->createMock(Store::class);
+        $store = $this->createStub(Store::class);
         $store->method('getId')->willReturn($id);
-        $store->method('getBaseUrl')->with(UrlInterface::URL_TYPE_LINK, true)->willReturn($secureLinkUrl);
+        $store->method('getBaseUrl')->willReturnCallback(
+            static fn (string $type, ?bool $secure = null): string => match (true) {
+                $secure !== true => 'http://insecure.shop.example/',
+                $type === UrlInterface::URL_TYPE_LINK => $secureLinkUrl,
+                default => $secureDirectLinkUrl,
+            }
+        );
 
         return $store;
     }

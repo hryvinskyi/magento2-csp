@@ -17,7 +17,8 @@ use Hryvinskyi\Csp\Model\Whitelist\WhitelistableDirectives;
  * Names the report group of a violation: its governing directive and the blocked value.
  *
  * The value is a host for http(s) resources, `scheme://host` for other resources with a host, `scheme:` for
- * data, blob and similar resources, and the browser's keyword for inline code and eval.
+ * data, blob and similar resources, and the browser's keyword for inline code and eval. A blocked URL whose host is
+ * not a valid host (a wildcard, markup) comes from a forged report and has no value.
  */
 class ViolationClassifier
 {
@@ -74,7 +75,7 @@ class ViolationClassifier
         }
         $host = $this->urlHost->of($blocked);
         if ($host === null) {
-            return $scheme . ':';
+            return $this->urlHost->names($blocked) ? null : $scheme . ':';
         }
 
         return in_array($scheme, self::WEB_SCHEMES, true) ? $host : $scheme . '://' . $host;

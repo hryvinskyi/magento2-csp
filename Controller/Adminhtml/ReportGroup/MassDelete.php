@@ -11,6 +11,7 @@ namespace Hryvinskyi\Csp\Controller\Adminhtml\ReportGroup;
 
 use Hryvinskyi\Csp\Api\Data\ReportGroupInterface;
 use Hryvinskyi\Csp\Api\ReportGroupRepositoryInterface;
+use Hryvinskyi\Csp\Model\Admin\EscapedMessages;
 use Hryvinskyi\Csp\Model\ResourceModel\ReportGroup\CollectionFactory;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
@@ -30,12 +31,14 @@ class MassDelete extends Action implements HttpPostActionInterface
      * @param Filter $filter
      * @param CollectionFactory $collectionFactory
      * @param ReportGroupRepositoryInterface $reportGroupRepository
+     * @param EscapedMessages $messages
      */
     public function __construct(
         Context $context,
         private readonly Filter $filter,
         private readonly CollectionFactory $collectionFactory,
-        private readonly ReportGroupRepositoryInterface $reportGroupRepository
+        private readonly ReportGroupRepositoryInterface $reportGroupRepository,
+        private readonly EscapedMessages $messages
     ) {
         parent::__construct($context);
     }
@@ -53,9 +56,9 @@ class MassDelete extends Action implements HttpPostActionInterface
                     $deleted++;
                 }
             }
-            $this->messageManager->addSuccessMessage((string)__('A total of %1 record(s) have been deleted.', $deleted));
+            $this->messages->success(__('A total of %1 record(s) have been deleted.', $deleted));
         } catch (LocalizedException $exception) {
-            $this->messageManager->addErrorMessage($exception->getMessage());
+            $this->messages->failure($exception);
         }
 
         return $this->resultRedirectFactory->create()->setPath('*/*/');

@@ -31,6 +31,7 @@ class Config implements
 {
     public const XML_PATH_CSP_RULES_ENABLED = 'csp/general/enabled_rules';
     public const XML_PATH_CSP_REPORTS_ENABLED = 'csp/general/enabled_reports';
+    public const XML_PATH_CSP_NEW_VIOLATION_NOTICE_ENABLED = 'csp/general/notify_new_violations';
     public const XML_PATH_CSP_RESTRICT_MODE_ADMINHTML = 'csp/general/enable_restrict_mode_adminhtml';
     public const XML_PATH_CSP_RESTRICT_MODE_FRONTEND = 'csp/general/enable_restrict_mode_frontend';
     public const XML_PATH_CSP_ADD_ALL_STOREFRONT_URLS = 'csp/general/add_all_storefront_urls';
@@ -249,6 +250,15 @@ class Config implements
         $bytes = (int)$this->defaultString(self::XML_PATH_CSP_REPORT_MAX_BODY_BYTES);
 
         return $bytes > 0 ? $bytes : self::DEFAULT_MAX_REPORT_BODY_BYTES;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function isNewViolationNoticeEnabled(): bool
+    {
+        return $this->isReportsEnabled()
+            && $this->scopeConfig->isSetFlag(self::XML_PATH_CSP_NEW_VIOLATION_NOTICE_ENABLED);
     }
 
     /**

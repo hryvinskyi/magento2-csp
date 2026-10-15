@@ -29,6 +29,7 @@
                     <item name="storageConfig" xsi:type="array">
                         <item name="indexField" xsi:type="string">group_id</item>
                     </item>
+                    <item name="aclResource" xsi:type="string">Hryvinskyi_Csp::reports</item>
                 </item>
             </argument>
         </argument>
@@ -145,7 +146,7 @@
                 <label translate="true">Value</label>
             </settings>
         </column>
-        <column name="store_id" class="Magento\Store\Ui\Component\Listing\Column\Store">
+        <column name="store_id" class="Hryvinskyi\Csp\Model\UiComponent\Listing\Column\StoreView">
             <settings>
                 <options class="Hryvinskyi\Csp\Model\Config\Source\StoreViews"/>
                 <filter>select</filter>

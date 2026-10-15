@@ -22,7 +22,7 @@ class WhitelistSearchResults extends SearchResult implements WhitelistSearchResu
      */
     public function getItems(): array
     {
-        return parent::getItems() ?? [];
+        return parent::getItems();
     }
 
     /**

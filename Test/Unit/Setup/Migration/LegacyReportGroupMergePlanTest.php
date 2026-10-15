@@ -17,13 +17,13 @@ use PHPUnit\Framework\TestCase;
 
 class LegacyReportGroupMergePlanTest extends TestCase
 {
-    public function testMergesGroupsThatShareTheGoverningDirectiveAndValue(): void
+    public function testMergesGroupsTheDatabaseGaveTheSameMergeKey(): void
     {
         $plan = $this->plan()->plan([
-            $this->group(7, 'script-src-attr', 'inline', Status::SKIP, 3),
-            $this->group(2, 'script-src', 'inline', Status::PENDING, 5),
-            $this->group(9, 'SCRIPT-SRC', 'Inline ', Status::DENIED, 1),
-            $this->group(4, 'img-src', 'https://cdn.example.com', Status::PENDING, 2),
+            $this->group(7, 2, 'script-src', Status::SKIP, 3),
+            $this->group(2, 2, 'script-src', Status::PENDING, 5),
+            $this->group(9, 2, 'script-src', Status::DENIED, 1),
+            $this->group(4, 4, 'img-src', Status::PENDING, 2),
         ]);
 
         $this->assertSame(
@@ -35,21 +35,29 @@ class LegacyReportGroupMergePlanTest extends TestCase
         );
     }
 
-    public function testRemapsSubDirectivesAndKeepsWhatHasNoGoverningDirective(): void
+    public function testNeverMergesGroupsTheDatabaseKeptApart(): void
     {
         $plan = $this->plan()->plan([
-            $this->group(1, 'worker-src', 'blob:', Status::PENDING, 1),
-            $this->group(2, 'navigate-to', 'https://example.org', Status::PENDING, 1),
+            $this->group(1, 1, 'img-src', Status::PENDING, 1),
+            $this->group(2, 2, 'img-src', Status::PENDING, 1),
         ]);
 
-        $this->assertSame(['child-src', 'navigate-to'], array_column($plan, 'policy'));
+        $this->assertSame([1, 2], array_column($plan, 'survivor'));
         $this->assertSame([[], []], array_column($plan, 'merged'));
+    }
+
+    public function testMapsSubDirectivesAndLeavesTheRest(): void
+    {
+        $this->assertSame(
+            ['script-src-attr' => 'script-src', 'worker-src' => 'child-src', 'SCRIPT-SRC' => 'script-src'],
+            $this->plan()->governingDirectives(['script-src-attr', 'worker-src', 'SCRIPT-SRC', 'img-src', 'navigate-to'])
+        );
     }
 
     public function testUnknownStatusCountsAsPending(): void
     {
         $plan = $this->plan()->plan([
-            ['group_id' => 1, 'policy' => 'img-src', 'value' => 'x', 'status' => 42, 'count' => 1],
+            ['group_id' => 1, 'merge_key' => 1, 'governing_policy' => 'img-src', 'status' => 42, 'count' => 1],
         ]);
 
         $this->assertSame(Status::PENDING->value, $plan[0]['status']);
@@ -65,14 +73,20 @@ class LegacyReportGroupMergePlanTest extends TestCase
 
     /**
      * @param int $id
-     * @param string $policy
-     * @param string $value
+     * @param int $mergeKey
+     * @param string $governingPolicy
      * @param Status $status
      * @param int $count
-     * @return array{group_id: int, policy: string, value: string, status: int, count: int}
+     * @return array{group_id: int, merge_key: int, governing_policy: string, status: int, count: int}
      */
-    private function group(int $id, string $policy, string $value, Status $status, int $count): array
+    private function group(int $id, int $mergeKey, string $governingPolicy, Status $status, int $count): array
     {
-        return ['group_id' => $id, 'policy' => $policy, 'value' => $value, 'status' => $status->value, 'count' => $count];
+        return [
+            'group_id' => $id,
+            'merge_key' => $mergeKey,
+            'governing_policy' => $governingPolicy,
+            'status' => $status->value,
+            'count' => $count,
+        ];
     }
 }

@@ -38,7 +38,7 @@ class StoreIdListTest extends TestCase
             'all stores among others' => ['2,0,1', [2, 0, 1], [0]],
             'stores sorted' => [' 3, 1 ,3', [3, 1], [1, 3]],
             'garbage dropped' => ['1,,abc,-2,2.5, 4', [1, 4], [1, 4]],
-            'empty' => ['', [], [0]],
+            'empty stays empty, never every store' => ['', [], []],
         ];
     }
 }

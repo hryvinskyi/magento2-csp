@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace Hryvinskyi\Csp\Test\Unit\Model\Response;
 
 use Hryvinskyi\Csp\Model\Response\OversizedHeaderNotice;
+use Hryvinskyi\Csp\Test\Unit\Support\InMemoryCache;
 use Magento\Framework\App\CacheInterface;
 use Magento\Framework\FlagManager;
 use Magento\Framework\Stdlib\DateTime\DateTime;
@@ -41,14 +42,26 @@ class OversizedHeaderNoticeTest extends TestCase
         $this->notice = new OversizedHeaderNotice($this->flagManager, $this->cache, $dateTime);
     }
 
-    public function testRecordsAndThrottles(): void
+    public function testRecordsOnceAndThrottlesTheNextWrites(): void
     {
-        $this->cache->method('load')->willReturn(false);
+        $dateTime = $this->createStub(DateTime::class);
+        $dateTime->method('gmtTimestamp')->willReturn(self::NOW);
+        $notice = new OversizedHeaderNotice($this->flagManager, new InMemoryCache(), $dateTime);
         $this->flagManager->expects($this->once())->method('saveFlag')->with(
             'hryvinskyi_csp_oversized_header',
             ['header' => 'Content-Security-Policy', 'bytes' => 9000, 'limit' => 8192, 'time' => self::NOW]
         );
-        $this->cache->expects($this->once())->method('save');
+
+        $notice->record('Content-Security-Policy', 9000, 8192);
+        $notice->record('Content-Security-Policy', 9100, 8192);
+    }
+
+    public function testRecordsWhenTheCacheMissesWithFalse(): void
+    {
+        $this->cache->method('load')->willReturn(false);
+        $this->flagManager->expects($this->once())->method('saveFlag');
+        $this->cache->expects($this->once())->method('save')
+            ->with('1', 'HRYVINSKYI_CSP_OVERSIZED_HEADER_RECORDED', [], 3600);
 
         $this->notice->record('Content-Security-Policy', 9000, 8192);
     }

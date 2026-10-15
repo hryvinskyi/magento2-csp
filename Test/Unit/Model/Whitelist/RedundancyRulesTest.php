@@ -66,6 +66,12 @@ class RedundancyRulesTest extends TestCase
                 [self::entry(9, '*.example.com', [1], 'all')],
                 RedundancyStatusOptions::UNIQUE,
             ],
+            'wildcard without stores covers nothing' => [
+                $host, [self::entry(9, '*.example.com', [], 'all')], RedundancyStatusOptions::UNIQUE,
+            ],
+            'same value without stores is no duplicate' => [
+                $host, [self::entry(3, 'cdn.example.com', [], 'all')], RedundancyStatusOptions::UNIQUE,
+            ],
             'wildcard does not cover the parent domain' => [
                 self::entry(5, 'example.com', [0], 'all'), [self::entry(9, '*.example.com', [0], 'all')],
                 RedundancyStatusOptions::UNIQUE,

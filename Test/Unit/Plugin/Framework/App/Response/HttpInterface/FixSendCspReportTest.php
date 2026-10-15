@@ -45,6 +45,16 @@ class FixSendCspReportTest extends TestCase
             'first directive' => ["report-to group1; img-src 'self';", "img-src 'self';"],
             'without trailing semicolon' => ["img-src 'self'; report-to g", "img-src 'self';"],
             'host containing the word' => ["img-src https://report-to.example.com;", "img-src https://report-to.example.com;"],
+            'path ending in the word inside another directive' => [
+                "script-src 'self' https://cdn.example.com/report-to https://js.example.net; img-src 'self'; report-uri /csp;",
+                "script-src 'self' https://cdn.example.com/report-to https://js.example.net; img-src 'self'; report-uri /csp;",
+            ],
+            'path ending in the word next to a real report-to' => [
+                "script-src https://cdn.example.com/report-to; report-to g; report-uri /csp",
+                "script-src https://cdn.example.com/report-to; report-uri /csp",
+            ],
+            'directive name in upper case' => ["img-src 'self'; REPORT-TO g; report-uri /csp", "img-src 'self'; report-uri /csp"],
+            'longer directive name' => ["img-src 'self'; report-tox g;", "img-src 'self'; report-tox g;"],
         ];
     }
 

@@ -28,7 +28,7 @@ class RequestMatrix
     {
         $url = static fn (string $type, string $url): CspRequest => new CspRequest($type, CspRequest::KIND_URL, $url);
         $requests = [];
-        foreach (['script', 'style', 'worker', 'frame', 'fenced-frame', 'img', 'font', 'connect', 'media', 'object', 'manifest'] as $type) {
+        foreach (['script', 'style', 'worker', 'frame', 'fenced-frame', 'img', 'font', 'connect', 'media', 'object', 'manifest', 'prefetch'] as $type) {
             foreach (self::urls() as $address) {
                 $requests[] = $url($type, $address);
             }

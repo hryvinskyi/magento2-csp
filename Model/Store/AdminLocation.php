@@ -11,12 +11,17 @@ namespace Hryvinskyi\Csp\Model\Store;
 
 use Magento\Backend\App\Area\FrontNameResolver;
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\UrlInterface;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 
 /**
  * Where the admin is served from: its base URL, host and the path its pages start with.
+ *
+ * Resolved the way the backend builds its own URLs: the custom admin URL when one is in use, otherwise the secure link
+ * URL of the admin store, which reads the default scope (a website's base URL override never applies to the admin)
+ * and never carries a store code.
  */
 class AdminLocation
 {
@@ -35,7 +40,7 @@ class AdminLocation
     }
 
     /**
-     * Base URL of the admin with a trailing slash: the custom admin URL, or the default store view's secure base URL.
+     * Base URL of the admin with a trailing slash: the custom admin URL, or the admin store's secure link URL.
      *
      * @return string
      */
@@ -48,10 +53,8 @@ class AdminLocation
         ) {
             return rtrim($custom, '/') . '/';
         }
-        $store = $this->storeManager->getDefaultStoreView();
-        $url = $store instanceof Store ? $store->getBaseUrl(UrlInterface::URL_TYPE_LINK, true) : null;
 
-        return is_string($url) && $url !== '' ? rtrim($url, '/') . '/' : '/';
+        return rtrim($this->adminStoreUrl(), '/') . '/';
     }
 
     /**
@@ -75,5 +78,21 @@ class AdminLocation
         $frontName = $this->frontNameResolver->getFrontName();
 
         return rtrim(is_string($basePath) ? $basePath : '/', '/') . '/' . (is_string($frontName) ? $frontName : '') . '/';
+    }
+
+    /**
+     * Secure link URL of the admin store, without a store code; empty when the admin store cannot be read.
+     *
+     * @return string
+     */
+    private function adminStoreUrl(): string
+    {
+        try {
+            $store = $this->storeManager->getStore(Store::ADMIN_CODE);
+        } catch (NoSuchEntityException) {
+            return '';
+        }
+
+        return $store instanceof Store ? $store->getBaseUrl(UrlInterface::URL_TYPE_DIRECT_LINK, true) : '';
     }
 }

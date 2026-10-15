@@ -11,6 +11,7 @@ namespace Hryvinskyi\Csp\Model\Report;
 
 use Hryvinskyi\Csp\Api\Config\ReportingConfigInterface;
 use Hryvinskyi\Csp\Api\Data\Area;
+use Hryvinskyi\Csp\Model\Report\RateLimiter\ClientKey;
 use Hryvinskyi\Csp\Model\Whitelist\StoreIdList;
 use Magento\Framework\App\Request\Http as HttpRequest;
 use Magento\Framework\App\RequestInterface;
@@ -22,7 +23,8 @@ use Magento\Store\Model\StoreManagerInterface;
 /**
  * Reads a report request and answers it with an empty 204 whatever was recorded.
  *
- * A body announced larger than the limit is not read. Admin reports belong to store 0.
+ * A body announced larger than the limit is not read. Admin reports belong to store 0. The client is the address
+ * Magento resolves for the request, so behind a proxy it is only as trustworthy as the configured trusted proxies.
  */
 class ReportRequestHandler
 {
@@ -30,6 +32,7 @@ class ReportRequestHandler
      * @param ReportIngestion $ingestion
      * @param ReportingConfigInterface $config
      * @param RemoteAddress $remoteAddress
+     * @param ClientKey $clientKey
      * @param StoreManagerInterface $storeManager
      * @param RawFactory $rawFactory
      */
@@ -37,6 +40,7 @@ class ReportRequestHandler
         private readonly ReportIngestion $ingestion,
         private readonly ReportingConfigInterface $config,
         private readonly RemoteAddress $remoteAddress,
+        private readonly ClientKey $clientKey,
         private readonly StoreManagerInterface $storeManager,
         private readonly RawFactory $rawFactory
     ) {
@@ -62,11 +66,12 @@ class ReportRequestHandler
             return $result;
         }
         $contentType = $request->getHeader('Content-Type');
-        $clientKey = $this->remoteAddress->getRemoteAddress();
+        // The address is false when Magento cannot resolve one, whatever its documented type says.
+        $address = $this->remoteAddress->getRemoteAddress() ?: '';
         $this->ingestion->ingest(
             (string)$request->getContent(),
             is_string($contentType) ? $contentType : '',
-            is_string($clientKey) ? $clientKey : '',
+            $this->clientKey->of($address),
             $area,
             $area === Area::ADMINHTML ? StoreIdList::ALL_STORES : (int)$this->storeManager->getStore()->getId()
         );

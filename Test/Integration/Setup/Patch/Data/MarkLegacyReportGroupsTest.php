@@ -59,6 +59,32 @@ class MarkLegacyReportGroupsTest extends TestCase
     }
 
     /**
+     * The group table uses Magento's case- and accent-insensitive collation, which ignores trailing spaces.
+     */
+    public function testMergesGroupsWhoseValuesTheTableCollationEquates(): void
+    {
+        $groupTable = $this->table('hryvinskyi_csp_violation_report_group');
+        $this->connection()->delete($groupTable);
+        $first = $this->recordGroup('accented', 'img-src', 'https://café.example.com', 1, Status::PENDING, 2);
+        $this->recordGroup('plain', 'img-src', 'https://cafe.example.com', 0, Status::PENDING, 3);
+        $this->recordGroup('upper', 'IMG-SRC', 'HTTPS://CAFE.EXAMPLE.COM ', 1, Status::SKIP, 4, Area::ADMINHTML);
+
+        $this->newInstance(MarkLegacyReportGroups::class)->apply();
+
+        $this->assertSame(
+            [[(string)$first, 'img-src', '0', Area::ALL->value, (string)Status::SKIP->value, '9']],
+            array_map(
+                static fn (array $row): array => array_values($row),
+                $this->rows(
+                    $this->connection()->select()
+                        ->from($groupTable, ['group_id', 'policy', 'store_id', 'area', 'status', 'count'])
+                        ->order('group_id')
+                )
+            )
+        );
+    }
+
+    /**
      * Insert a group as 1.3.1 recorded it, with one report.
      *
      * @param string $name
@@ -67,14 +93,23 @@ class MarkLegacyReportGroupsTest extends TestCase
      * @param int $storeId
      * @param Status $status
      * @param int $count
+     * @param Area $area
      * @return int
      */
-    private function recordGroup(string $name, string $policy, string $value, int $storeId, Status $status, int $count): int
-    {
+    private function recordGroup(
+        string $name,
+        string $policy,
+        string $value,
+        int $storeId,
+        Status $status,
+        int $count,
+        Area $area = Area::FRONTEND
+    ): int {
         $this->connection()->insert($this->table('hryvinskyi_csp_violation_report_group'), [
             'policy' => $policy,
             'value' => $value,
             'store_id' => $storeId,
+            'area' => $area->value,
             'status' => $status->value,
             'count' => $count,
         ]);

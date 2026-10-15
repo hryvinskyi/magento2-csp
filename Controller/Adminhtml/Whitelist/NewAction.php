@@ -10,9 +10,9 @@ declare(strict_types=1);
 namespace Hryvinskyi\Csp\Controller\Adminhtml\Whitelist;
 
 use Magento\Backend\App\Action;
+use Magento\Backend\App\Action\Context;
+use Magento\Backend\Model\View\Result\ForwardFactory;
 use Magento\Framework\App\Action\HttpGetActionInterface;
-use Magento\Framework\Controller\Result\Forward;
-use Magento\Framework\Controller\ResultFactory;
 
 /**
  * Form for a new whitelist entry.
@@ -22,15 +22,21 @@ class NewAction extends Action implements HttpGetActionInterface
     public const ADMIN_RESOURCE = 'Hryvinskyi_Csp::whitelist_save';
 
     /**
+     * @param Context $context
+     * @param ForwardFactory $forwardFactory
+     */
+    public function __construct(
+        Context $context,
+        private readonly ForwardFactory $forwardFactory
+    ) {
+        parent::__construct($context);
+    }
+
+    /**
      * @inheritdoc
      */
     public function execute()
     {
-        $resultForward = $this->resultFactory->create(ResultFactory::TYPE_FORWARD);
-        if ($resultForward instanceof Forward) {
-            $resultForward->forward('edit');
-        }
-
-        return $resultForward;
+        return $this->forwardFactory->create()->forward('edit');
     }
 }

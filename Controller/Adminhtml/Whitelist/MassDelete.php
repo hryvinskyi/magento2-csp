@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace Hryvinskyi\Csp\Controller\Adminhtml\Whitelist;
 
 use Hryvinskyi\Csp\Api\WhitelistRepositoryInterface;
+use Hryvinskyi\Csp\Model\Admin\EscapedMessages;
 use Hryvinskyi\Csp\Model\ResourceModel\Whitelist\CollectionFactory;
 use Hryvinskyi\Csp\Model\Whitelist as WhitelistModel;
 use Magento\Backend\App\Action;
@@ -30,12 +31,14 @@ class MassDelete extends Action implements HttpPostActionInterface
      * @param Filter $filter
      * @param CollectionFactory $collectionFactory
      * @param WhitelistRepositoryInterface $entityRepository
+     * @param EscapedMessages $messages
      */
     public function __construct(
         Context $context,
         private readonly Filter $filter,
         private readonly CollectionFactory $collectionFactory,
-        private readonly WhitelistRepositoryInterface $entityRepository
+        private readonly WhitelistRepositoryInterface $entityRepository,
+        private readonly EscapedMessages $messages
     ) {
         parent::__construct($context);
     }
@@ -53,9 +56,9 @@ class MassDelete extends Action implements HttpPostActionInterface
                     $deleted++;
                 }
             }
-            $this->messageManager->addSuccessMessage((string)__('A total of %1 record(s) have been deleted.', $deleted));
+            $this->messages->success(__('A total of %1 record(s) have been deleted.', $deleted));
         } catch (LocalizedException $exception) {
-            $this->messageManager->addErrorMessage($exception->getMessage());
+            $this->messages->failure($exception);
         }
 
         return $this->resultRedirectFactory->create()->setPath('*/*/');

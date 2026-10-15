@@ -11,6 +11,7 @@ namespace Hryvinskyi\Csp\Controller\Adminhtml\Whitelist;
 
 use Hryvinskyi\Csp\Api\Data\WhitelistInterfaceFactory;
 use Hryvinskyi\Csp\Api\WhitelistRepositoryInterface;
+use Hryvinskyi\Csp\Model\Admin\EscapedMessages;
 use Hryvinskyi\Csp\Model\Whitelist\EntryDataMapper;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
@@ -33,13 +34,15 @@ class Save extends Action implements HttpPostActionInterface
      * @param WhitelistRepositoryInterface $entityRepository
      * @param WhitelistInterfaceFactory $entityFactory
      * @param EntryDataMapper $entryDataMapper
+     * @param EscapedMessages $messages
      */
     public function __construct(
         Context $context,
         private readonly DataPersistorInterface $dataPersistor,
         private readonly WhitelistRepositoryInterface $entityRepository,
         private readonly WhitelistInterfaceFactory $entityFactory,
-        private readonly EntryDataMapper $entryDataMapper
+        private readonly EntryDataMapper $entryDataMapper,
+        private readonly EscapedMessages $messages
     ) {
         parent::__construct($context);
     }
@@ -61,14 +64,14 @@ class Save extends Action implements HttpPostActionInterface
             $entity = is_numeric($id) ? $this->entityRepository->getById((int)$id) : $this->entityFactory->create();
             $this->entryDataMapper->apply($entity, $data);
             $this->entityRepository->save($entity);
-            $this->messageManager->addSuccessMessage((string)__('The whitelist entry has been saved.'));
+            $this->messages->success(__('The whitelist entry has been saved.'));
             $this->dataPersistor->clear(self::PERSISTOR_KEY);
 
             return $this->getRequest()->getParam('back')
                 ? $resultRedirect->setPath('*/*/edit', ['id' => $entity->getRuleId()])
                 : $resultRedirect->setPath('*/*/');
         } catch (LocalizedException $exception) {
-            $this->messageManager->addErrorMessage($exception->getMessage());
+            $this->messages->failure($exception);
         }
 
         $this->dataPersistor->set(self::PERSISTOR_KEY, $data);

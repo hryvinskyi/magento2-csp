@@ -17,8 +17,8 @@ use Magento\Store\Model\StoreManagerInterface;
 /**
  * Checks a whitelist entry against the rules every saved entry obeys.
  *
- * The directive is one Magento renders, the value is valid for its type, the stores exist, the area and the status
- * are known.
+ * The directive is one Magento renders, the value is valid for its type, at least one store is chosen and every store
+ * exists, the area and the status are known. An empty store set is refused rather than read as every store.
  */
 class EntryValidator
 {
@@ -67,6 +67,9 @@ class EntryValidator
         if (!in_array($entry->getStatus(), [0, 1], true)) {
             $errors[] = __('The status must be enabled or disabled.');
         }
+        if ($entry->getStoreIds() === []) {
+            $errors[] = __('Choose the store views the entry applies to, or All Store Views.');
+        }
         $unknownStores = array_diff($entry->getStoreIds(), $this->existingStoreIds());
         if ($unknownStores !== []) {
             $errors[] = __('These stores do not exist: %1.', implode(', ', $unknownStores));
@@ -102,9 +105,9 @@ class EntryValidator
      */
     private function existingStoreIds(): array
     {
-        return array_values(array_map(
+        return array_map(
             static fn (mixed $id): int => (int)$id,
             array_keys($this->storeManager->getStores(true))
-        ));
+        );
     }
 }

@@ -13,6 +13,8 @@ use Hryvinskyi\Csp\Model\ScriptHash\StoreContentScanner;
 use Hryvinskyi\Csp\Test\Integration\ResolvesServices;
 use Magento\Cms\Api\BlockRepositoryInterface;
 use Magento\Cms\Api\Data\BlockInterfaceFactory;
+use Magento\Cms\Api\Data\PageInterfaceFactory;
+use Magento\Cms\Api\PageRepositoryInterface;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -45,8 +47,31 @@ class StoreContentScannerTest extends TestCase
                 $scripts = $entity['scripts'];
             }
         }
-        $this->assertCount(1, $scripts);
+        $this->assertCount(1, $scripts, (string)json_encode($entities));
         $this->assertStringNotContainsString('{{store', $scripts[0]);
         $this->assertStringContainsString('http', $scripts[0]);
+    }
+
+    public function testScansPagesOfAllStoreViews(): void
+    {
+        $page = $this->service(PageInterfaceFactory::class)->create();
+        $page->setIdentifier('hryvinskyi-csp-scanner-test-page');
+        $page->setTitle('Scanner test page');
+        $page->setIsActive(true);
+        $page->setContent('<script>window.page = 1;</script>');
+        if ($page instanceof \Magento\Framework\DataObject) {
+            $page->setData('store_id', [0]);
+        }
+        $this->service(PageRepositoryInterface::class)->save($page);
+
+        $entities = $this->service(StoreContentScanner::class)->scan(1, ['page']);
+
+        $scripts = [];
+        foreach ($entities as $entity) {
+            if (str_contains($entity['label'], 'Scanner test page')) {
+                $scripts = $entity['scripts'];
+            }
+        }
+        $this->assertSame(['window.page = 1;'], $scripts, (string)json_encode($entities));
     }
 }

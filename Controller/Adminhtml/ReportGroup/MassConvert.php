@@ -11,6 +11,7 @@ namespace Hryvinskyi\Csp\Controller\Adminhtml\ReportGroup;
 
 use Hryvinskyi\Csp\Api\Data\ReportGroupInterface;
 use Hryvinskyi\Csp\Controller\Adminhtml\ConvertsToWhitelist;
+use Hryvinskyi\Csp\Model\Admin\EscapedMessages;
 use Hryvinskyi\Csp\Model\Conversion\ConversionMessages;
 use Hryvinskyi\Csp\Model\Conversion\ReportGroupConverter;
 use Hryvinskyi\Csp\Model\ResourceModel\ReportGroup\CollectionFactory;
@@ -33,13 +34,15 @@ class MassConvert extends Action implements HttpPostActionInterface
      * @param CollectionFactory $collectionFactory
      * @param ReportGroupConverter $converter
      * @param ConversionMessages $conversionMessages
+     * @param EscapedMessages $messages
      */
     public function __construct(
         Context $context,
         private readonly Filter $filter,
         private readonly CollectionFactory $collectionFactory,
         private readonly ReportGroupConverter $converter,
-        private readonly ConversionMessages $conversionMessages
+        private readonly ConversionMessages $conversionMessages,
+        private readonly EscapedMessages $messages
     ) {
         parent::__construct($context);
     }
@@ -57,9 +60,9 @@ class MassConvert extends Action implements HttpPostActionInterface
                 }
             }
         } catch (LocalizedException $exception) {
-            $this->messageManager->addErrorMessage($exception->getMessage());
+            $this->messages->failure($exception);
         }
-        $this->conversionMessages->add($this->messageManager, $results);
+        $this->conversionMessages->add($results);
 
         return $this->resultRedirectFactory->create()->setPath('*/*/');
     }

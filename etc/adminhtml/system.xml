@@ -21,6 +21,14 @@
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <comment>Browsers send violations to this store, where they can be reviewed and turned into whitelist entries. While this is on, it replaces the Report URI set in the Mode groups below.</comment>
                 </field>
+                <field id="notify_new_violations" translate="label comment" type="select" sortOrder="25" showInDefault="1" showInWebsite="0" showInStore="0" canRestore="1">
+                    <label>Notify about new violations</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>Shows a system message to admins who may review violation reports when violations were recorded since they last opened the reports. Opening the reports hides it until the next new violation.</comment>
+                    <depends>
+                        <field id="enabled_reports">1</field>
+                    </depends>
+                </field>
                 <field id="enable_restrict_mode_adminhtml" translate="label comment" type="select" sortOrder="30" showInDefault="1" showInWebsite="0" showInStore="0" canRestore="1">
                     <label>Enforce the policy in the admin</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>

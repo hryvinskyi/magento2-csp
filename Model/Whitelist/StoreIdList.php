@@ -11,6 +11,8 @@ namespace Hryvinskyi\Csp\Model\Whitelist;
 
 /**
  * Store scope of a whitelist entry as a list of store ids, where store 0 stands for every store.
+ *
+ * An empty list is a scope of its own: the entry applies to no store. It never stands for every store.
  */
 class StoreIdList
 {
@@ -36,14 +38,14 @@ class StoreIdList
     }
 
     /**
-     * Sorted unique store ids; every store when the list is empty or holds store 0.
+     * Sorted unique store ids; only store 0 when the list holds it, and still empty when it is empty.
      *
      * @param list<int> $ids
      * @return list<int>
      */
     public function normalize(array $ids): array
     {
-        if ($ids === [] || in_array(self::ALL_STORES, $ids, true)) {
+        if (in_array(self::ALL_STORES, $ids, true)) {
             return [self::ALL_STORES];
         }
         $ids = array_values(array_unique($ids));

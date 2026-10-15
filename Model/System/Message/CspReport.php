@@ -9,29 +9,36 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Model\System\Message;
 
-use Hryvinskyi\Csp\Api\Data\ReportGroupInterface;
-use Hryvinskyi\Csp\Api\Data\Status;
-use Hryvinskyi\Csp\Model\ResourceModel\ReportGroup\CollectionFactory;
+use Hryvinskyi\Csp\Api\Config\ReportingConfigInterface;
+use Hryvinskyi\Csp\Api\ViolationReviewInterface;
+use Magento\Authorization\Model\UserContextInterface;
 use Magento\Framework\AuthorizationInterface;
 use Magento\Framework\Escaper;
 use Magento\Framework\Notification\MessageInterface;
 use Magento\Framework\UrlInterface;
 
 /**
- * Tells admins who may review violation reports that report groups wait for review.
+ * Tells an admin who may review violation reports that new violations were recorded since they last opened them.
+ * Opening the violation reports hides it until the next new violation.
  */
 class CspReport implements MessageInterface
 {
     private const ACL_RESOURCE = 'Hryvinskyi_Csp::reports';
 
+    private ?int $unreviewed = null;
+
     /**
-     * @param CollectionFactory $collectionFactory
+     * @param ReportingConfigInterface $config
+     * @param ViolationReviewInterface $violationReview
+     * @param UserContextInterface $userContext
      * @param AuthorizationInterface $authorization
      * @param UrlInterface $urlBuilder
      * @param Escaper $escaper
      */
     public function __construct(
-        private readonly CollectionFactory $collectionFactory,
+        private readonly ReportingConfigInterface $config,
+        private readonly ViolationReviewInterface $violationReview,
+        private readonly UserContextInterface $userContext,
         private readonly AuthorizationInterface $authorization,
         private readonly UrlInterface $urlBuilder,
         private readonly Escaper $escaper
@@ -47,20 +54,13 @@ class CspReport implements MessageInterface
     }
 
     /**
-     * Shown while a pending report group exists.
+     * Shown while pending violations were recorded after the admin last opened the violation reports.
      *
      * @return bool
      */
     public function isDisplayed(): bool
     {
-        if (!$this->authorization->isAllowed(self::ACL_RESOURCE)) {
-            return false;
-        }
-        $collection = $this->collectionFactory->create()
-            ->addFieldToFilter(ReportGroupInterface::STATUS, ['eq' => Status::PENDING->value])
-            ->setPageSize(1);
-
-        return $collection->getFirstItem()->getId() !== null;
+        return $this->unreviewed() > 0;
     }
 
     /**
@@ -69,7 +69,8 @@ class CspReport implements MessageInterface
     public function getText(): string
     {
         return (string)__(
-            'Content Security Policy violations wait for review. <a href="%1">Review the violation reports</a> and allow or deny what the pages load.',
+            'New Content Security Policy violations: %1. <a href="%2">Review violation reports</a>',
+            $this->unreviewed(),
             $this->escaper->escapeUrl($this->urlBuilder->getUrl('hryvinskyi_csp/reportgroup/index'))
         );
     }
@@ -80,5 +81,36 @@ class CspReport implements MessageInterface
     public function getSeverity(): int
     {
         return self::SEVERITY_MAJOR;
+    }
+
+    /**
+     * Pending groups the current admin has not been shown, counted once per request.
+     *
+     * @return int
+     */
+    private function unreviewed(): int
+    {
+        if ($this->unreviewed === null) {
+            $this->unreviewed = $this->countForCurrentAdmin();
+        }
+
+        return $this->unreviewed;
+    }
+
+    /**
+     * @return int
+     */
+    private function countForCurrentAdmin(): int
+    {
+        $userId = $this->userContext->getUserId();
+        if (!$this->config->isNewViolationNoticeEnabled()
+            || $this->userContext->getUserType() !== UserContextInterface::USER_TYPE_ADMIN
+            || $userId === null
+            || !$this->authorization->isAllowed(self::ACL_RESOURCE)
+        ) {
+            return 0;
+        }
+
+        return $this->violationReview->countUnreviewed((int)$userId);
     }
 }

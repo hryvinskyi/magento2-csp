@@ -32,7 +32,7 @@
             </storageConfig>
             <updateUrl path="mui/index/render"/>
         </settings>
-        <aclResource>Hryvinskyi_Csp::csp</aclResource>
+        <aclResource>Hryvinskyi_Csp::whitelist</aclResource>
         <dataProvider class="Hryvinskyi\Csp\Model\Whitelist\ListingDataProvider" name="hryvinskyi_csp_whitelist_listing_data_source">
             <settings>
                 <requestFieldName>id</requestFieldName>

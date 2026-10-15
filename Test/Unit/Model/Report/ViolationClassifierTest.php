@@ -50,6 +50,11 @@ class ViolationClassifierTest extends TestCase
             'not rendered by Magento' => ['navigate-to', 'https://example.org/', null],
             'self keyword' => ['img-src', 'self', null],
             'empty' => ['img-src', '', null],
+            'IPv6 address' => ['img-src', 'https://[2001:db8::1]/a.png', ['policy' => 'img-src', 'value' => '[2001:db8::1]']],
+            'wildcard host, only ever forged' => ['img-src', 'https://*.example.org/a.png', null],
+            'markup as the host' => ['script-src-elem', 'https://<svg onload=alert(1)>', null],
+            'markup as a websocket host' => ['connect-src', 'wss://<img src=x>/', null],
+            'space in the host' => ['img-src', 'https://exa mple.org/a.png', null],
         ];
     }
 

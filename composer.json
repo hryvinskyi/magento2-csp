@@ -15,6 +15,7 @@
     "laminas/laminas-http": "^2.15",
     "laminas/laminas-loader": "^2.8",
     "magento/framework": "^103.0.6",
+    "magento/module-authorization": "^100.4.6",
     "magento/module-backend": "^102.0.6",
     "magento/module-cms": "^104.0.6",
     "magento/module-config": "^101.2.6",

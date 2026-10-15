@@ -16,14 +16,19 @@ use Hryvinskyi\Csp\Api\WhitelistRepositoryInterface;
 use Hryvinskyi\Csp\Model\Whitelist\EntryDataMapper;
 use Hryvinskyi\Csp\Model\Whitelist\EntryNormalizer;
 use Hryvinskyi\Csp\Model\Whitelist\StoreIdList;
+use Hryvinskyi\Csp\Model\Whitelist\StoreScopeText;
 use Magento\Framework\Exception\LocalizedException;
 
 /**
  * Imports whitelist rows; a row whose directive, value and area match an entry extends that entry's stores and updates
  * its name, status and script instead of adding a duplicate.
  *
- * Rows name their fields by code (`policy`) or by the grid's column label (`Policy`). Without an area a row applies to
- * every area, without stores to every store, without a status it is enabled. A row that fails is reported and skipped.
+ * Rows name their fields by code (`policy`) or by the grid's column label (`Policy`, in English or in the admin's
+ * language), so the grid's CSV export imports as it is. Values may be codes or the labels the export writes: the status
+ * as 1/0 or Enabled/Disabled, the area as its code or its label, the stores as store view codes, names or ids, or
+ * All Store Views (see StoreScopeText). A row without an area column applies to every area, without a store column to
+ * every store, without a status to enabled; a row with an empty store cell names no store and is refused unless it
+ * extends an existing entry. A row that fails is reported and skipped.
  */
 class WhitelistImporter
 {
@@ -47,7 +52,8 @@ class WhitelistImporter
      * @param WhitelistRepositoryInterface $whitelistRepository
      * @param EntryDataMapper $entryDataMapper
      * @param EntryNormalizer $entryNormalizer
-     * @param StoreIdList $storeIdList
+     * @param StoreScopeText $storeScopeText
+     * @param AreaResolver $areaResolver
      */
     public function __construct(
         private readonly RowReaderPool $readerPool,
@@ -55,7 +61,8 @@ class WhitelistImporter
         private readonly WhitelistRepositoryInterface $whitelistRepository,
         private readonly EntryDataMapper $entryDataMapper,
         private readonly EntryNormalizer $entryNormalizer,
-        private readonly StoreIdList $storeIdList
+        private readonly StoreScopeText $storeScopeText,
+        private readonly AreaResolver $areaResolver
     ) {
     }
 
@@ -100,19 +107,29 @@ class WhitelistImporter
      */
     private function importRow(array $fields): string
     {
-        $status = self::STATUSES[strtolower(trim($fields[WhitelistInterface::STATUS] ?? '1'))] ?? null;
+        $status = $this->status($fields[WhitelistInterface::STATUS] ?? '1');
         if ($status === null) {
             throw new LocalizedException(__('The status must be 1 (enabled) or 0 (disabled).'));
         }
-        $stores = trim($fields[self::STORES] ?? (string)StoreIdList::ALL_STORES);
-        if ($stores !== '' && $this->storeIdList->parse($stores) === []) {
-            throw new LocalizedException(__('List the store ids separated by commas, 0 for every store.'));
+        $areaText = trim($fields[WhitelistInterface::AREA] ?? '');
+        $area = $areaText === '' ? Area::ALL : $this->areaResolver->resolve($areaText);
+        if ($area === null) {
+            throw new LocalizedException(__('"%1" is not an area. Use all, frontend or adminhtml.', $areaText));
+        }
+        $stores = array_key_exists(self::STORES, $fields)
+            ? $this->storeScopeText->parse($fields[self::STORES])
+            : [StoreIdList::ALL_STORES];
+        if ($stores === null) {
+            throw new LocalizedException(__(
+                '"%1" names a store view that does not exist. List store view codes, names or ids separated by commas, or All Store Views.',
+                $fields[self::STORES] ?? ''
+            ));
         }
 
         $entry = $this->whitelistFactory->create();
         $this->entryDataMapper->apply($entry, [
             ...$fields,
-            WhitelistInterface::AREA => ($fields[WhitelistInterface::AREA] ?? '') !== '' ? $fields[WhitelistInterface::AREA] : Area::ALL->value,
+            WhitelistInterface::AREA => $area->value,
             WhitelistInterface::STATUS => (string)$status,
             WhitelistInterface::STORE_ID => $stores,
         ]);
@@ -142,16 +159,37 @@ class WhitelistImporter
     }
 
     /**
-     * Row fields by code, grid labels translated.
+     * Status a row's text names: 1/0, enabled/disabled, or the grid's label in the admin's language; null for none.
+     *
+     * @param string $text
+     * @return int|null
+     */
+    private function status(string $text): ?int
+    {
+        $statuses = self::STATUSES + [
+            mb_strtolower((string)__('Enabled')) => 1,
+            mb_strtolower((string)__('Disabled')) => 0,
+        ];
+
+        return $statuses[mb_strtolower(trim($text))] ?? null;
+    }
+
+    /**
+     * Row fields by code, grid labels in English or in the admin's language translated.
      *
      * @param array<string, string> $row
      * @return array<string, string>
      */
     private function fields(array $row): array
     {
+        $labels = [];
+        foreach (self::LABELS as $label => $code) {
+            $labels[$label] = $code;
+            $labels[(string)__($label)] = $code;
+        }
         $fields = [];
         foreach ($row as $name => $value) {
-            $fields[self::LABELS[$name] ?? $name] = $value;
+            $fields[$labels[$name] ?? $name] = $value;
         }
 
         return $fields;

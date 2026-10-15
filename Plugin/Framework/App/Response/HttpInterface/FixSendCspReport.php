@@ -24,6 +24,12 @@ class FixSendCspReport
     private const CSP_HEADERS = ['content-security-policy', 'content-security-policy-report-only'];
 
     /**
+     * A `report-to` directive: its name opens the header or follows a ";", so a source whose URL contains
+     * "report-to" never matches.
+     */
+    private const REPORT_TO_DIRECTIVE = '/(?<=^|;)\s*report-to(?:\s+[^;]*)?(?:;|$)/i';
+
+    /**
      * @param ReportingConfigInterface $config
      */
     public function __construct(private readonly ReportingConfigInterface $config)
@@ -49,7 +55,7 @@ class FixSendCspReport
             return [$name, $value, $replace];
         }
 
-        $withoutReportTo = preg_replace('/\s*\breport-to\s+[^;]*(?:;|$)/i', '', $value);
+        $withoutReportTo = preg_replace(self::REPORT_TO_DIRECTIVE, '', $value);
 
         return [$name, is_string($withoutReportTo) ? trim($withoutReportTo) : $value, $replace];
     }

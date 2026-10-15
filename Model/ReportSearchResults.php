@@ -10,23 +10,34 @@ declare(strict_types=1);
 namespace Hryvinskyi\Csp\Model;
 
 use Magento\Framework\Api\Search\SearchResult;
+use Hryvinskyi\Csp\Api\Data\ReportInterface;
 use Hryvinskyi\Csp\Api\Data\ReportSearchResultsInterface;
 
 /**
- * Class ReportSearchResults
+ * Search results holding reports.
  */
 class ReportSearchResults extends SearchResult implements ReportSearchResultsInterface
 {
     /**
-     * @inheritdoc
+     * The reports held, an empty list until they are set (the parent returns null then, whatever it documents).
+     *
+     * Documented here because the parent promises search documents while the interface promises reports; any other
+     * item set is left out.
+     *
+     * @return ReportInterface[]
      */
     public function getItems(): array
     {
-        return parent::getItems() ?? [];
+        $items = $this->_get(self::ITEMS);
+
+        return is_array($items) ? array_filter($items, static fn (mixed $item): bool => $item instanceof ReportInterface) : [];
     }
 
     /**
-     * @inheritdoc
+     * Set the reports held.
+     *
+     * @param ReportInterface[]|null $items
+     * @return ReportSearchResultsInterface
      */
     public function setItems(?array $items = null): ReportSearchResultsInterface
     {

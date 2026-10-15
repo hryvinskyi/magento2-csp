@@ -115,6 +115,48 @@ class PolicyEquivalenceTest extends TestCase
         $this->assertContains('script-src-elem', $this->equivalence()->splitDifferences($original, $parts));
     }
 
+    public function testExplicitCopiesWithoutDefaultSrcLeavePrefetchUnrestricted(): void
+    {
+        $original = $this->parsePolicy("default-src 'self'; img-src cdn.example.com");
+        $parts = [
+            $this->parsePolicy('img-src cdn.example.com'),
+            $this->parsePolicy(
+                "script-src 'self'; style-src 'self'; child-src 'self'; connect-src 'self'; font-src 'self'; "
+                . "manifest-src 'self'; media-src 'self'; object-src 'self'"
+            ),
+        ];
+
+        $this->assertContains(
+            'blocked→allowed: prefetch url https://evil.example/x.js',
+            $this->decisionChanges([$original], $parts)
+        );
+        $this->assertSame(['default-src'], $this->equivalence()->splitDifferences($original, $parts));
+    }
+
+    public function testACoverNextToTheExactPartIsAnEquivalentSplit(): void
+    {
+        $original = $this->parsePolicy("default-src 'self'; img-src cdn.example.com data:");
+        $parts = [
+            $this->parsePolicy('img-src cdn.example.com data:'),
+            $this->parsePolicy("default-src 'self'; img-src * data:"),
+        ];
+
+        $this->assertSame([], $this->decisionChanges([$original], $parts));
+        $this->assertSame([], $this->equivalence()->splitDifferences($original, $parts));
+    }
+
+    public function testACoverAloneIsNotEquivalent(): void
+    {
+        $original = $this->parsePolicy("default-src 'self'; img-src cdn.example.com data:");
+        $parts = [
+            $this->parsePolicy("default-src 'self'; img-src * data:"),
+            $this->parsePolicy("connect-src 'self'"),
+        ];
+
+        $this->assertNotSame([], $this->decisionChanges([$original], $parts));
+        $this->assertContains('img-src', $this->equivalence()->splitDifferences($original, $parts));
+    }
+
     public function testReportUriMustBeInEveryPart(): void
     {
         $original = $this->parsePolicy("img-src 'self'; font-src 'self'; report-uri /r");

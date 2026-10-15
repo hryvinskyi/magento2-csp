@@ -43,10 +43,12 @@ class DirectiveCatalog
 
     /**
      * Directives a browser resolves requests against, each listed before the directives that fall back to it.
-     * `script-src`, `style-src` and `child-src` are included for browsers that predate the `-elem`/`-attr` and
-     * `worker-src` directives and resolve requests through them.
+     * `default-src` governs prefetch and prerender requests directly (CSP Level 3, §6.8.1 step 1). `script-src`,
+     * `style-src` and `child-src` are included for browsers that predate the `-elem`/`-attr` and `worker-src`
+     * directives and resolve requests through them.
      */
     private const REQUEST_DIRECTIVES = [
+        'default-src',
         'script-src',
         'style-src',
         'child-src',

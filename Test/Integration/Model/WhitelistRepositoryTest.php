@@ -87,10 +87,33 @@ class WhitelistRepositoryTest extends TestCase
         $grid->addFieldToFilter('store_id', ['eq' => '1']);
         $gridRows = [];
         foreach ($grid->getItems() as $id => $row) {
-            $gridRows[(int)$id] = $row->getData(WhitelistInterface::STORE_ID);
+            $gridRows[(int)$id] = [$row->getData(GridCollection::STORE_ID_LIST), $row->getData(WhitelistInterface::STORE_ID)];
         }
-        $this->assertSame([1], $gridRows[$storeOne] ?? null);
-        $this->assertSame([0], $gridRows[$everywhere] ?? null);
+        $this->assertSame([[1], 'default'], $gridRows[$storeOne] ?? null);
+        $this->assertSame([[0], 'All Store Views'], $gridRows[$everywhere] ?? null);
+    }
+
+    public function testAnEntryWhoseStoresWereDeletedIsNeverSavedForEveryStore(): void
+    {
+        $ruleId = (int)$this->save(['value' => 'one.example.com', 'store_id' => [1]])->getRuleId();
+        $this->connection()->delete($this->table('hryvinskyi_csp_whitelist_store'), ['rule_id = ?' => $ruleId]);
+        $entry = $this->repository()->getById($ruleId);
+        $this->assertSame([], $entry->getStoreIds());
+        $this->service(EntryDataMapper::class)->apply($entry, ['identifier' => 'Edited in the grid', 'status' => '1']);
+
+        try {
+            $this->repository()->save($entry);
+            $this->fail('An entry without stores was saved.');
+        } catch (CouldNotSaveException $exception) {
+            $this->assertStringContainsString('Choose the store views', $exception->getMessage());
+        }
+        $this->assertSame([], $this->repository()->getById($ruleId)->getStoreIds());
+        $this->assertNotContains(
+            $ruleId,
+            array_map('intval', array_keys(
+                $this->service(CollectionFactory::class)->create()->addStoreFilter(1)->getItems()
+            ))
+        );
     }
 
     /**

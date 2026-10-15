@@ -21,7 +21,8 @@ class CspRequest
     public const KIND_WASM = 'wasm';
 
     /**
-     * @param string $type script, style, worker, frame, fenced-frame, img, font, connect, media, object, manifest
+     * @param string $type script, style, worker, frame, fenced-frame, img, font, connect, media, object, manifest,
+     *     prefetch (a prefetch or prerender link)
      * @param string $kind One of the KIND_* constants
      * @param string $url URL of a fetched resource
      * @param string|null $nonce Nonce attribute of an inline element

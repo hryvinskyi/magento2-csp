@@ -14,16 +14,20 @@ use Hryvinskyi\Csp\Api\Data\PolicyInterfaceFactory;
 use Hryvinskyi\Csp\Api\PolicySplitterInterface;
 use Hryvinskyi\Csp\Model\Policy\DirectiveCatalog;
 use Hryvinskyi\Csp\Model\Policy\FallbackResolver;
+use Hryvinskyi\Csp\Model\Policy\SourceListCover;
 use Psr\Log\LoggerInterface;
 
 /**
  * Splits a policy into parts that keep directives linked by fallback together.
  *
  * A browser applies every CSP header and lets a request through only if each header that restricts it allows it.
- * To keep what the policy allows, `default-src` is replaced by explicit copies of its value in every directive that
- * fell back to it, directives linked by fallback stay in one part, and `report-uri`/`report-to` repeat in every part.
- * Groups are packed first-fit, largest first. When one group alone exceeds the limit, the policy is returned unsplit
- * and the reason is logged.
+ * To keep what the policy allows, directives linked by fallback stay in one part and `report-uri`/`report-to` repeat
+ * in every part. `default-src` stays, unchanged, in exactly one part: it alone governs prefetch and prerender
+ * requests, and every request type that fell back to it still does there. In that part each request type another
+ * part restricts differently gets a cover ({@see SourceListCover}), so the other part's sources decide it.
+ * Groups are packed first-fit, largest first, and the `default-src` part joins the first part it fits in. When one
+ * group, or the `default-src` part on its own, exceeds the limit, the policy is returned unsplit and the reason is
+ * logged.
  */
 class DirectiveFamilySplitter implements PolicySplitterInterface
 {
@@ -34,12 +38,14 @@ class DirectiveFamilySplitter implements PolicySplitterInterface
      * @param FallbackResolver $fallbackResolver
      * @param PolicyInterfaceFactory $policyFactory
      * @param LoggerInterface $logger
+     * @param SourceListCover $cover
      */
     public function __construct(
         private readonly DirectiveCatalog $catalog,
         private readonly FallbackResolver $fallbackResolver,
         private readonly PolicyInterfaceFactory $policyFactory,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
+        private readonly SourceListCover $cover
     ) {
     }
 
@@ -52,19 +58,19 @@ class DirectiveFamilySplitter implements PolicySplitterInterface
             return [$policy];
         }
 
-        $explicit = $this->withoutDefaultSrc($policy);
-        $perPart = $this->perPartDirectives($explicit);
+        $perPart = $this->perPartDirectives($policy);
         $suffixBytes = $this->bytesOf($perPart);
         if ($suffixBytes > 0) {
             $suffixBytes += self::SEPARATOR_BYTES;
         }
+        $capacity = $maxBytes - $suffixBytes;
 
-        $groups = $this->groups($explicit);
+        $groups = $this->groups($policy->without(DirectiveCatalog::DEFAULT_SRC));
         usort($groups, static fn (array $left, array $right): int => $right['bytes'] <=> $left['bytes']);
 
         $bins = [];
         foreach ($groups as $group) {
-            if ($group['bytes'] + $suffixBytes > $maxBytes) {
+            if ($group['bytes'] > $capacity) {
                 $this->logger->warning(sprintf(
                     'CSP header not split: the directive group "%s" alone needs %d of %d bytes.',
                     implode(' ', array_keys($group['directives'])),
@@ -74,7 +80,19 @@ class DirectiveFamilySplitter implements PolicySplitterInterface
 
                 return [$policy];
             }
-            $bins = $this->place($bins, $group, $maxBytes - $suffixBytes);
+            $bins = $this->place($bins, $group, $capacity);
+        }
+
+        if ($policy->has(DirectiveCatalog::DEFAULT_SRC)) {
+            $bins = $this->withDefaultSrcPart($policy, $bins, $capacity);
+            if ($bins === null) {
+                $this->logger->warning(sprintf(
+                    'CSP header not split: the part keeping "default-src" alone needs more than %d bytes.',
+                    $maxBytes
+                ));
+
+                return [$policy];
+            }
         }
 
         if (count($bins) < 2) {
@@ -90,29 +108,65 @@ class DirectiveFamilySplitter implements PolicySplitterInterface
     }
 
     /**
-     * Policy without `default-src`, each request type that relied on it given an explicit copy of what governed it.
-     *
-     * Request directives are visited parent first, so a copy made for a directive serves the directives that fall
-     * back to it, and a directive whose resolution a copy would change gets its own copy.
+     * Bins after `default-src` joined the first one it fits in, or a new one; null when it fits in none.
      *
      * @param PolicyInterface $policy
-     * @return PolicyInterface
+     * @param list<array{directives: array<string, list<string>>, bytes: int}> $bins
+     * @param int $capacity
+     * @return list<array{directives: array<string, list<string>>, bytes: int}>|null
      */
-    private function withoutDefaultSrc(PolicyInterface $policy): PolicyInterface
+    private function withDefaultSrcPart(PolicyInterface $policy, array $bins, int $capacity): ?array
     {
-        if (!$policy->has(DirectiveCatalog::DEFAULT_SRC)) {
-            return $policy;
-        }
+        foreach ($bins as $index => $bin) {
+            $directives = $this->defaultSrcPart($policy, $bin['directives']);
+            $bytes = $this->bytesOf($directives);
+            if ($bytes <= $capacity) {
+                $bins[$index] = ['directives' => $directives, 'bytes' => $bytes];
 
-        $explicit = $policy->without(DirectiveCatalog::DEFAULT_SRC);
-        foreach ($this->catalog->requestDirectives() as $requestDirective) {
-            $expected = $this->fallbackResolver->effectiveSources($policy, $requestDirective);
-            if ($expected !== null && $expected !== $this->fallbackResolver->effectiveSources($explicit, $requestDirective)) {
-                $explicit = $explicit->withSources($requestDirective, $expected);
+                return $bins;
             }
         }
 
-        return $explicit;
+        $directives = $this->defaultSrcPart($policy, []);
+        $bytes = $this->bytesOf($directives);
+        if ($bytes > $capacity) {
+            return null;
+        }
+        $bins[] = ['directives' => $directives, 'bytes' => $bytes];
+
+        return $bins;
+    }
+
+    /**
+     * Directives of the part that keeps `default-src`: the bin's own, `default-src`, and a cover for every request
+     * type the part would otherwise restrict differently from the policy.
+     *
+     * Request directives are visited parent first, so a cover made for a directive serves the directives that fall
+     * back to it when it covers them too.
+     *
+     * @param PolicyInterface $policy
+     * @param array<string, list<string>> $directives
+     * @return array<string, list<string>>
+     */
+    private function defaultSrcPart(PolicyInterface $policy, array $directives): array
+    {
+        $part = $this->policyFactory->create([
+            'directives' => [DirectiveCatalog::DEFAULT_SRC => $policy->sources(DirectiveCatalog::DEFAULT_SRC)]
+                + $directives,
+        ]);
+        foreach ($this->catalog->requestDirectives() as $requestDirective) {
+            $expected = $this->fallbackResolver->effectiveSources($policy, $requestDirective);
+            $actual = $this->fallbackResolver->effectiveSources($part, $requestDirective);
+            if ($expected === null
+                || $actual === $expected
+                || ($actual !== null && $this->cover->covers($requestDirective, $actual, $expected))
+            ) {
+                continue;
+            }
+            $part = $part->withSources($requestDirective, $this->cover->coverOf($requestDirective, $expected));
+        }
+
+        return $part->directives();
     }
 
     /**

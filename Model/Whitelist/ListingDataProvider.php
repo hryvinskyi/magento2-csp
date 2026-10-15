@@ -10,7 +10,9 @@ declare(strict_types=1);
 namespace Hryvinskyi\Csp\Model\Whitelist;
 
 use Hryvinskyi\Csp\Api\HashValidationCalculatorInterface;
+use Hryvinskyi\Csp\Api\Data\WhitelistInterface;
 use Hryvinskyi\Csp\Api\RedundancyCalculatorInterface;
+use Hryvinskyi\Csp\Model\ResourceModel\Whitelist\Grid\Collection as GridCollection;
 use Hryvinskyi\Csp\Model\Whitelist\Grid\ComputedColumns;
 use Magento\Framework\Api\FilterBuilder;
 use Magento\Framework\Api\Search\ReportingInterface;
@@ -22,7 +24,8 @@ use Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider;
  * Whitelist grid rows with their hash validation and redundancy status, both filterable and sortable.
  *
  * When the grid filters or sorts by a computed column, every matching row is loaded and the computed column is
- * filtered, sorted and paged in memory.
+ * filtered, sorted and paged in memory. The grid shows a row's stores from its store ids; the store text the export
+ * writes stays out of the grid.
  */
 class ListingDataProvider extends DataProvider
 {
@@ -105,7 +108,7 @@ class ListingDataProvider extends DataProvider
     }
 
     /**
-     * Rows with their hash validation and redundancy status.
+     * Rows with their store ids under `store_id`, their hash validation and their redundancy status.
      *
      * @param mixed $items
      * @return list<array<string, mixed>>
@@ -114,9 +117,14 @@ class ListingDataProvider extends DataProvider
     {
         $rows = [];
         foreach (is_array($items) ? $items : [] as $item) {
-            if (is_array($item)) {
-                $rows[] = array_filter($item, 'is_string', ARRAY_FILTER_USE_KEY);
+            if (!is_array($item)) {
+                continue;
             }
+            $row = array_filter($item, 'is_string', ARRAY_FILTER_USE_KEY);
+            $storeIds = $row[GridCollection::STORE_ID_LIST] ?? [];
+            unset($row[GridCollection::STORE_ID_LIST]);
+            $row[WhitelistInterface::STORE_ID] = is_array($storeIds) ? $storeIds : [];
+            $rows[] = $row;
         }
         $rows = $this->redundancyCalculator->calculateForItems($this->hashValidationCalculator->calculateForItems($rows));
 

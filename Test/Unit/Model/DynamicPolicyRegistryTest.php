@@ -11,11 +11,13 @@ namespace Hryvinskyi\Csp\Test\Unit\Model;
 
 use Hryvinskyi\Csp\Model\DynamicPolicyRegistry;
 use Hryvinskyi\Csp\Model\Policy\HostSourceParser;
+use Hryvinskyi\Csp\Test\Unit\Support\RealFetchPolicyFactory;
 use Magento\Csp\Model\Collector\DynamicCollector;
 use Magento\Csp\Model\Collector\FetchPolicyMerger;
 use Magento\Csp\Model\Policy\FetchPolicy;
-use Magento\Csp\Model\Policy\FetchPolicyFactory;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 
 /**
  * Runs the registry against Magento's real dynamic collector and fetch policies.
@@ -23,31 +25,22 @@ use PHPUnit\Framework\TestCase;
 class DynamicPolicyRegistryTest extends TestCase
 {
     private const HASH = 'ulSR2mFrdWVXSgeR4TBKNBoRfFVHQ+DXt7P2Ek1YyPo=';
+    private const SHA384 = '11LCxR+6DimqGQVwqdQlPkQHegWNMpf6OlYw1b0BJiL5fCisrtMTtcg7uZDKp9qF';
 
     private DynamicCollector $collector;
+
+    /**
+     * @var LoggerInterface&MockObject
+     */
+    private LoggerInterface $logger;
 
     private DynamicPolicyRegistry $registry;
 
     protected function setUp(): void
     {
         $this->collector = new DynamicCollector(new FetchPolicyMerger());
-        $factory = $this->createStub(FetchPolicyFactory::class);
-        $factory->method('create')->willReturnCallback(
-            static function (array $data): FetchPolicy {
-                return new FetchPolicy(
-                    self::stringOf($data['id'] ?? ''),
-                    (bool)($data['noneAllowed'] ?? true),
-                    self::listOf($data['hostSources'] ?? []),
-                    self::listOf($data['schemeSources'] ?? []),
-                    (bool)($data['selfAllowed'] ?? false),
-                    false,
-                    false,
-                    [],
-                    self::mapOf($data['hashValues'] ?? [])
-                );
-            }
-        );
-        $this->registry = new DynamicPolicyRegistry($this->collector, $factory, new HostSourceParser());
+        $this->logger = $this->createMock(LoggerInterface::class);
+        $this->registry = new DynamicPolicyRegistry($this->collector, new RealFetchPolicyFactory(), new HostSourceParser(), $this->logger);
     }
 
     public function testAddsHostsSchemesHashesAndSelfToTheCollector(): void
@@ -75,66 +68,70 @@ class DynamicPolicyRegistryTest extends TestCase
         $this->assertSame(['a.example.com', 'b.example.com'], $policy->getHostSources());
     }
 
-    /**
-     * @dataProvider invalidAllowances
-     * @param string $directive
-     * @param list<string> $hosts
-     * @param list<string> $hashes
-     */
-    public function testRefusesWhatCouldBreakTheHeader(string $directive, array $hosts, array $hashes): void
+    public function testTakesDigestToAlgorithmMapsAs1xCallersPassThem(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->logger->expects($this->never())->method('warning');
 
-        $this->registry->allow($directive, $hosts, $hashes);
+        $this->registry->allow('script-src', [], [self::HASH => 'sha256', self::SHA384 => 'SHA384']);
+
+        $policy = $this->collector->collect()[0];
+        $this->assertInstanceOf(FetchPolicy::class, $policy);
+        $this->assertSame([self::HASH => 'sha256', self::SHA384 => 'sha384'], $policy->getHashes());
     }
 
     /**
-     * @return array<string, array{string, list<string>, list<string>}>
+     * @dataProvider invalidAllowances
+     * @param string $directive
+     * @param array<string> $hosts
+     * @param array<int|string, string> $hashes
+     */
+    public function testSkipsAndLogsWhatCouldBreakTheHeader(string $directive, array $hosts, array $hashes): void
+    {
+        $this->logger->expects($this->once())->method('warning');
+
+        $this->registry->allow($directive, $hosts, $hashes);
+
+        $this->assertSame([], $this->collector->collect());
+    }
+
+    /**
+     * @return array<string, array{string, array<string>, array<int|string, string>}>
      */
     public static function invalidAllowances(): array
     {
         return [
             'sub-directive that would stop falling back' => ['script-src-elem', ['cdn.example.com'], []],
+            'worker-src, which Magento cannot send dynamically' => ['worker-src', ['cdn.example.com'], []],
+            'style-src-attr' => ['style-src-attr', [], [self::HASH]],
             'unknown directive' => ['scripts', ['cdn.example.com'], []],
             'keyword as host' => ['script-src', ["'unsafe-inline'"], []],
             'header injection' => ['script-src', ["cdn.example.com; object-src *"], []],
             'line break' => ['img-src', ["cdn.example.com\r\nX-Evil: 1"], []],
             'hash with prefix' => ['script-src', [], ["'sha256-" . self::HASH . "'"]],
             'not a sha256 digest' => ['script-src', [], ['abc']],
+            'algorithm used as the digest' => ['script-src', [], ['sha256']],
+            'unknown algorithm' => ['script-src', [], [self::HASH => 'md5']],
+            'digest of the wrong length for its algorithm' => ['script-src', [], [self::HASH => 'sha384']],
         ];
     }
 
-    /**
-     * @param mixed $value
-     * @return string
-     */
-    private static function stringOf(mixed $value): string
+    public function testKeepsTheValidSourcesOfAnAllowanceAndSkipsTheRest(): void
     {
-        return is_string($value) ? $value : '';
+        $this->logger->expects($this->exactly(2))->method('warning');
+
+        $this->registry->allow('img-src', ['a.example.com', "'unsafe-inline'"], [self::HASH => 'md5', self::HASH], true);
+
+        $policy = $this->collector->collect()[0];
+        $this->assertInstanceOf(FetchPolicy::class, $policy);
+        $this->assertSame(['a.example.com'], $policy->getHostSources());
+        $this->assertSame([self::HASH => 'sha256'], $policy->getHashes());
+        $this->assertTrue($policy->isSelfAllowed());
     }
 
-    /**
-     * @param mixed $value
-     * @return list<string>
-     */
-    private static function listOf(mixed $value): array
+    public function testAddsNothingWhenNothingIsAllowed(): void
     {
-        return is_array($value) ? array_values(array_filter($value, 'is_string')) : [];
-    }
+        $this->registry->allow('img-src');
 
-    /**
-     * @param mixed $value
-     * @return array<string, string>
-     */
-    private static function mapOf(mixed $value): array
-    {
-        $map = [];
-        foreach (is_array($value) ? $value : [] as $hash => $algorithm) {
-            if (is_string($algorithm)) {
-                $map[(string)$hash] = $algorithm;
-            }
-        }
-
-        return $map;
+        $this->assertSame([], $this->collector->collect());
     }
 }

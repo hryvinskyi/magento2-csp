@@ -18,7 +18,9 @@ use Hryvinskyi\Csp\Model\Whitelist\WhitelistableDirectives;
  * Those groups were recorded through the default store's URL whatever store or area raised them, so their scope is
  * unknown and they move to store 0 and area `all`. Their directive becomes the governing directive. Groups that then
  * share directive and value merge into the one with the lowest id: occurrence counts add up and the strictest status
- * wins. Directive and value compare case-insensitively and without trailing spaces, as the table's unique key does.
+ * wins. Which groups share directive and value is decided by the database under the table's collation, as its unique
+ * key decides it (case, trailing spaces and, depending on the collation, accents), and handed to the plan as each
+ * group's merge key.
  */
 class LegacyReportGroupMergePlan
 {
@@ -30,9 +32,28 @@ class LegacyReportGroupMergePlan
     }
 
     /**
+     * Governing directive of each recorded directive that has one other than itself.
+     *
+     * @param list<string> $policies Directives as recorded
+     * @return array<string, string> Recorded directive => governing directive
+     */
+    public function governingDirectives(array $policies): array
+    {
+        $governing = [];
+        foreach ($policies as $policy) {
+            $directive = $this->directives->governing($policy);
+            if ($directive !== null && $directive !== $policy) {
+                $governing[$policy] = $directive;
+            }
+        }
+
+        return $governing;
+    }
+
+    /**
      * One entry per group that remains: its id, the ids merged into it, and its new directive, status and count.
      *
-     * @param list<array{group_id: int, policy: string, value: string, status: int, count: int}> $groups
+     * @param list<array{group_id: int, merge_key: int, governing_policy: string, status: int, count: int}> $groups
      * @return list<array{survivor: int, merged: list<int>, policy: string, status: int, count: int}>
      */
     public function plan(array $groups): array
@@ -40,14 +61,13 @@ class LegacyReportGroupMergePlan
         usort($groups, static fn (array $a, array $b): int => $a['group_id'] <=> $b['group_id']);
         $plan = [];
         foreach ($groups as $group) {
-            $policy = $this->directives->governing($group['policy']) ?? $group['policy'];
             $status = Status::tryFrom($group['status']) ?? Status::PENDING;
-            $key = mb_strtolower($policy) . "\n" . mb_strtolower(rtrim($group['value'], ' '));
+            $key = $group['merge_key'];
             if (!isset($plan[$key])) {
                 $plan[$key] = [
                     'survivor' => $group['group_id'],
                     'merged' => [],
-                    'policy' => $policy,
+                    'policy' => $group['governing_policy'],
                     'status' => $status->value,
                     'count' => $group['count'],
                 ];

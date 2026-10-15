@@ -44,6 +44,7 @@
     <preference for="Hryvinskyi\Csp\Api\PolicySplitterInterface" type="Hryvinskyi\Csp\Model\Policy\Split\VerifiedPolicySplitter"/>
     <preference for="Hryvinskyi\Csp\Api\ResponseHeaderLinesInterface" type="Hryvinskyi\Csp\Model\Response\LaminasHeaderLines"/>
     <preference for="Hryvinskyi\Csp\Api\OversizedHeaderNoticeInterface" type="Hryvinskyi\Csp\Model\Response\OversizedHeaderNotice"/>
+    <preference for="Hryvinskyi\Csp\Api\ViolationReviewInterface" type="Hryvinskyi\Csp\Model\Report\ViolationReview"/>
     <type name="Hryvinskyi\Csp\Model\Response\CspHeaderProcessor">
         <arguments>
             <argument name="headerNames" xsi:type="array">
@@ -119,12 +120,12 @@
     </type>
 
     <!-- Content scanned for inline scripts -->
-    <type name="Hryvinskyi\Csp\Model\ScriptHash\StoreContentScanner">
+    <type name="Hryvinskyi\Csp\Model\ScriptHash\ScriptSourcePool">
         <arguments>
             <argument name="sources" xsi:type="array">
-                <item name="page" xsi:type="object">Hryvinskyi\Csp\Model\ScriptHash\CmsPageSource</item>
-                <item name="block" xsi:type="object">Hryvinskyi\Csp\Model\ScriptHash\CmsBlockSource</item>
-                <item name="config" xsi:type="object">Hryvinskyi\Csp\Model\ScriptHash\ConfigValueSource</item>
+                <item name="page" xsi:type="object">Hryvinskyi\Csp\Model\ScriptHash\CmsPageSource\Proxy</item>
+                <item name="block" xsi:type="object">Hryvinskyi\Csp\Model\ScriptHash\CmsBlockSource\Proxy</item>
+                <item name="config" xsi:type="object">Hryvinskyi\Csp\Model\ScriptHash\ConfigValueSource\Proxy</item>
             </argument>
         </arguments>
     </type>
@@ -194,7 +195,16 @@
         <plugin name="fix_send_csp_report" type="Hryvinskyi\Csp\Plugin\Framework\App\Response\HttpInterface\FixSendCspReport"/>
     </type>
 
-    <!-- Command line -->
+    <!-- Command line. Symfony instantiates every command when the console starts, also during setup:install before any
+         store exists, so the script hash command gets its store-dependent services lazily and lists the content types
+         from the source pool, whose sources are proxies. -->
+    <type name="Hryvinskyi\Csp\Command\GenerateCspScriptHashesCommand">
+        <arguments>
+            <argument name="scanner" xsi:type="object">Hryvinskyi\Csp\Model\ScriptHash\StoreContentScanner\Proxy</argument>
+            <argument name="whitelister" xsi:type="object">Hryvinskyi\Csp\Model\ScriptHash\ScriptHashWhitelister\Proxy</argument>
+            <argument name="storeManager" xsi:type="object">Magento\Store\Model\StoreManagerInterface\Proxy</argument>
+        </arguments>
+    </type>
     <type name="Magento\Framework\Console\CommandList">
         <arguments>
             <argument name="commands" xsi:type="array">
@@ -212,6 +222,11 @@
             <argument name="fileName" xsi:type="string">/var/log/hryvinskyi/csp.log</argument>
         </arguments>
     </virtualType>
+    <type name="Hryvinskyi\Csp\Model\DynamicPolicyRegistry">
+        <arguments>
+            <argument name="logger" xsi:type="object">Hryvinskyi\Csp\Model\Logger</argument>
+        </arguments>
+    </type>
     <virtualType name="Hryvinskyi\Csp\Model\Logger" type="Hryvinskyi\Logger\Model\Logger">
         <arguments>
             <argument name="name" xsi:type="string">HryvinskyiCsp</argument>

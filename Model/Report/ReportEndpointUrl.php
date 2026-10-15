@@ -11,12 +11,13 @@ namespace Hryvinskyi\Csp\Model\Report;
 
 use Hryvinskyi\Csp\Model\Store\AdminLocation;
 use Magento\Framework\UrlInterface;
+use Magento\Store\Api\Data\StoreInterface;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 
 /**
  * URLs the browser sends violation reports to: the current store's own secure URL for storefront pages, the admin's
- * own host for admin pages, so reports go to the origin that served the page.
+ * own base URL for admin pages, so reports go to the origin that served the page.
  */
 class ReportEndpointUrl
 {
@@ -69,16 +70,16 @@ class ReportEndpointUrl
     /**
      * Secure link base URL of a store, "/" when it cannot be built.
      *
-     * @param mixed $store
+     * @param StoreInterface $store
      * @return string
      */
-    private function secureBaseUrl(mixed $store): string
+    private function secureBaseUrl(StoreInterface $store): string
     {
         if (!$store instanceof Store) {
             return '/';
         }
         $url = $store->getBaseUrl(UrlInterface::URL_TYPE_LINK, true);
 
-        return is_string($url) && $url !== '' ? rtrim($url, '/') . '/' : '/';
+        return $url !== '' ? rtrim($url, '/') . '/' : '/';
     }
 }

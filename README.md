@@ -8,7 +8,7 @@
 sources per store view and area, collection of the violations browsers report, one-click conversion of reports into
 whitelist entries, and post-processing of the policy header that keeps it small without changing what it allows.
 
-Upgrading from 1.x? Read the [2.0.0 upgrade notes](CHANGELOG.md#200---2026-10-05) first.
+Upgrading from 1.x? Read the [2.0.0 upgrade notes](CHANGELOG.md#200---2026-10-16) first.
 
 ## Features
 
@@ -19,7 +19,9 @@ Upgrading from 1.x? Read the [2.0.0 upgrade notes](CHANGELOG.md#200---2026-10-05
 - **Conversion** of report groups into whitelist entries. Inline code, eval, `*` and `data:`/`blob:` in directives that
   load code are refused. An existing entry with the same directive, value and area gains the store instead of being
   duplicated.
-- **Import** of whitelist entries from CSV (including the grid's own export) and XML.
+- **Import** of whitelist entries from CSV and XML. The grid's CSV export imports as it is: stores are written as
+  store view codes or All Store Views, and the importer also reads store ids and names, area labels and
+  Enabled/Disabled.
 - **Header optimisation**: duplicate sources, hosts covered by a wildcard, `https://` on secure pages and directives
   that allow exactly what their fallback allows are removed. Every step is checked against an independent CSP3
   evaluator in the test suite. Replacing subdomains with a wildcard is the one opt-in step that widens the policy, and
@@ -54,7 +56,9 @@ bin/magento setup:static-content:deploy
   source, or a base64 digest with its algorithm), store views and an area. The grid flags duplicates, entries covered
   by a wildcard in the same scope, and hashes that do not match their script.
 - **Violation Reports** – report groups with their reports. *Convert to Whitelist* allows the value for the group's
-  store view and area; *Skip* keeps recording without an alert; *Deny* stops recording.
+  store view and area; *Skip* keeps recording without an alert; *Deny* stops recording. **System Messages** tells
+  each admin who may view reports how many violations were recorded since they last opened this page; opening it
+  hides the message until the next new violation (**Notify about new violations** turns it off).
 - **Configuration** – **Stores > Configuration > Security > Content Security Policy**.
 
 Permissions are under **System > Permissions > User Roles > Role Resources > System > Content Security Policy**:
@@ -69,8 +73,9 @@ replaces the Report URI set in core's Mode groups while it is on. A report is re
 the store view (or admin) that receives it; extension-injected resources are ignored, and query strings and fragments
 are removed from stored URLs.
 
-The rate limit counts violations per client IP address. **Behind a proxy or CDN** every request comes from the proxy
-unless Magento knows the client's address header; configure it, for example in `app/etc/di.xml`:
+The rate limit counts violations per client IP address (IPv6 clients per /64 network). **Behind a proxy, load
+balancer or CDN** every request comes from the proxy unless Magento knows which header carries the visitor's address
+**and** which addresses are your proxies. Configure both, for example in `app/etc/di.xml`:
 
 ```xml
 <type name="Magento\Framework\HTTP\PhpEnvironment\RemoteAddress">
@@ -78,9 +83,19 @@ unless Magento knows the client's address header; configure it, for example in `
         <argument name="alternativeHeaders" xsi:type="array">
             <item name="x-forwarded-for" xsi:type="string">HTTP_X_FORWARDED_FOR</item>
         </argument>
+        <argument name="trustedProxies" xsi:type="array">
+            <item name="varnish" xsi:type="string">10.0.0.5</item>
+            <item name="load-balancer" xsi:type="string">10.0.0.6</item>
+        </argument>
     </arguments>
 </type>
 ```
+
+With `alternativeHeaders` alone Magento takes the **first** address in `X-Forwarded-For`, which the visitor writes: a
+client that sends a new address with every report gets a new allowance each time. With `trustedProxies` Magento takes
+the last address that is not one of your proxies. List every proxy address exactly (ranges are not supported). If
+every request passes through a proxy that sets a header itself, such as `CF-Connecting-IP`, use that header
+(`HTTP_CF_CONNECTING_IP`) instead.
 
 ## Allowing sources from templates
 
@@ -100,6 +115,8 @@ $block->getData('csp')->addFrameSrc(['https://maps.example.com']);
 ```
 
 Services can use `Hryvinskyi\Csp\Api\DynamicPolicyRegistryInterface::allow($directive, $hosts, $hashes, $self)`.
+Hashes may be a list of sha256 digests or `[digest => algorithm]` (sha256, sha384, sha512). Invalid directives, hosts
+and hashes are logged and skipped, so a template never fails because of them.
 Only the directives Magento renders are accepted (`script-src`, `style-src`, `img-src`, `frame-src`, …), never a CSP3
 sub-directive such as `script-src-elem`: adding one would stop it falling back to its parent.
 
@@ -118,10 +135,11 @@ and must only be used on pages that are never cached.
 bin/magento hryvinskyi:csp:generate-script-hashes [--store=1] [--type=page --type=block --type=config] [--yes]
 ```
 
-The command renders each active CMS page and block with the CMS template filter of the store view, and reads the
-configuration values that apply to it. Every inline script that a hash can allow (no `src`, no `nonce`, a JavaScript
-type, no form key or other per-request value) is shown with its hash and, after confirmation or with `--yes`, allowed
-for that store view on the storefront. Add `-v` to print each script.
+The command renders each active CMS page and block of the store view (including those of all store views) with the
+CMS template filter of the store view, and reads the configuration values that apply to it (including values locked
+in `app/etc/env.php` or `app/etc/config.php`). Every inline script that a hash can allow (no `src`, no `nonce`, a
+JavaScript type, no form key or other per-request value) is shown with its hash and, after confirmation or with
+`--yes`, allowed for that store view on the storefront. Add `-v` to print each script.
 
 ## Header optimisation and splitting
 
@@ -136,8 +154,9 @@ All steps are off by default and work on the final header Magento renders.
 | Replace subdomains of trusted domains with a wildcard | **Widens the policy**: N subdomains of a listed trusted domain become `*.domain` |
 | Split large policy headers | Splits above the size limit into headers that together allow exactly the same |
 
-Splitting repeats `report-uri` in every header and copies `default-src` into the directives that fell back to it, so
-the headers together are larger than the single header. If one group of related directives alone exceeds the limit,
+Splitting repeats `report-uri` in every header and keeps `default-src` in one of them, which also restricts prefetch
+and prerender requests. That header gets a permissive source list for each directive another header restricts, so the
+other header decides; the headers together are larger than the single header. If one group of related directives alone exceeds the limit,
 the header is sent unsplit and **System Messages** shows it: check the response header size against your web server
 and proxy limits (`curl -sI https://your-store/ | wc -c`).
 

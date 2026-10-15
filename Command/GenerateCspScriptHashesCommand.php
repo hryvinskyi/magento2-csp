@@ -10,10 +10,12 @@ declare(strict_types=1);
 namespace Hryvinskyi\Csp\Command;
 
 use Hryvinskyi\Csp\Model\ScriptHash\ScriptHashWhitelister;
+use Hryvinskyi\Csp\Model\ScriptHash\ScriptSourcePool;
 use Hryvinskyi\Csp\Model\ScriptHash\StoreContentScanner;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Store\Model\StoreManagerInterface;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Formatter\OutputFormatter;
 use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -36,12 +38,14 @@ class GenerateCspScriptHashesCommand extends Command
 
     /**
      * @param StoreContentScanner $scanner
+     * @param ScriptSourcePool $sources
      * @param ScriptHashWhitelister $whitelister
      * @param StoreManagerInterface $storeManager
      * @param ConfirmationQuestionFactory $confirmationQuestionFactory
      */
     public function __construct(
         private readonly StoreContentScanner $scanner,
+        private readonly ScriptSourcePool $sources,
         private readonly ScriptHashWhitelister $whitelister,
         private readonly StoreManagerInterface $storeManager,
         private readonly ConfirmationQuestionFactory $confirmationQuestionFactory
@@ -61,7 +65,7 @@ class GenerateCspScriptHashesCommand extends Command
                 self::OPTION_TYPE,
                 't',
                 InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY,
-                sprintf('Content to scan (%s); all by default', implode(', ', $this->scanner->sourceCodes()))
+                sprintf('Content to scan (%s); all by default', implode(', ', $this->sources->codes()))
             )
             ->addOption(self::OPTION_YES, 'y', InputOption::VALUE_NONE, 'Allow every script found without asking');
     }
@@ -72,7 +76,7 @@ class GenerateCspScriptHashesCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $types = array_values(array_filter((array)$input->getOption(self::OPTION_TYPE), 'is_string'));
-        $types = $types === [] ? $this->scanner->sourceCodes() : $types;
+        $types = $types === [] ? $this->sources->codes() : $types;
         $allowAll = (bool)$input->getOption(self::OPTION_YES);
         $helper = $this->getHelper('question');
         $question = $helper instanceof QuestionHelper ? $helper : null;
@@ -85,7 +89,7 @@ class GenerateCspScriptHashesCommand extends Command
                 }
             }
         } catch (\InvalidArgumentException | LocalizedException $exception) {
-            $output->writeln(sprintf('<error>%s</error>', $exception->getMessage()));
+            $output->writeln(sprintf('<error>%s</error>', OutputFormatter::escape($exception->getMessage())));
 
             return Command::FAILURE;
         }
@@ -116,12 +120,12 @@ class GenerateCspScriptHashesCommand extends Command
         if ($entity['scripts'] === [] && $entity['warning'] === null) {
             return;
         }
-        $output->writeln(sprintf('  %s', $entity['label']));
+        $output->writeln(sprintf('  %s', OutputFormatter::escape($entity['label'])));
         if ($entity['warning'] !== null) {
-            $output->writeln(sprintf('    <comment>%s</comment>', $entity['warning']));
+            $output->writeln(sprintf('    <comment>%s</comment>', OutputFormatter::escape($entity['warning'])));
         }
         foreach ($entity['skipped'] as $reason) {
-            $output->writeln(sprintf('    skipped: %s', $reason));
+            $output->writeln(sprintf('    skipped: %s', OutputFormatter::escape($reason)));
         }
         foreach ($entity['scripts'] as $script) {
             $output->writeln(sprintf('    sha256-%s', $this->whitelister->hash($script)));

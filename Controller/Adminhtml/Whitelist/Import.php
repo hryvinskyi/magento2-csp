@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\Csp\Controller\Adminhtml\Whitelist;
 
+use Hryvinskyi\Csp\Model\Admin\EscapedMessages;
 use Hryvinskyi\Csp\Model\Import\WhitelistImporter;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
@@ -29,10 +30,12 @@ class Import extends Action implements HttpPostActionInterface
     /**
      * @param Context $context
      * @param WhitelistImporter $importer
+     * @param EscapedMessages $messages
      */
     public function __construct(
         Context $context,
-        private readonly WhitelistImporter $importer
+        private readonly WhitelistImporter $importer,
+        private readonly EscapedMessages $messages
     ) {
         parent::__construct($context);
     }
@@ -45,22 +48,22 @@ class Import extends Action implements HttpPostActionInterface
         try {
             [$path, $extension] = $this->uploadedFile();
             $result = $this->importer->import($path, $extension);
-            $this->messageManager->addSuccessMessage((string)__(
+            $this->messages->success(__(
                 '%1 whitelist entry(ies) created, %2 updated.',
                 $result['created'],
                 $result['updated']
             ));
             foreach (array_slice($result['errors'], 0, self::MAX_REPORTED_ERRORS) as $error) {
-                $this->messageManager->addErrorMessage($error);
+                $this->messages->error($error);
             }
             if (count($result['errors']) > self::MAX_REPORTED_ERRORS) {
-                $this->messageManager->addErrorMessage((string)__(
+                $this->messages->error(__(
                     '%1 more row(s) could not be imported.',
                     count($result['errors']) - self::MAX_REPORTED_ERRORS
                 ));
             }
         } catch (LocalizedException $exception) {
-            $this->messageManager->addErrorMessage($exception->getMessage());
+            $this->messages->failure($exception);
         }
 
         return $this->resultRedirectFactory->create()->setPath('*/*/');
