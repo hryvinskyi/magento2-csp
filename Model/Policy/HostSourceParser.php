@@ -14,9 +14,19 @@ namespace Hryvinskyi\Csp\Model\Policy;
  *
  * Follows the host-source grammar of CSP Level 3: optional scheme, a host made of letters, digits and hyphens with an
  * optional leading "*." wildcard label, an optional port (digits or "*") and an optional path.
+ *
+ * The optimisation steps and the equivalence check ask about the same few hundred tokens many times per header, so
+ * results are remembered; the memory is bounded and starts over when full.
  */
 class HostSourceParser
 {
+    private const MEMO_LIMIT = 4096;
+
+    /**
+     * @var array<string, array{scheme: string|null, host: string, port: string|null, path: string|null}|null>
+     */
+    private array $parsed = [];
+
     private const PATTERN = '~^(?:(?<scheme>[a-z][a-z0-9+.\-]*)://)?'
         . '(?<host>\*|(?:\*\.)?[a-z0-9](?:[a-z0-9\-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9\-]*[a-z0-9])?)*)'
         . '(?::(?<port>[0-9]{1,5}|\*))?'
@@ -29,6 +39,24 @@ class HostSourceParser
      * @return array{scheme: string|null, host: string, port: string|null, path: string|null}|null
      */
     public function parse(string $token): ?array
+    {
+        if (array_key_exists($token, $this->parsed)) {
+            return $this->parsed[$token];
+        }
+        if (count($this->parsed) >= self::MEMO_LIMIT) {
+            $this->parsed = [];
+        }
+
+        return $this->parsed[$token] = $this->parseToken($token);
+    }
+
+    /**
+     * Parts of a host-source, parsed from scratch.
+     *
+     * @param string $token
+     * @return array{scheme: string|null, host: string, port: string|null, path: string|null}|null
+     */
+    private function parseToken(string $token): ?array
     {
         if (preg_match(self::PATTERN, $token, $matches, PREG_UNMATCHED_AS_NULL) !== 1) {
             return null;

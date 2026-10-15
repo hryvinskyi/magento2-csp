@@ -89,4 +89,16 @@ class RemoveCoveredHostsTest extends TestCase
     {
         return ['https page' => ['https'], 'http page' => ['http']];
     }
+
+    public function testAWildcardSeveralLabelsUpCoversDeepHostsAndNarrowerWildcards(): void
+    {
+        $policy = $this->step->apply($this->parsePolicy(
+            'img-src a.b.c.example.com *.c.example.com *.example.com *.Example.com example.org *.org.example.net'
+        ));
+
+        $this->assertSame(
+            ['*.example.com', '*.Example.com', 'example.org', '*.org.example.net'],
+            $policy->sources('img-src')
+        );
+    }
 }

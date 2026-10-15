@@ -60,4 +60,13 @@ class SourceListCanonicalizerTest extends TestCase
         $this->assertSame([], $this->canonicalizer->canonicalize('img-src', ["'none'"]));
         $this->assertSame([], $this->canonicalizer->canonicalize('img-src', ["'unsafe-inline'"]));
     }
+
+    public function testRemembersAListPerKindOfDirective(): void
+    {
+        $sources = ["'unsafe-inline'", 'CDN.example.com'];
+
+        $this->assertSame(["'unsafe-inline'", 'cdn.example.com'], $this->canonicalizer->canonicalize('script-src', $sources));
+        $this->assertSame(['cdn.example.com'], $this->canonicalizer->canonicalize('img-src', $sources));
+        $this->assertSame(["'unsafe-inline'", 'cdn.example.com'], $this->canonicalizer->canonicalize('style-src', $sources));
+    }
 }

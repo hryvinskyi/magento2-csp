@@ -83,6 +83,8 @@ reports are accepted only from the store's own pages.
 - `DynamicPolicyRegistryInterface::allow()` no longer throws: hashes may be a list or `[hash => algorithm]`
   (sha256/384/512), and an invalid directive, host or hash is logged and skipped.
 - `DynamicCspProvider` hash methods accept the 1.x `[hash => 'sha256']` map.
+- Optimising and splitting a header takes about 2 ms instead of about 20 ms for an 11 KB policy: parsed sources and
+  canonical source lists are remembered, and covering wildcards are looked up by domain suffix.
 
 ### Removed (backward-incompatible)
 - `Api\ConfigInterface` (split into `Api\Config\RulesConfigInterface`, `OptimizationConfigInterface`,

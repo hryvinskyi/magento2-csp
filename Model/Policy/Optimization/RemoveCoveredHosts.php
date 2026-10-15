@@ -77,18 +77,23 @@ class RemoveCoveredHosts implements PolicyOptimizationStepInterface
     private function withoutCovered(array $sources): array
     {
         $hasStar = in_array('*', $sources, true);
-        $wildcards = array_values(array_filter($sources, fn (string $token): bool => $this->isWildcardHost($token)));
+        $hosts = [];
+        $wildcards = [];
+        foreach ($sources as $index => $token) {
+            $parts = SourceKind::of($token) === SourceKind::Host ? $this->hostSourceParser->parse($token) : null;
+            if ($parts === null) {
+                continue;
+            }
+            $hosts[$index] = $parts;
+            if ($this->hostSourceParser->isWildcardHost($parts)) {
+                $wildcards[substr($parts['host'], 1)][$token] = $parts;
+            }
+        }
 
         $kept = [];
-        foreach ($sources as $token) {
-            if (SourceKind::of($token) !== SourceKind::Host) {
-                $kept[] = $token;
-                continue;
-            }
-            if ($hasStar && $this->isCoveredByStar($token)) {
-                continue;
-            }
-            if ($this->coveredByAny($token, $wildcards)) {
+        foreach ($sources as $index => $token) {
+            $parts = $hosts[$index] ?? null;
+            if ($parts !== null && $this->isCovered($token, $parts, $hasStar, $wildcards)) {
                 continue;
             }
             $kept[] = $token;
@@ -98,17 +103,25 @@ class RemoveCoveredHosts implements PolicyOptimizationStepInterface
     }
 
     /**
-     * Whether any wildcard covers the token.
+     * Whether `*` or another wildcard of the directive allows every request the host source allows.
      *
      * @param string $token
-     * @param list<string> $wildcards
+     * @param array{scheme: string|null, host: string, port: string|null, path: string|null} $parts
+     * @param bool $hasStar
+     * @param array<string, array<string, array{scheme: string|null, host: string, port: string|null, path: string|null}>> $wildcards
+     *        Wildcards by their ".domain" suffix, then by token
      * @return bool
      */
-    private function coveredByAny(string $token, array $wildcards): bool
+    private function isCovered(string $token, array $parts, bool $hasStar, array $wildcards): bool
     {
-        foreach ($wildcards as $wildcard) {
-            if ($this->coverage->covers($wildcard, $token)) {
-                return true;
+        if ($hasStar && in_array($parts['scheme'], self::STAR_SCHEMES, true)) {
+            return true;
+        }
+        foreach ($this->parentSuffixes($parts['host']) as $suffix) {
+            foreach ($wildcards[$suffix] ?? [] as $wildcardToken => $wildcard) {
+                if ($wildcardToken !== $token && $this->coverage->coversParts($wildcard, $parts)) {
+                    return true;
+                }
             }
         }
 
@@ -116,28 +129,22 @@ class RemoveCoveredHosts implements PolicyOptimizationStepInterface
     }
 
     /**
-     * Whether the token is a "*.domain" host source.
+     * The ".domain" suffixes a wildcard needs to cover the host: ".example.com" and ".com" for "a.example.com" or
+     * "*.a.example.com".
      *
-     * @param string $token
-     * @return bool
+     * @param string $host
+     * @return list<string>
      */
-    private function isWildcardHost(string $token): bool
+    private function parentSuffixes(string $host): array
     {
-        $parts = $this->hostSourceParser->parse($token);
+        $bare = str_starts_with($host, '*.') ? substr($host, 1) : '.' . $host;
+        $suffixes = [];
+        $position = strpos($bare, '.', 1);
+        while ($position !== false) {
+            $suffixes[] = substr($bare, $position);
+            $position = strpos($bare, '.', $position + 1);
+        }
 
-        return $parts !== null && $this->hostSourceParser->isWildcardHost($parts);
-    }
-
-    /**
-     * Whether a bare `*` allows every request the host source allows.
-     *
-     * @param string $token
-     * @return bool
-     */
-    private function isCoveredByStar(string $token): bool
-    {
-        $parts = $this->hostSourceParser->parse($token);
-
-        return $parts !== null && in_array($parts['scheme'], self::STAR_SCHEMES, true);
+        return $suffixes;
     }
 }

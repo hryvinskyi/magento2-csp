@@ -40,7 +40,20 @@ class HostSourceCoverage
         }
         $wildcard = $this->hostSourceParser->parse($wildcardToken);
         $host = $this->hostSourceParser->parse($hostToken);
-        if ($wildcard === null || $host === null || !$this->hostSourceParser->isWildcardHost($wildcard)) {
+
+        return $wildcard !== null && $host !== null && $this->coversParts($wildcard, $host);
+    }
+
+    /**
+     * Whether the parsed wildcard allows every request the parsed host allows.
+     *
+     * @param array{scheme: string|null, host: string, port: string|null, path: string|null} $wildcard
+     * @param array{scheme: string|null, host: string, port: string|null, path: string|null} $host
+     * @return bool
+     */
+    public function coversParts(array $wildcard, array $host): bool
+    {
+        if ($wildcard === $host || !$this->hostSourceParser->isWildcardHost($wildcard)) {
             return false;
         }
 

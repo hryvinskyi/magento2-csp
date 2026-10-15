@@ -77,4 +77,20 @@ class HostSourceParserTest extends TestCase
         $this->assertSame('wss://ws.example.com:443/socket', $this->parser->compose($parts));
         $this->assertFalse($this->parser->isWildcardHost($parts));
     }
+
+    public function testGivesTheSameAnswerAfterItsMemoryStartsOver(): void
+    {
+        $first = $this->parser->parse('HTTPS://CDN.Example.com:8443/Lib/');
+        for ($i = 0; $i < 5000; $i++) {
+            $this->parser->parse('host' . $i . '.example.com');
+        }
+
+        $this->assertSame($first, $this->parser->parse('HTTPS://CDN.Example.com:8443/Lib/'));
+        $this->assertSame(
+            ['scheme' => 'https', 'host' => 'cdn.example.com', 'port' => '8443', 'path' => '/Lib/'],
+            $first
+        );
+        $this->assertNull($this->parser->parse("'self'"));
+        $this->assertNull($this->parser->parse("'self'"));
+    }
 }

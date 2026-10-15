@@ -31,6 +31,14 @@ class SourceListCanonicalizer
     ];
 
     private const NONE = "'none'";
+    private const MEMO_LIMIT = 1024;
+
+    /**
+     * Canonical lists already computed: the equivalence check asks for the same lists many times per header.
+     *
+     * @var array<string, list<string>>
+     */
+    private array $canonical = [];
 
     /**
      * @param DirectiveCatalog $catalog
@@ -52,6 +60,26 @@ class SourceListCanonicalizer
     public function canonicalize(string $directive, array $sources): array
     {
         $scriptOrStyle = $this->catalog->isScriptOrStyleContext($directive);
+        $key = ($scriptOrStyle ? '1' : '0') . "\n" . implode("\n", $sources);
+        if (isset($this->canonical[$key])) {
+            return $this->canonical[$key];
+        }
+        if (count($this->canonical) >= self::MEMO_LIMIT) {
+            $this->canonical = [];
+        }
+
+        return $this->canonical[$key] = $this->canonicalList($scriptOrStyle, $sources);
+    }
+
+    /**
+     * Canonical tokens of a source list, computed from scratch.
+     *
+     * @param bool $scriptOrStyle Whether the list applies to scripts or styles
+     * @param list<string> $sources
+     * @return list<string>
+     */
+    private function canonicalList(bool $scriptOrStyle, array $sources): array
+    {
         $canonical = [];
         foreach ($sources as $token) {
             $kind = SourceKind::of($token);
