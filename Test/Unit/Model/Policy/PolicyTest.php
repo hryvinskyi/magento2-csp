@@ -43,4 +43,18 @@ class PolicyTest extends TestCase
         $this->assertSame("default-src 'self'; upgrade-insecure-requests", $policy->toHeaderValue());
         $this->assertSame(strlen("default-src 'self'; upgrade-insecure-requests"), $policy->byteLength());
     }
+
+    public function testCopiesMadeAfterRenderingRenderTheirOwnValue(): void
+    {
+        $policy = new Policy(['default-src' => ["'self'"], 'img-src' => ['data:']]);
+        $this->assertSame("default-src 'self'; img-src data:", $policy->toHeaderValue());
+
+        $changed = $policy->withSources('img-src', ['data:', 'cdn.example.com']);
+        $removed = $policy->without('img-src');
+
+        $this->assertSame("default-src 'self'; img-src data: cdn.example.com", $changed->toHeaderValue());
+        $this->assertSame(strlen("default-src 'self'; img-src data: cdn.example.com"), $changed->byteLength());
+        $this->assertSame("default-src 'self'", $removed->toHeaderValue());
+        $this->assertSame("default-src 'self'; img-src data:", $policy->toHeaderValue());
+    }
 }

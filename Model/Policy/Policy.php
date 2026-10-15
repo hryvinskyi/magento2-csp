@@ -17,6 +17,11 @@ use Hryvinskyi\Csp\Api\Data\PolicyInterface;
 class Policy implements PolicyInterface
 {
     /**
+     * Header value, built once: the splitter and the header processor ask for it and its length repeatedly.
+     */
+    private ?string $headerValue = null;
+
+    /**
      * @param array<string, list<string>> $directives Lower-case directive name => source tokens, in header order
      */
     public function __construct(private array $directives = [])
@@ -62,6 +67,7 @@ class Policy implements PolicyInterface
     {
         $copy = clone $this;
         $copy->directives[$name] = $sources;
+        $copy->headerValue = null;
 
         return $copy;
     }
@@ -73,6 +79,7 @@ class Policy implements PolicyInterface
     {
         $copy = clone $this;
         unset($copy->directives[$name]);
+        $copy->headerValue = null;
 
         return $copy;
     }
@@ -82,12 +89,15 @@ class Policy implements PolicyInterface
      */
     public function toHeaderValue(): string
     {
+        if ($this->headerValue !== null) {
+            return $this->headerValue;
+        }
         $parts = [];
         foreach ($this->directives as $name => $sources) {
             $parts[] = $sources === [] ? $name : $name . ' ' . implode(' ', $sources);
         }
 
-        return implode('; ', $parts);
+        return $this->headerValue = implode('; ', $parts);
     }
 
     /**

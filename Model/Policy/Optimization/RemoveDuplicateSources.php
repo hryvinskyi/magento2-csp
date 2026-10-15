@@ -93,8 +93,10 @@ class RemoveDuplicateSources implements PolicyOptimizationStepInterface
         if ($kind === SourceKind::Nonce || $kind === SourceKind::Hash) {
             return $token;
         }
-        if ($kind !== SourceKind::Host) {
-            return strtolower($token);
+        $lower = strtolower($token);
+        // A lower-case host source is already in canonical form; so is a token that is not a host source at all.
+        if ($kind !== SourceKind::Host || $lower === $token) {
+            return $lower;
         }
         $parts = $this->hostSourceParser->parse($token);
 

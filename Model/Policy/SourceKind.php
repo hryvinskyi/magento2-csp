@@ -21,6 +21,9 @@ enum SourceKind
     case Wildcard;
     case Host;
 
+    private const LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    private const SCHEME_CHARACTERS = self::LETTERS . '0123456789+.-';
+
     /**
      * Kind of a source token as it appears in a header.
      *
@@ -29,23 +32,34 @@ enum SourceKind
      */
     public static function of(string $token): self
     {
-        $lower = strtolower($token);
-        if (str_starts_with($lower, "'nonce-")) {
-            return self::Nonce;
-        }
-        if (preg_match("/^'sha(256|384|512)-/", $lower) === 1) {
-            return self::Hash;
-        }
-        if (str_starts_with($token, "'")) {
-            return self::Keyword;
-        }
         if ($token === '*') {
             return self::Wildcard;
         }
-        if (preg_match('/^[a-z][a-z0-9+.\-]*:$/', $lower) === 1) {
-            return self::Scheme;
+        if (str_starts_with($token, "'")) {
+            $prefix = strtolower(substr($token, 0, 8));
+            if (str_starts_with($prefix, "'nonce-")) {
+                return self::Nonce;
+            }
+
+            return in_array($prefix, ["'sha256-", "'sha384-", "'sha512-"], true) ? self::Hash : self::Keyword;
         }
 
-        return self::Host;
+        return self::isScheme($token) ? self::Scheme : self::Host;
+    }
+
+    /**
+     * Whether the token is a scheme source: a letter, then letters, digits, "+", "." or "-", then ":".
+     *
+     * @param string $token
+     * @return bool
+     */
+    private static function isScheme(string $token): bool
+    {
+        $length = strlen($token);
+
+        return $length >= 2
+            && $token[$length - 1] === ':'
+            && strspn($token, self::LETTERS, 0, 1) === 1
+            && strspn($token, self::SCHEME_CHARACTERS, 1) === $length - 2;
     }
 }

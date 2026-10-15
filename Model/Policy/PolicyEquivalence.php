@@ -47,6 +47,36 @@ class PolicyEquivalence
     }
 
     /**
+     * Whether the policy allows the same requests without the directive.
+     *
+     * Same answer as {@see isEquivalent()} against the policy without it, but only the request types the directive
+     * governs are compared: no other request type, and no directive outside the fallback chains, can change.
+     *
+     * @param PolicyInterface $policy
+     * @param string $directive
+     * @return bool
+     */
+    public function allowsTheSameWithout(PolicyInterface $policy, string $directive): bool
+    {
+        if (!$policy->has($directive)) {
+            return true;
+        }
+        if (!$this->catalog->isFetchDirective($directive)) {
+            return false;
+        }
+        $without = $policy->without($directive);
+        foreach ($this->catalog->requestDirectives() as $requestDirective) {
+            if ($this->fallbackResolver->effectiveDirective($policy, $requestDirective) === $directive
+                && $this->effective($policy, $requestDirective) !== $this->effective($without, $requestDirective)
+            ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Names of the request types and directives the two policies treat differently.
      *
      * @param PolicyInterface $expected

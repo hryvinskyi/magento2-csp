@@ -53,9 +53,8 @@ class RemoveRedundantDirectives implements PolicyOptimizationStepInterface
             if ($name === DirectiveCatalog::DEFAULT_SRC || !$this->catalog->isFetchDirective($name)) {
                 continue;
             }
-            $candidate = $policy->without($name);
-            if ($this->equivalence->isEquivalent($policy, $candidate)) {
-                $policy = $candidate;
+            if ($this->equivalence->allowsTheSameWithout($policy, $name)) {
+                $policy = $policy->without($name);
             }
         }
 

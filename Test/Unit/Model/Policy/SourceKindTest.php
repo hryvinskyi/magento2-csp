@@ -44,6 +44,14 @@ class SourceKindTest extends TestCase
             'host with scheme' => ['https://cdn.example.com', SourceKind::Host],
             'websocket host' => ['wss://ws.example.com', SourceKind::Host],
             'wildcard host' => ['*.example.com', SourceKind::Host],
+            'upper-case nonce prefix' => ["'NONCE-abc'", SourceKind::Nonce],
+            'other digest' => ["'sha1-AbC='", SourceKind::Keyword],
+            'upper-case scheme' => ['HTTPS:', SourceKind::Scheme],
+            'scheme with plus, dot and dash' => ['web+app.v-2:', SourceKind::Scheme],
+            'scheme starting with a digit' => ['1http:', SourceKind::Host],
+            'colon alone' => [':', SourceKind::Host],
+            'host ending in a colon' => ['https://example.com:', SourceKind::Host],
+            'host with port' => ['example.com:443', SourceKind::Host],
         ];
     }
 }

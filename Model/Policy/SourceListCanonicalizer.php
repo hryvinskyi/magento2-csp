@@ -130,6 +130,9 @@ class SourceListCanonicalizer
      */
     private function canonicalHost(string $token): string
     {
+        if (strtolower($token) === $token) {
+            return $token;
+        }
         $parts = $this->hostSourceParser->parse($token);
 
         return $parts === null ? $token : $this->hostSourceParser->compose($parts);

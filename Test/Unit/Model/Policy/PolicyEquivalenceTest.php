@@ -178,4 +178,50 @@ class PolicyEquivalenceTest extends TestCase
             $this->equivalence()->differences($original, $withoutFlags)
         );
     }
+
+    /**
+     * @dataProvider policiesToTrim
+     * @param string $header
+     */
+    public function testRemovalCheckAgreesWithTheFullComparison(string $header): void
+    {
+        $policy = $this->parsePolicy($header);
+        $equivalence = $this->equivalence();
+        $names = array_merge($policy->names(), ['img-src', 'worker-src', 'frame-ancestors', 'sandbox']);
+
+        foreach (array_unique($names) as $name) {
+            $this->assertSame(
+                $equivalence->isEquivalent($policy, $policy->without($name)),
+                $equivalence->allowsTheSameWithout($policy, $name),
+                $name . ' in ' . $header
+            );
+        }
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function policiesToTrim(): array
+    {
+        return [
+            'children equal to default' => [
+                "default-src 'self' cdn.example.com; img-src 'self' cdn.example.com; "
+                . "script-src 'self' cdn.example.com 'unsafe-inline'; style-src cdn.example.com 'self'",
+            ],
+            'script-only keywords ignored outside scripts' => [
+                "default-src 'self' 'unsafe-inline' 'unsafe-eval'; img-src 'self' 'unsafe-inline'; font-src 'self'",
+            ],
+            'fallback chains' => [
+                "default-src 'self'; script-src 'self' js.example.com; script-src-elem 'self' js.example.com; "
+                . "child-src 'self'; worker-src 'self'; frame-src 'self'; script-src-attr 'none'",
+            ],
+            'standalone and flag directives' => [
+                "default-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; "
+                . 'upgrade-insecure-requests; report-uri /csp; sandbox allow-scripts',
+            ],
+            'no default-src' => [
+                "img-src 'self' data:; connect-src 'self' wss://ws.example.com; media-src 'none'",
+            ],
+        ];
+    }
 }

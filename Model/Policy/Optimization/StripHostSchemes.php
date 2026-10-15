@@ -75,7 +75,8 @@ class StripHostSchemes implements PolicyOptimizationStepInterface
      */
     private function strip(string $token): string
     {
-        if (SourceKind::of($token) !== SourceKind::Host) {
+        // Only a token spelled with an https scheme has one to strip.
+        if (strncasecmp($token, 'https://', 8) !== 0 || SourceKind::of($token) !== SourceKind::Host) {
             return $token;
         }
         $parts = $this->hostSourceParser->parse($token);
