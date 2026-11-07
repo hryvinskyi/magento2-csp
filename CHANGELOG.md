@@ -2,6 +2,11 @@
 
 All notable changes to the Hryvinskyi_Csp module will be documented in this file.
 
+## [2.0.2] - 2026-11-07
+
+### Changed
+- Allows `hryvinskyi/magento2-base` 3.
+
 ## [2.0.1] - 2026-10-16
 
 ### Added

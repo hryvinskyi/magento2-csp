@@ -1,6 +1,6 @@
 {
   "name": "hryvinskyi/magento2-csp",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Content Security Policy management for Magento 2: admin whitelist per store and area, violation reports with conversion, semantics-preserving header optimisation and splitting, script hashes for CMS content",
   "type": "magento2-module",
   "require": {
@@ -10,7 +10,7 @@
     "ext-libxml": "*",
     "ext-mbstring": "*",
     "php": ">=8.1 <8.6",
-    "hryvinskyi/magento2-base": "^2.1.6",
+    "hryvinskyi/magento2-base": "^2.1.6 || ^3.0",
     "hryvinskyi/magento2-logger": "^1.1",
     "laminas/laminas-http": "^2.15",
     "laminas/laminas-loader": "^2.8",
