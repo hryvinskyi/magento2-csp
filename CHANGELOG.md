@@ -2,6 +2,15 @@
 
 All notable changes to the Hryvinskyi_Csp module will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+- The report and report group grids' row actions Convert to Whitelist, Skip and Deny ask for confirmation and
+  are sent as POST. Without a confirm the grid rendered them as plain links, so the browser sent a GET that the
+  POST-only controllers refused with a 404 ([#12](https://github.com/hryvinskyi/magento2-csp/issues/12)).
+- The convert confirmations, row and mass action, say that a group which becomes allowed is removed together with
+  its reports.
+
 ## [2.0.2] - 2026-11-07
 
 ### Changed

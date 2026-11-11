@@ -16,7 +16,11 @@ use Magento\Framework\View\Element\UiComponentFactory;
 use Magento\Ui\Component\Listing\Columns\Column;
 
 /**
- * Actions of a report group row: its reports, conversion, status changes and deletion; every change is a POST.
+ * Actions of a report group row: its reports, conversion, status changes and deletion.
+ *
+ * Every change is a POST behind a confirmation. The grid reads the post flag of an action with an href only in
+ * its default handler, which a confirm attaches; a callback replaces that handler and never posts, and without
+ * either the action is a plain link the browser opens with GET.
  */
 class ReportGroupActions extends Column
 {
@@ -64,6 +68,13 @@ class ReportGroupActions extends Column
                 'convert' => [
                     'href' => $this->urlBuilder->getUrl('hryvinskyi_csp/reportgroup/convertToWhitelist', ['id' => $id]),
                     'label' => __('Convert to Whitelist'),
+                    'confirm' => [
+                        'title' => __('Convert this report group?'),
+                        'message' => __(
+                            'Convert this report group to a whitelist entry? Inline code, eval and unsafe sources are refused. If it becomes allowed, the group is removed with all its reports.'
+                        ),
+                        '__disableTmpl' => true,
+                    ],
                     'post' => true,
                 ],
                 'skip' => [
@@ -72,6 +83,11 @@ class ReportGroupActions extends Column
                         ['id' => $id, 'status' => Status::SKIP->value]
                     ),
                     'label' => __('Skip'),
+                    'confirm' => [
+                        'title' => __('Skip this report group?'),
+                        'message' => __('New violations of this group will still be recorded, without an alert.'),
+                        '__disableTmpl' => true,
+                    ],
                     'post' => true,
                 ],
                 'deny' => [
@@ -80,6 +96,11 @@ class ReportGroupActions extends Column
                         ['id' => $id, 'status' => Status::DENIED->value]
                     ),
                     'label' => __('Deny'),
+                    'confirm' => [
+                        'title' => __('Deny this report group?'),
+                        'message' => __('New violations of this group will no longer be recorded.'),
+                        '__disableTmpl' => true,
+                    ],
                     'post' => true,
                 ],
                 'delete' => [

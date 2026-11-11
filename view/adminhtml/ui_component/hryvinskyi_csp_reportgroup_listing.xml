@@ -86,7 +86,7 @@
                         <item name="url" xsi:type="url" path="hryvinskyi_csp/reportGroup/massConvert"/>
                         <item name="confirm" xsi:type="array">
                             <item name="title" xsi:type="string" translate="true">Convert items</item>
-                            <item name="message" xsi:type="string" translate="true">Convert the selected report groups to whitelist entries? Inline code, eval and unsafe sources are refused.</item>
+                            <item name="message" xsi:type="string" translate="true">Convert the selected report groups to whitelist entries? Inline code, eval and unsafe sources are refused. Groups that become allowed are removed with all their reports.</item>
                         </item>
                     </item>
                 </argument>
