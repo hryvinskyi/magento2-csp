@@ -2,7 +2,7 @@
 
 All notable changes to the Hryvinskyi_Csp module will be documented in this file.
 
-## [Unreleased]
+## [2.0.3] - 2026-11-11
 
 ### Fixed
 - The report and report group grids' row actions Convert to Whitelist, Skip and Deny ask for confirmation and
