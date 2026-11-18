@@ -13,6 +13,7 @@ use Hryvinskyi\Csp\Api\Data\WhitelistInterfaceFactory;
 use Hryvinskyi\Csp\Api\WhitelistRepositoryInterface;
 use Hryvinskyi\Csp\Model\Admin\EscapedMessages;
 use Hryvinskyi\Csp\Model\Whitelist\EntryDataMapper;
+use Hryvinskyi\Csp\Model\Whitelist\SingleStoreScope;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\Action\HttpPostActionInterface;
@@ -35,6 +36,7 @@ class Save extends Action implements HttpPostActionInterface
      * @param WhitelistInterfaceFactory $entityFactory
      * @param EntryDataMapper $entryDataMapper
      * @param EscapedMessages $messages
+     * @param SingleStoreScope $singleStoreScope
      */
     public function __construct(
         Context $context,
@@ -42,7 +44,8 @@ class Save extends Action implements HttpPostActionInterface
         private readonly WhitelistRepositoryInterface $entityRepository,
         private readonly WhitelistInterfaceFactory $entityFactory,
         private readonly EntryDataMapper $entryDataMapper,
-        private readonly EscapedMessages $messages
+        private readonly EscapedMessages $messages,
+        private readonly SingleStoreScope $singleStoreScope
     ) {
         parent::__construct($context);
     }
@@ -63,6 +66,7 @@ class Save extends Action implements HttpPostActionInterface
         try {
             $entity = is_numeric($id) ? $this->entityRepository->getById((int)$id) : $this->entityFactory->create();
             $this->entryDataMapper->apply($entity, $data);
+            $this->singleStoreScope->applyTo($entity);
             $this->entityRepository->save($entity);
             $this->messages->success(__('The whitelist entry has been saved.'));
             $this->dataPersistor->clear(self::PERSISTOR_KEY);

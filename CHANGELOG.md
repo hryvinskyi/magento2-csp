@@ -2,6 +2,14 @@
 
 All notable changes to the Hryvinskyi_Csp module will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+- In single-store mode a whitelist entry can be added from the admin form again. Magento hides the store view picker
+  in that mode, so the form sent no store views and the save was refused with "Choose the store views the entry
+  applies to, or All Store Views." A new entry saved without store views now applies to all store views; an existing
+  entry keeps the store views it has ([#14](https://github.com/hryvinskyi/magento2-csp/issues/14)).
+
 ## [2.0.3] - 2026-11-11
 
 ### Fixed
