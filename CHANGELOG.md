@@ -2,7 +2,7 @@
 
 All notable changes to the Hryvinskyi_Csp module will be documented in this file.
 
-## [Unreleased]
+## [2.0.4] - 2026-11-18
 
 ### Fixed
 - In single-store mode a whitelist entry can be added from the admin form again. Magento hides the store view picker
